@@ -207,33 +207,34 @@ public class ImageLoader: ImageLoading {
     }
 
     private func loadDataFor(task: ImageTask) {
-        let dataTask = DataTask()
-        dataTask.URLSessionTask = conf.dataLoader.taskWith(task.request, progress: { [weak self] completed, total in
-            self?.queue.async {
-                self?.dataTask(dataTask, imageTask: task, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
-            }
-            }, completion: { [weak self] data, response, error in
+        let dataTask = conf.dataLoader.taskWith(
+            task.request,
+            progress: { [weak self] dataTask, completed, total in
+                self?.queue.async {
+                    self?.dataTask(dataTask, imageTask: task, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+                }
+            },
+            completion: { [weak self] dataTask, data, response, error in
                 self?.queue.async {
                     self?.dataTask(dataTask, imageTask: task, didCompleteWithData: data, response: response, error: error)
                 }
             })
         #if !os(OSX)
             if let priority = task.request.priority {
-                dataTask.URLSessionTask.priority = priority
+                dataTask.priority = priority
             }
         #endif
         loadStates[task] = .Loading(dataTask)
-        taskQueue.resume(dataTask.URLSessionTask)
+        taskQueue.resume(dataTask)
     }
 
-    private func dataTask(dataTask: DataTask, imageTask: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
-        dataTask.progress = progress
-        manager?.loader(self, task: imageTask, didUpdateProgress: dataTask.progress)
+    private func dataTask(dataTask: NSURLSessionTask, imageTask: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
+        manager?.loader(self, task: imageTask, didUpdateProgress: progress)
     }
     
-    private func dataTask(dataTask: DataTask, imageTask: ImageTask,didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
+    private func dataTask(dataTask: NSURLSessionTask, imageTask: ImageTask,didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
         // Mark task as finished (or cancelled) only when NSURLSession reports it
-        taskQueue.finish(dataTask.URLSessionTask)
+        taskQueue.finish(dataTask)
 
         if let data = data where error == nil {
             if let response = response, cache = conf.cache {
@@ -288,7 +289,7 @@ public class ImageLoader: ImageLoading {
             if let state = self.loadStates[task] {
                 switch state {
                 case .CacheLookup(let operation): operation.cancel()
-                case .Loading(let dataTask): self.taskQueue.cancel(dataTask.URLSessionTask)
+                case .Loading(let dataTask): self.taskQueue.cancel(dataTask)
                 case .Decoding: return
                 case .Processing(let operation): operation.cancel()
                 }
@@ -316,12 +317,7 @@ public class ImageLoader: ImageLoading {
 
 private enum ImageLoadState {
     case CacheLookup(NSOperation)
-    case Loading(DataTask)
+    case Loading(NSURLSessionTask)
     case Decoding()
     case Processing(NSOperation)
-}
-
-private class DataTask {
-    var URLSessionTask: NSURLSessionTask! // nonnull
-    var progress: ImageTaskProgress = ImageTaskProgress()
 }

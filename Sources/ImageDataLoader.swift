@@ -7,10 +7,10 @@ import Foundation
 // MARK: - ImageDataLoading
 
 /// Data loading completion closure.
-public typealias ImageDataLoadingCompletion = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
+public typealias ImageDataLoadingCompletion = (task: NSURLSessionTask, data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
 
 /// Data loading progress closure.
-public typealias ImageDataLoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias ImageDataLoadingProgress = (task: NSURLSessionTask, completed: Int64, total: Int64) -> Void
 
 /// Performs loading of image data.
 public protocol ImageDataLoading {
@@ -78,7 +78,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         lock.lock()
         if let handler = handlers[dataTask] {
             handler.data.appendData(data)
-            handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
+            handler.progress(task: dataTask, completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
         }
         lock.unlock()
     }
@@ -86,7 +86,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     public func URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError error: NSError?) {
         lock.lock()
         if let handler = handlers[task] {
-            handler.completion(data: handler.data, response: task.response, error: error)
+            handler.completion(task: task, data: handler.data, response: task.response, error: error)
             handlers[task] = nil
         }
         lock.unlock()
