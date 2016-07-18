@@ -148,7 +148,7 @@ public class ImageManager {
             let completions = task.completions
             let response = task.response!
             dispathOnMainThread {
-                completions.forEach { $0(response) }
+                completions.forEach { $0(task, response) }
             }
         default: break
         }
@@ -327,7 +327,7 @@ extension ImageManager: ImageTaskManaging {
                 assert(task.response != nil)
                 let response = task.response!.makeFastResponse()
                 dispathOnMainThread {
-                    completion(response)
+                    completion(task, response)
                 }
             default: task.completions.append(completion)
             }

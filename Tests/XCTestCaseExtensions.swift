@@ -15,6 +15,11 @@ extension XCTestCase {
         block(fulfill: { expectation.fulfill() })
     }
 
+    public func expect<T>(block: (fulfill: (Void) -> Void) -> T) -> T {
+        let expectation = self.expectation()
+        return block(fulfill: { expectation.fulfill() })
+    }
+
     public func expectation() -> XCTestExpectation {
         return self.expectationWithDescription("GenericExpectation")
     }

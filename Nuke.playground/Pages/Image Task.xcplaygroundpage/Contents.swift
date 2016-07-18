@@ -15,10 +15,10 @@ example("Using Image Task") {
     }
     
     task.completion {
-        let image = $0.image
+        let image = $0.1.image
     }
     task.completion { // Add multiple completions, even for completed task
-        let image = $0.image
+        let image = $0.1.image
     }
     
     task.resume()

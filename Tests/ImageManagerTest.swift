@@ -31,7 +31,7 @@ class ImageManagerTest: XCTestCase {
     func testThatRequestIsCompelted() {
         self.expect { fulfill in
             self.manager.taskWith(ImageRequest(URL: defaultURL)) {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }.resume()
         }
@@ -39,14 +39,13 @@ class ImageManagerTest: XCTestCase {
     }
 
     func testThatTaskChangesStateWhenCompleted() {
-        let task = self.manager.taskWith(defaultURL)
-        XCTAssertEqual(task.state, ImageTaskState.Suspended)
-        self.expect { fulfill in
-            task.completion { _ in
+        let task = self.expect { fulfill in
+            self.manager.taskWith(defaultURL) { task, _ in
                 XCTAssertEqual(task.state, ImageTaskState.Completed)
                 fulfill()
             }
         }
+        XCTAssertEqual(task.state, ImageTaskState.Suspended)
         task.resume()
         XCTAssertEqual(task.state, ImageTaskState.Running)
         self.wait()
@@ -55,12 +54,11 @@ class ImageManagerTest: XCTestCase {
     func testThatTaskChangesStateOnCallersThreadWhenCompleted() {
         let expectation = self.expectation()
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
-            let task = self.manager.taskWith(defaultURL)
-            XCTAssertEqual(task.state, ImageTaskState.Suspended)
-            task.completion { _ in
+            let task = self.manager.taskWith(defaultURL) { task, _ in
                 XCTAssertEqual(task.state, ImageTaskState.Completed)
                 expectation.fulfill()
             }
+            XCTAssertEqual(task.state, ImageTaskState.Suspended)
             task.resume()
             XCTAssertEqual(task.state, ImageTaskState.Running)
         }
@@ -71,13 +69,13 @@ class ImageManagerTest: XCTestCase {
         let task = self.manager.taskWith(defaultURL)
         self.expect { fulfill in
             task.completion {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }
         }
         self.expect { fulfill in
             task.completion {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }
         }
@@ -89,7 +87,7 @@ class ImageManagerTest: XCTestCase {
         let task = self.manager.taskWith(defaultURL)
         self.expect { fulfill in
             task.completion {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }
         }
@@ -97,7 +95,7 @@ class ImageManagerTest: XCTestCase {
 
         self.expect { fulfill in
             task.completion {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }
         }
@@ -107,7 +105,7 @@ class ImageManagerTest: XCTestCase {
 
         self.expect { fulfill in
             task.completion {
-                XCTAssertNotNil($0.image, "")
+                XCTAssertNotNil($0.1.image, "")
                 fulfill()
             }
         }
@@ -119,10 +117,8 @@ class ImageManagerTest: XCTestCase {
     func testThatResumedTaskIsCancelled() {
         self.mockSessionManager.enabled = false
 
-        let task = self.manager.taskWith(defaultURL)
-
-        self.expect { fulfill in
-            task.completion { response -> Void in
+        let task = self.expect { fulfill in
+            return self.manager.taskWith(defaultURL) { task, response in
                 switch response {
                 case .Success(_, _): XCTFail()
                 case let .Failure(error):
@@ -144,9 +140,8 @@ class ImageManagerTest: XCTestCase {
     }
 
     func testThatSuspendedTaskIsCancelled() {
-        let task = self.manager.taskWith(defaultURL)
-        self.expect { fulfill in
-            task.completion { response -> Void in
+        let task = self.expect { fulfill in
+            return self.manager.taskWith(defaultURL) { task, response in
                 switch response {
                 case .Success(_, _): XCTFail()
                 case let .Failure(error):
@@ -221,29 +216,30 @@ class ImageManagerTest: XCTestCase {
     
     func testThatDataTaskWithRemainingTasksDoesntGetCancelled() {
         self.mockSessionManager.enabled = false
-        
-        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        let task1 = self.manager.taskWith(defaultURL).resume()
-        let task2 = self.manager.taskWith(defaultURL).resume()
-        self.wait()
-        
-        self.expect { fulfill in
-            task1.completion {
-                XCTAssertEqual(task1.state, ImageTaskState.Cancelled)
-                XCTAssertNil($0.image)
+
+        let task1 = self.expect { fulfill in
+            return self.manager.taskWith(defaultURL) {
+                XCTAssertEqual($0.state, ImageTaskState.Cancelled)
+                XCTAssertNil($1.image)
                 fulfill()
             }
         }
         
-        self.expect { fulfill in
-            task2.completion {
-                XCTAssertEqual(task2.state, ImageTaskState.Completed)
-                XCTAssertNotNil($0.image)
+        let task2 = self.expect { fulfill in
+            return self.manager.taskWith(defaultURL) {
+                XCTAssertEqual($0.state, ImageTaskState.Completed)
+                XCTAssertNotNil($1.image)
                 fulfill()
             }
         }
-        
-        task1.cancel()
+
+        task1.resume()
+        task2.resume()
+
+        NSNotificationCenter.defaultCenter().addObserverForName(MockURLSessionDataTaskDidResumeNotification, object: nil, queue: nil) { _ in
+            task1.cancel()
+        }
+
         self.mockSessionManager.enabled = true
         self.wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
@@ -253,7 +249,7 @@ class ImageManagerTest: XCTestCase {
     // MARK: Progress
 
     func testThatProgressClosureIsCalled() {
-        let task = self.manager.taskWith(defaultURL, completion: nil)
+        let task = self.manager.taskWith(defaultURL)
         XCTAssertEqual(task.progress.total, 0)
         XCTAssertEqual(task.progress.completed, 0)
         XCTAssertEqual(task.progress.fractionCompleted, 0.0)
