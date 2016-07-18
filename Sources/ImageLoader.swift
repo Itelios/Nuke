@@ -83,9 +83,6 @@ public struct ImageLoaderConfiguration {
 
 /// Image loader customization endpoints.
 public protocol ImageLoaderDelegate {
-    /// Compares requests for equivalence with regard to loading image data. Requests should be considered equivalent if the loader can handle both requests with a single session task.
-    func loader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-    
     /// Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
     func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
     
@@ -125,17 +122,7 @@ public extension ImageLoaderDelegate {
 public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
     /// Initializes the delegate.
     public init() {}
-    
-    /// Compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
-    public func loader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        let a = lhs.URLRequest, b = rhs.URLRequest
-        return a.URL == b.URL &&
-            a.cachePolicy == b.cachePolicy &&
-            a.timeoutInterval == b.timeoutInterval &&
-            a.networkServiceType == b.networkServiceType &&
-            a.allowsCellularAccess == b.allowsCellularAccess
-    }
-    
+
     /// Compares request `URL`s, decompression parameters (`shouldDecompressImage`, `targetSize` and `contentMode`), and processors.
     public func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         return lhs.URLRequest.URL == rhs.URLRequest.URL &&
@@ -181,7 +168,6 @@ public class ImageLoader: ImageLoading {
     public let delegate: ImageLoaderDelegate
     
     private var loadStates = [ImageTask : ImageLoadState]()
-    private var dataTasks = [ImageRequestKey : DataTask]()
     private let taskQueue: TaskQueue
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     
@@ -207,7 +193,7 @@ public class ImageLoader: ImageLoading {
                     let data = cache.dataFor(task)
                     self?.queue.async {
                         if let data = data {
-                            self?.decodeData(data, tasks: [task])
+                            self?.decodeData(data, task: task)
                         } else {
                             guard self?.loadStates[task] != nil else { /* no longer registered */ return }
                             self?.loadDataFor(task)
@@ -221,84 +207,56 @@ public class ImageLoader: ImageLoading {
     }
 
     private func loadDataFor(task: ImageTask) {
-        // Reuse DataTasks (which wrap NSURLSessionTasks) for equivalent requests
-        let key = ImageRequestKey(task.request, owner: self)
-        var dataTask: DataTask! = dataTasks[key]
-        if dataTask == nil {
-            dataTask = createDataTask(request: task.request, key: key)
-            dataTasks[key] = dataTask
-        } else {
-            queue.async { // Subsribed to the existing DataTask, signal its progress
-                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
-            }
-        }
-        dataTask.registeredTasks.insert(task)
-        loadStates[task] = .Loading(dataTask)
-        taskQueue.resume(dataTask.URLSessionTask)
-    }
-    
-    private func createDataTask(request request: ImageRequest, key: ImageRequestKey) -> DataTask {
-        let dataTask = DataTask(key: key)
-        dataTask.URLSessionTask = conf.dataLoader.taskWith(request, progress: { [weak self] completed, total in
+        let dataTask = DataTask()
+        dataTask.URLSessionTask = conf.dataLoader.taskWith(task.request, progress: { [weak self] completed, total in
             self?.queue.async {
-                self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+                self?.dataTask(dataTask, imageTask: task, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
             }
-        }, completion: { [weak self] data, response, error in
-            self?.queue.async {
-                self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
-            }
-        })
+            }, completion: { [weak self] data, response, error in
+                self?.queue.async {
+                    self?.dataTask(dataTask, imageTask: task, didCompleteWithData: data, response: response, error: error)
+                }
+            })
         #if !os(OSX)
-            if let priority = request.priority {
+            if let priority = task.request.priority {
                 dataTask.URLSessionTask.priority = priority
             }
         #endif
-        return dataTask
+        loadStates[task] = .Loading(dataTask)
+        taskQueue.resume(dataTask.URLSessionTask)
     }
-    
-    private func dataTask(dataTask: DataTask, didUpdateProgress progress: ImageTaskProgress) {
+
+    private func dataTask(dataTask: DataTask, imageTask: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
         dataTask.progress = progress
-        dataTask.registeredTasks.forEach {
-            manager?.loader(self, task: $0, didUpdateProgress: dataTask.progress)
-        }
+        manager?.loader(self, task: imageTask, didUpdateProgress: dataTask.progress)
     }
     
-    private func dataTask(dataTask: DataTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
+    private func dataTask(dataTask: DataTask, imageTask: ImageTask,didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
         // Mark task as finished (or cancelled) only when NSURLSession reports it
         taskQueue.finish(dataTask.URLSessionTask)
-        
-        removeDataTask(dataTask) // No more ImageTasks can register
 
         if let data = data where error == nil {
             if let response = response, cache = conf.cache {
                 conf.cachingQueue.addBlock {
-                    // FIXME: The fact that we use first image task is confusing, because there is no direct relation between DataTask reusing and on-disk caching (it's up to the user).
-                    if let task = dataTask.registeredTasks.first {
-                        cache.setData(data, response: response, forTask: task)
-                    }
+                    cache.setData(data, response: response, forTask: imageTask)
                 }
             }
             
-            decodeData(data, response: response, tasks: dataTask.registeredTasks)
+            decodeData(data, response: response, task: imageTask)
         } else {
-            dataTask.registeredTasks.forEach {
-                complete($0, image: nil, error: error)
-            }
+            complete(imageTask, image: nil, error: error)
         }
     }
 
-    private func decodeData(data: NSData, response: NSURLResponse? = nil, tasks: Set<ImageTask>) {
-        let tasks = tasks.filter { loadStates[$0] != nil } // still registered
-        guard tasks.count > 0 else { return }
+    private func decodeData(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
+        guard loadStates[task] != nil else { return }
         conf.decodingQueue.addBlock { [weak self] in
             let image = self?.conf.decoder.decode(data, response: response)
             self?.queue.async {
-                tasks.forEach {
-                    self?.didDecodeImage(image, error: (image == nil ? errorWithCode(.DecodingFailed) : nil), task: $0)
-                }
+                self?.didDecodeImage(image, error: (image == nil ? errorWithCode(.DecodingFailed) : nil), task: task)
             }
         }
-        tasks.forEach { loadStates[$0] = .Decoding() }
+        loadStates[task] = .Decoding()
     }
     
     private func didDecodeImage(image: Image?, error: ErrorType?, task: ImageTask) {
@@ -330,24 +288,12 @@ public class ImageLoader: ImageLoading {
             if let state = self.loadStates[task] {
                 switch state {
                 case .CacheLookup(let operation): operation.cancel()
-                case .Loading(let dataTask):
-                    dataTask.registeredTasks.remove(task)
-                    if dataTask.registeredTasks.isEmpty {
-                        self.taskQueue.cancel(dataTask.URLSessionTask)
-                        self.removeDataTask(dataTask) // No more ImageTasks can register
-                    }
+                case .Loading(let dataTask): self.taskQueue.cancel(dataTask.URLSessionTask)
                 case .Decoding: return
                 case .Processing(let operation): operation.cancel()
                 }
                 self.loadStates[task] = nil // No longer registered
             }
-        }
-    }
-        
-    private func removeDataTask(task: DataTask) {
-        // We might receive signal from the task which place was taken by another task
-        if dataTasks[task.key] === task {
-            dataTasks[task.key] = nil
         }
     }
 
@@ -368,13 +314,6 @@ public class ImageLoader: ImageLoading {
     }
 }
 
-extension ImageLoader: ImageRequestKeyOwner {
-    /// Compares two requests for equivalence using ImageLoaderDelegate.
-    public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return delegate.loader(self, isLoadEquivalent: lhs.request, to: rhs.request)
-    }
-}
-
 private enum ImageLoadState {
     case CacheLookup(NSOperation)
     case Loading(DataTask)
@@ -383,12 +322,6 @@ private enum ImageLoadState {
 }
 
 private class DataTask {
-    let key: ImageRequestKey
     var URLSessionTask: NSURLSessionTask! // nonnull
-    var registeredTasks = Set<ImageTask>()
     var progress: ImageTaskProgress = ImageTaskProgress()
-    
-    init(key: ImageRequestKey) {
-        self.key = key
-    }
 }
