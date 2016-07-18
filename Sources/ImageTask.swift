@@ -57,17 +57,8 @@ public class ImageTask: Hashable {
         self.request = request
         self.identifier = identifier
     }
-    
-    /**
-     Adds a closure to be called on the main thread when task is either completed or cancelled.
-     
-     The closure is called synchronously when the requested image can be retrieved from the memory cache and the request was made from the main thread.
-     
-     The closure is called even if it is added to the already completed or cancelled task.
-     */
-    public func completion(completion: ImageTaskCompletion) -> Self { fatalError("Abstract method") }
-    
-    
+
+
     // MARK: Obraining Task Progress
     
     /// Return current task progress. Initial value is (0, 0).

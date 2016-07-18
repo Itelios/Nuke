@@ -44,13 +44,6 @@ public extension ImageManager {
     func taskWith(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
         return self.taskWith(ImageRequest(URL: URL), completion: completion)
     }
-    
-    /// Creates a task with a given request. For more info see `taskWith(_)` methpd.
-    func taskWith(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
-        let task = self.taskWith(request)
-        if completion != nil { task.completion(completion!) }
-        return task
-    }
 }
 
 

@@ -103,8 +103,8 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func taskWith(request: ImageRequest) -> ImageTask {
-        return ImageTaskInternal(manager: self, request: request, identifier: nextTaskIdentifier)
+    public func taskWith(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+        return ImageTaskInternal(manager: self, request: request, identifier: nextTaskIdentifier, completion: completion)
     }
     
     // MARK: FSM (ImageTaskState)
@@ -144,11 +144,11 @@ public class ImageManager {
             setNeedsExecutePreheatingTasks()
             
             assert(task.response != nil)
-            
-            let completions = task.completions
             let response = task.response!
-            dispathOnMainThread {
-                completions.forEach { $0(task, response) }
+            if let completion = task.completion {
+                dispathOnMainThread {
+                    completion(task, response)
+                }
             }
         default: break
         }
@@ -166,7 +166,7 @@ public class ImageManager {
             requests.forEach {
                 let key = ImageRequestKey($0, owner: self)
                 if preheatingTasks[key] == nil { // Don't create more than one task for the equivalent requests.
-                    preheatingTasks[key] = ImageTaskInternal(manager: self, request: $0, identifier: nextTaskIdentifier).completion { [weak self] _ in
+                    preheatingTasks[key] = ImageTaskInternal(manager: self, request: $0, identifier: nextTaskIdentifier) { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
                 }
@@ -319,20 +319,6 @@ extension ImageManager: ImageTaskManaging {
     private func cancel(task: ImageTaskInternal) {
         perform { setState(.Cancelled, forTask: task) }
     }
-    
-    private func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal) {
-        perform {
-            switch task.state {
-            case .Completed, .Cancelled:
-                assert(task.response != nil)
-                let response = task.response!.makeFastResponse()
-                dispathOnMainThread {
-                    completion(task, response)
-                }
-            default: task.completions.append(completion)
-            }
-        }
-    }
 }
 
 extension ImageManager: ImageRequestKeyOwner {
@@ -350,15 +336,15 @@ extension ImageManager: ImageRequestKeyOwner {
 private protocol ImageTaskManaging {
     func resume(task: ImageTaskInternal)
     func cancel(task: ImageTaskInternal)
-    func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal)
 }
 
 private class ImageTaskInternal: ImageTask {
     let manager: ImageTaskManaging
-    var completions = [ImageTaskCompletion]()
+    let completion: ImageTaskCompletion?
     
-    init(manager: ImageTaskManaging, request: ImageRequest, identifier: Int) {
+    init(manager: ImageTaskManaging, request: ImageRequest, identifier: Int, completion: ImageTaskCompletion?) {
         self.manager = manager
+        self.completion = completion
         super.init(request: request, identifier: identifier)
     }
     
@@ -369,11 +355,6 @@ private class ImageTaskInternal: ImageTask {
     
     override func cancel() -> Self {
         manager.cancel(self)
-        return self
-    }
-    
-    override func completion(completion: ImageTaskCompletion) -> Self {
-        manager.addCompletion(completion, forTask: self)
         return self
     }
 

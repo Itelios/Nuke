@@ -132,12 +132,6 @@ print(task.progress) // The initial progress is (completed: 0, total: 0)
 task.progressHandler = { progress in
    // Update progress
 }
-
-// Task represents an image promise
-// It allows you to add multiple completion handlers, even when the task is completed
-task.completion {
-    let image = $0.image
-}
 ```
 
 #### Using UI Extensions

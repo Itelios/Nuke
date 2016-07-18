@@ -186,19 +186,13 @@ public class ImageViewLoadingController {
     
     /// Creates a task, subscribes to it and resumes it.
     public func setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
-        return setImageWith(manager.taskWith(request), options: options)
-    }
-    
-    /// Subscribes for a given task and resumes it.
-    public func setImageWith(task: ImageTask, options: ImageViewLoadingOptions) -> ImageTask {
         cancelLoading()
-        imageTask = task
-        task.completion { [weak self] task, response in
+        let task = manager.taskWith(request) { [weak self] task, response in
             if task == self?.imageTask {
                 self?.handler(task, response, options)
             }
         }
-        task.resume()
-        return task
+        imageTask = task
+        return task.resume()
     }
 }

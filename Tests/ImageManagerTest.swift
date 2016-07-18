@@ -65,53 +65,6 @@ class ImageManagerTest: XCTestCase {
         self.wait()
     }
 
-    func testThatMultipleCompletionsCanBeAdded() {
-        let task = self.manager.taskWith(defaultURL)
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertNotNil($0.1.image, "")
-                fulfill()
-            }
-        }
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertNotNil($0.1.image, "")
-                fulfill()
-            }
-        }
-        task.resume()
-        self.wait()
-    }
-
-    func testThatCompletionsCanBeAddedForResumedAndCompletedTask() {
-        let task = self.manager.taskWith(defaultURL)
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertNotNil($0.1.image, "")
-                fulfill()
-            }
-        }
-        task.resume()
-
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertNotNil($0.1.image, "")
-                fulfill()
-            }
-        }
-        self.wait()
-
-        XCTAssertEqual(task.state, ImageTaskState.Completed)
-
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertNotNil($0.1.image, "")
-                fulfill()
-            }
-        }
-        self.wait()
-    }
-
     // MARK: Cancellation
 
     func testThatResumedTaskIsCancelled() {
