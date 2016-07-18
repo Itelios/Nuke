@@ -55,77 +55,26 @@ extension NSOperationQueue {
 }
 
 
-// MARK: TaskQueue
+// MARK: Operation
 
-public let SessionTaskDidResumeNotification = "com.github.kean.nuke.sessionTaskDidResume"
-public let SessionTaskDidCancelNotification = "com.github.kean.nuke.sessionTaskDidCancel"
-public let SessionTaskDidCompleteNotification = "com.github.kean.nuke.sessionTaskDidComplete"
-
-/// Limits number of concurrent tasks, prevents trashing of NSURLSession
-final class TaskQueue {
-    var maxExecutingTaskCount = 8
-    var congestionControlEnabled = true
-    
-    private let queue: dispatch_queue_t
-    private var pendingTasks = NSMutableOrderedSet()
-    private var executingTasks = Set<NSURLSessionTask>()
-    private var executing = false
-    
-    init(queue: dispatch_queue_t) {
-        self.queue = queue
-    }
-    
-    func resume(task: NSURLSessionTask) {
-        if !pendingTasks.containsObject(task) && !executingTasks.contains(task) {
-            pendingTasks.addObject(task)
-            setNeedsExecute()
+class Operation: NSOperation {
+    override var executing : Bool {
+        get { return _executing }
+        set {
+            willChangeValueForKey("isExecuting")
+            _executing = newValue
+            didChangeValueForKey("isExecuting")
         }
     }
+    private var _executing = false
     
-    func cancel(task: NSURLSessionTask) {
-        if pendingTasks.containsObject(task) {
-            pendingTasks.removeObject(task)
-        } else if executingTasks.contains(task) {
-            executingTasks.remove(task)
-            task.cancel()
-            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidCancelNotification, object: task)
-            setNeedsExecute()
+    override var finished : Bool {
+        get { return _finished }
+        set {
+            willChangeValueForKey("isFinished")
+            _finished = newValue
+            didChangeValueForKey("isFinished")
         }
     }
-    
-    func finish(task: NSURLSessionTask) {
-        if pendingTasks.containsObject(task) {
-            pendingTasks.removeObject(task)
-        } else if executingTasks.contains(task) {
-            executingTasks.remove(task)
-            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidCompleteNotification, object: task)
-            setNeedsExecute()
-        }
-    }
-    
-    func setNeedsExecute() {
-        if !executing {
-            executing = true
-            if congestionControlEnabled {
-                // Executing tasks too frequently might trash NSURLSession to the point it would crash or stop executing tasks
-                let delay = min(30.0, 8.0 + Double(executingTasks.count))
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_MSEC))), queue) {
-                    self.execute()
-                }
-            } else {
-                execute()
-            }
-        }
-    }
-    
-    func execute() {
-        executing = false
-        if let task = pendingTasks.firstObject as? NSURLSessionTask where executingTasks.count < maxExecutingTaskCount {
-            pendingTasks.removeObjectAtIndex(0)
-            executingTasks.insert(task)
-            task.resume()
-            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidResumeNotification, object: task)
-            setNeedsExecute()
-        }
-    }
+    private var _finished = false
 }
