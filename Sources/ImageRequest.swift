@@ -9,15 +9,6 @@ import Foundation
     import UIKit
 #endif
 
-/// An option for how to resize the image to the target size.
-public enum ImageContentMode {
-    /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
-    case AspectFill
-    
-    /// Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
-    case AspectFit
-}
-
 /// Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
 public enum ImageRequestMemoryCachePolicy {
     /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
@@ -26,9 +17,6 @@ public enum ImageRequestMemoryCachePolicy {
     /// Reload using ignoring memory cached images. Doesn't affect on-disk caching.
     case ReloadIgnoringCachedImage
 }
-
-/// Size to pass when requesting the original image available for a request (image won't be resized).
-public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
 /// Encapsulates image request parameters.
 public struct ImageRequest {

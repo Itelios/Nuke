@@ -97,6 +97,18 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
 
 #if !os(OSX)
 
+    /// An option for how to resize the image to the target size.
+    public enum ImageContentMode {
+        /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
+        case AspectFill
+
+        /// Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
+        case AspectFit
+    }
+
+    /// Size to pass when requesting the original image available for a request (image won't be resized).
+    public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
+
     // MARK: - ImageDecompressor
 
     /**
