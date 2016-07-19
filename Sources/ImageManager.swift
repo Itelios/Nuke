@@ -45,21 +45,9 @@ public struct ImageManagerConfiguration {
      - parameter loader: Image loader.
      - parameter cache: Memory cache. Default `ImageMemoryCache` instance is created if the parameter is omitted.
      */
-    public init(loader: ImageLoading, cache: ImageMemoryCaching? = ImageMemoryCache()) {
+    public init(loader: ImageLoading, cache: ImageMemoryCaching?) {
         self.loader = loader
         self.cache = cache
-    }
-    
-    /**
-     Convenience initializer that creates instance of `ImageLoader` class with a given `dataLoader` and `decoder`, then calls the default initializer.
-     
-     - parameter dataLoader: Image data loader.
-     - parameter decoder: Image decoder. Default `ImageDecoder` instance is created if the parameter is omitted.
-     - parameter cache: Memory cache. Default `ImageMemoryCache` instance is created if the parameter is omitted.
-     */
-    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching? = ImageMemoryCache()) {
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: dataLoader, decoder: decoder))
-        self.init(loader: loader, cache: cache)
     }
 }
 
@@ -92,7 +80,7 @@ public class ImageManager {
     public let configuration: ImageManagerConfiguration
 
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
-    public init(configuration: ImageManagerConfiguration = ImageManagerConfiguration(dataLoader: ImageDataLoader())) {
+    public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
         self.cache = configuration.cache
         self.loader = configuration.loader
