@@ -16,9 +16,6 @@ public protocol ImageLoading: class {
 
     /// Cancels loading for the given task.
     func cancelLoadingFor(task: ImageTask)
-    
-    /// Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
-    func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
 }
 
 // MARK: - ImageLoadingDelegate
@@ -74,9 +71,6 @@ public struct ImageLoaderConfiguration {
 
 /// Image loader customization endpoints.
 public protocol ImageLoaderDelegate {
-    /// Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
-    func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-    
     /// Returns processor for the given request and image.
     func loader(loader: ImageLoader, processorFor: ImageRequest, image: Image) -> ImageProcessing?
 }
@@ -97,20 +91,6 @@ public extension ImageLoaderDelegate {
 public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
     /// Initializes the delegate.
     public init() {}
-
-    /// Compares request `URL`s and processors.
-    public func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return lhs.URLRequest.URL == rhs.URLRequest.URL &&
-            isEquivalent(lhs.processor, rhs: rhs.processor)
-    }
-    
-    private func isEquivalent(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
-        switch (lhs, rhs) {
-        case let (l?, r?): return l.isEquivalent(r)
-        case (nil, nil): return true
-        default: return false
-        }
-    }
     
     /// Constructs image decompressor based on the request's target size and content mode (if decompression is allowed). Combined the decompressor with the processor provided in the request.
     public func loader(loader: ImageLoader, processorFor request: ImageRequest, image: Image) -> ImageProcessing? {
@@ -279,11 +259,6 @@ public class ImageLoader: ImageLoading {
                 self.loadStates[task] = nil // No longer registered
             }
         }
-    }
-
-    /// Comapres two requests using ImageLoaderDelegate for equivalence in regards to memory caching.
-    public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
     }
 
     private func then<T>(for task: ImageTask, result: T, block: (T -> Void)) {

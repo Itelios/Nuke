@@ -229,8 +229,12 @@ public class ImageManager {
     
     private func makeCacheKey(request: ImageRequest) -> ImageRequestKey {
         return ImageRequestKey(request: request) { [weak self] lhs, rhs in
-            return self?.loader.isCacheEquivalent(lhs.request, to: rhs.request) ?? false
+            return self?.isCacheEquivalent(lhs.request, rhs.request) ?? false
         }
+    }
+    
+    private func isCacheEquivalent(lhs: ImageRequest, _ rhs: ImageRequest) -> Bool {
+        return lhs.URLRequest.URL == rhs.URLRequest.URL && isEquivalent(lhs.processor, rhs: rhs.processor)
     }
     
     // MARK: Misc

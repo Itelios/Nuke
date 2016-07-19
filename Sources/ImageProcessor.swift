@@ -95,6 +95,15 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
     return lhs.identifier == rhs.identifier
 }
 
+
+func isEquivalent(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
+    switch (lhs, rhs) {
+    case let (l?, r?): return l.isEquivalent(r)
+    case (nil, nil): return true
+    default: return false
+    }
+}
+
 #if !os(OSX)
 
     /// An option for how to resize the image to the target size.
