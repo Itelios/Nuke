@@ -72,18 +72,9 @@ class PreheatingDemoViewController: UICollectionViewController {
         let imageView = imageViewForCell(cell)
         let imageURL = photos[indexPath.row]
         imageView.image = nil
-        imageView.nk_setImageWith(imageRequestWithURL(imageURL))
+        imageView.nk_setImageWith(ImageRequest(URL: imageURL))
         
         return cell
-    }
-    
-    func imageRequestWithURL(URL: NSURL) -> ImageRequest {
-        func imageTargetSize() -> CGSize {
-            let size = (collectionViewLayout as! UICollectionViewFlowLayout).itemSize
-            let scale = UIScreen.mainScreen().scale
-            return CGSize(width: size.width * scale, height: size.height * scale)
-        }
-        return ImageRequest(URL: URL, targetSize: imageTargetSize(), contentMode: .AspectFill)
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
@@ -107,7 +98,7 @@ class PreheatingDemoViewController: UICollectionViewController {
  
     func preheatWindowChanged(addedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
         func requestForIndexPaths(indexPaths: [NSIndexPath]) -> [ImageRequest] {
-            return indexPaths.map { imageRequestWithURL(photos[$0.row]) }
+            return indexPaths.map { ImageRequest(URL: photos[$0.row]) }
         }
         Nuke.startPreheatingImages(requestForIndexPaths(addedIndexPaths))
         Nuke.stopPreheatingImages(requestForIndexPaths(removedIndexPaths))

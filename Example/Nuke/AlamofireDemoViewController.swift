@@ -22,6 +22,7 @@ class AlamofireDemoViewController: BasicDemoViewController {
         
         self.previousManager = ImageManager.shared
         
-        ImageManager.shared = (ImageManager(configuration: ImageManagerConfiguration(dataLoader: AlamofireImageDataLoader())))
+        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: AlamofireImageDataLoader()))
+        ImageManager.shared = (ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: ImageMemoryCache())))
     }
 }
