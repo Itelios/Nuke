@@ -57,6 +57,9 @@ public struct ImageLoaderConfiguration {
     /// Data loading queue.
     public var dataLoadingQueue = NSOperationQueue(maxConcurrentOperationCount: 8)
     
+    /// Image decoding queue. Default queue has a maximum concurrent operation count 1.
+    public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
+    
     /// Image processing queue. Default queue has a maximum concurrent operation count 2.
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
@@ -183,7 +186,7 @@ public class ImageLoader: ImageLoading {
                     let data = cache.dataFor(task)
                     self?.queue.async {
                         if let data = data {
-                            self?.processData(data, task: task)
+                            self?.decodeData(data, task: task)
                         } else {
                             guard self?.loadStates[task] != nil else { /* no longer registered */ return }
                             self?.loadDataFor(task)
@@ -233,33 +236,44 @@ public class ImageLoader: ImageLoading {
                     cache.setData(data, response: response, forTask: imageTask)
                 }
             }
-            processData(data, response: response, task: imageTask)
+            decodeData(data, response: response, task: imageTask)
         } else {
             complete(imageTask, image: nil, error: error)
         }
     }
 
-    private func processData(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
+    private func decodeData(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
         guard loadStates[task] != nil else { return }
-        loadStates[task] = .Processing(conf.processingQueue.addBlock {
-            guard let image = self.conf.decoder.decode(data, response: response) else {
-                self.complete(task, image: nil, error: errorWithCode(.DecodingFailed))
-                return
+        conf.decodingQueue.addBlock { [weak self] in
+            let image = self?.conf.decoder.decode(data, response: response)
+            self?.queue.async {
+                self?.didDecodeImage(image, error: (image == nil ? errorWithCode(.DecodingFailed) : nil), task: task)
             }
-            if let processor = self.delegate.loader(self, processorFor:task.request, image: image) {
-                let image = processor.process(image)
-                self.complete(task, image: image, error: (image == nil ? errorWithCode(.ProcessingFailed) : nil))
-            } else { // processing not required
-                self.complete(task, image: image, error: nil)
+        }
+        loadStates[task] = .Decoding
+    }
+    
+    private func didDecodeImage(image: Image?, error: ErrorType?, task: ImageTask) {
+        if let image = image, processor = delegate.loader(self, processorFor:task.request, image: image) {
+            processImage(image, processor: processor, task: task)
+        } else {
+            complete(task, image: image, error: error)
+        }
+    }
+    
+    private func processImage(image: Image, processor: ImageProcessing, task: ImageTask) {
+        guard loadStates[task] != nil else { /* no longer registered */ return }
+        loadStates[task] = .Processing(conf.processingQueue.addBlock { [weak self] in
+            let image = processor.process(image)
+            self?.queue.async {
+                self?.complete(task, image: image, error: (image == nil ? errorWithCode(.ProcessingFailed) : nil))
             }
         })
     }
     
     private func complete(task: ImageTask, image: Image?, error: ErrorType?) {
-        queue.async {
-            self.manager?.loader(self, task: task, didCompleteWithImage: image, error: error, userInfo: nil)
-            self.loadStates[task] = nil
-        }
+        self.manager?.loader(self, task: task, didCompleteWithImage: image, error: error, userInfo: nil)
+        self.loadStates[task] = nil
     }
 
     /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
@@ -269,6 +283,7 @@ public class ImageLoader: ImageLoading {
                 switch state {
                 case .CacheLookup(let operation): operation.cancel()
                 case .Loading(let operation): operation.cancel()
+                case .Decoding(): return
                 case .Processing(let operation): operation.cancel()
                 }
                 self.loadStates[task] = nil // No longer registered
@@ -296,6 +311,7 @@ public class ImageLoader: ImageLoading {
 private enum ImageLoadState {
     case CacheLookup(NSOperation)
     case Loading(NSOperation)
+    case Decoding
     case Processing(NSOperation)
 }
 
