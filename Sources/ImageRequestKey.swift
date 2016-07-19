@@ -4,24 +4,17 @@
 
 import Foundation
 
-/// Compares keys for equivalence.
-public protocol ImageRequestKeyOwner: class {
-    /// Compares keys for equivalence. This method is called only if two keys have the same owner.
-    func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool
-}
-
 /// Makes it possible to use ImageRequest as a key in dictionaries.
 public final class ImageRequestKey: NSObject {
     /// Request that the receiver was initailized with.
     public let request: ImageRequest
-
-    /// Owner of the receiver.
-    public weak private(set) var owner: ImageRequestKeyOwner?
-
-    /// Initializes the receiver with a given request and owner.
-    public init(_ request: ImageRequest, owner: ImageRequestKeyOwner) {
+    
+    private let isEqual: (ImageRequestKey, to: ImageRequestKey) -> Bool
+    
+    /// Initializes the receiver with a given request and the closure that compares two keys for equivalence.
+    public init(request: ImageRequest, isEqual: (ImageRequestKey, to: ImageRequestKey) -> Bool) {
         self.request = request
-        self.owner = owner
+        self.isEqual = isEqual
     }
 
     /// Returns hash from the NSURL from image request.
@@ -34,9 +27,6 @@ public final class ImageRequestKey: NSObject {
         guard let other = other as? ImageRequestKey else {
             return false
         }
-        guard let owner = owner where owner === other.owner else {
-            return false
-        }
-        return owner.isEqual(self, to: other)
+        return self.isEqual(self, to: other)
     }
 }

@@ -155,7 +155,7 @@ public class ImageManager {
     public func startPreheatingImages(requests: [ImageRequest]) {
         perform {
             requests.forEach {
-                let key = ImageRequestKey($0, owner: self)
+                let key = makePreheatKey($0)
                 if preheatingTasks[key] == nil { // Don't create more than one task for the equivalent requests.
                     preheatingTasks[key] = ImageTaskInternal(manager: self, request: $0, identifier: nextTaskIdentifier) { [weak self] _ in
                         self?.preheatingTasks[key] = nil
@@ -166,11 +166,15 @@ public class ImageManager {
         }
     }
     
+    private func makePreheatKey(request: ImageRequest) -> ImageRequestKey {
+        return makeCacheKey(request)
+    }
+    
     /// Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
     public func stopPreheatingImages(requests: [ImageRequest]) {
         perform {
             cancelTasks(requests.flatMap {
-                return preheatingTasks[ImageRequestKey($0, owner: self)]
+                return preheatingTasks[makePreheatKey($0)]
             })
         }
     }
@@ -210,17 +214,23 @@ public class ImageManager {
     
     /// Returns response from the memory cache.
     public func responseForRequest(request: ImageRequest) -> ImageCachedResponse? {
-        return cache?.responseForKey(ImageRequestKey(request, owner: self))
+        return cache?.responseForKey(makeCacheKey(request))
     }
     
     /// Stores response into the memory cache.
     public func setResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
-        cache?.setResponse(response, forKey: ImageRequestKey(request, owner: self))
+        cache?.setResponse(response, forKey: makeCacheKey(request))
     }
     
     /// Stores response from the memory cache.
     public func removeResponseForRequest(request: ImageRequest) {
-        cache?.removeResponseForKey(ImageRequestKey(request, owner: self))
+        cache?.removeResponseForKey(makeCacheKey(request))
+    }
+    
+    private func makeCacheKey(request: ImageRequest) -> ImageRequestKey {
+        return ImageRequestKey(request: request) { [weak self] lhs, rhs in
+            return self?.loader.isCacheEquivalent(lhs.request, to: rhs.request) ?? false
+        }
     }
     
     // MARK: Misc
@@ -310,16 +320,6 @@ extension ImageManager: ImageTaskManaging {
     
     private func cancel(task: ImageTaskInternal) {
         perform { setState(.Cancelled, forTask: task) }
-    }
-}
-
-extension ImageManager: ImageRequestKeyOwner {
-    
-    // MARK: ImageManager: ImageRequestKeyOwner
-
-    /// Compares requests for cache equivalence.
-    public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return loader.isCacheEquivalent(lhs.request, to: rhs.request)
     }
 }
 
