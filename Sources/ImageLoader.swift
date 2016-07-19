@@ -181,35 +181,42 @@ public class ImageLoader: ImageLoading {
     public func resumeLoadingFor(task: ImageTask) {
         queue.async {
             if let cache = self.conf.cache {
-                // FIXME: Use better approach for managing tasks
-                self.loadStates[task] = .CacheLookup(self.conf.cachingQueue.addBlock { [weak self] in
-                    let data = cache.dataFor(task)
-                    self?.queue.async {
-                        if let data = data {
-                            self?.decodeData(data, task: task)
-                        } else {
-                            guard self?.loadStates[task] != nil else { /* no longer registered */ return }
-                            self?.loadDataFor(task)
-                        }
-                    }
-                })
+                self.loadDataFor(task, cache: cache)
             } else {
                 self.loadDataFor(task)
             }
         }
     }
 
+    private func loadDataFor(task: ImageTask, cache: ImageDiskCaching) {
+        enterState(task, state: .CacheLookup(NSBlockOperation() {
+            self.then(for: task, result: cache.dataFor(task)) { data in
+                if let data = data {
+                    self.decode(data, task: task)
+                } else {
+                    self.loadDataFor(task)
+                }
+            }
+        }))
+    }
+
     private func loadDataFor(task: ImageTask) {
-        let operation = DataOperation<DataOperationResult>() { fulfill in
+        enterState(task, state: .Loading(DataOperation() { fulfill in
             let dataTask = self.conf.dataLoader.taskWith(
                 task.request,
-                progress: { [weak self] dataTask, completed, total in
-                    self?.dataTask(dataTask, imageTask: task, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+                progress: { [weak self] completed, total in
+                    self?.updateProgress(ImageTaskProgress(completed: completed, total: total), task: task)
                 },
-                completion: { [weak self] dataTask, data, response, error in
-                    self?.queue.async {
-                        fulfill((data, response, error))
-                        self?.dataTask(dataTask, imageTask: task, didCompleteWithData: data, response: response, error: error)
+                completion: { [weak self] data, response, error in
+                    fulfill()
+                    let result = (data, response, error)
+                    self?.storeResponse(result, for: task)
+                    self?.then(for: task, result: result) { _ in
+                        if let data = data where error == nil {
+                            self?.decode(data, response: response, task: task)
+                        } else {
+                            self?.complete(task, error: error)
+                        }
                     }
                 })
             #if !os(OSX)
@@ -218,62 +225,70 @@ public class ImageLoader: ImageLoading {
                 }
             #endif
             return dataTask
-        }
-        conf.dataLoadingQueue.addOperation(operation)
-        loadStates[task] = .Loading(operation)
+        }))
     }
 
-    private func dataTask(dataTask: NSURLSessionTask, imageTask: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
+    private func updateProgress(progress: ImageTaskProgress, task: ImageTask) {
         queue.async {
-            self.manager?.loader(self, task: imageTask, didUpdateProgress: progress)
+            self.manager?.loader(self, task: task, didUpdateProgress: progress)
+        }
+    }
+
+    private func storeResponse(response: DataOperationResult, for task: ImageTask) {
+        if let data = response.0 where response.2 == nil {
+            if let response = response.1, cache = conf.cache {
+                conf.cachingQueue.addOperation(NSBlockOperation() {
+                     cache.setData(data, response: response, forTask: task)
+                })
+            }
         }
     }
     
-    private func dataTask(dataTask: NSURLSessionTask, imageTask: ImageTask,didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
-        if let data = data where error == nil {
-            if let response = response, cache = conf.cache {
-                conf.cachingQueue.addBlock {
-                    cache.setData(data, response: response, forTask: imageTask)
+    private func decode(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
+        enterState(task, state: .Decoding(NSBlockOperation() {
+            self.then(for: task, result: self.conf.decoder.decode(data, response: response)) { image in
+                if let image = image {
+                    self.process(image, task: task)
+                } else {
+                    self.complete(task, error: errorWithCode(.DecodingFailed))
                 }
             }
-            decodeData(data, response: response, task: imageTask)
+        }))
+    }
+
+    private func process(image: Image, task: ImageTask) {
+        if let processor = delegate.loader(self, processorFor:task.request, image: image) {
+            process(image, task: task, processor: processor)
         } else {
-            complete(imageTask, image: nil, error: error)
+            complete(task, image: image)
         }
     }
 
-    private func decodeData(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
-        guard loadStates[task] != nil else { return }
-        conf.decodingQueue.addBlock { [weak self] in
-            let image = self?.conf.decoder.decode(data, response: response)
-            self?.queue.async {
-                self?.didDecodeImage(image, error: (image == nil ? errorWithCode(.DecodingFailed) : nil), task: task)
+    private func process(image: Image, task: ImageTask, processor: ImageProcessing) {
+        enterState(task, state: .Processing(NSBlockOperation() {
+            self.then(for: task, result: processor.process(image)) { image in
+                if let image = image {
+                    self.complete(task, image: image)
+                } else {
+                    self.complete(task, error: errorWithCode(.ProcessingFailed))
+                }
             }
-        }
-        loadStates[task] = .Decoding
+        }))
     }
-    
-    private func didDecodeImage(image: Image?, error: ErrorType?, task: ImageTask) {
-        if let image = image, processor = delegate.loader(self, processorFor:task.request, image: image) {
-            processImage(image, processor: processor, task: task)
-        } else {
-            complete(task, image: image, error: error)
-        }
-    }
-    
-    private func processImage(image: Image, processor: ImageProcessing, task: ImageTask) {
-        guard loadStates[task] != nil else { /* no longer registered */ return }
-        loadStates[task] = .Processing(conf.processingQueue.addBlock { [weak self] in
-            let image = processor.process(image)
-            self?.queue.async {
-                self?.complete(task, image: image, error: (image == nil ? errorWithCode(.ProcessingFailed) : nil))
-            }
-        })
-    }
-    
-    private func complete(task: ImageTask, image: Image?, error: ErrorType?) {
+
+    private func complete(task: ImageTask, image: Image? = nil, error: ErrorType? = nil) {
         self.manager?.loader(self, task: task, didCompleteWithImage: image, error: error, userInfo: nil)
         self.loadStates[task] = nil
+    }
+
+    private func enterState(task: ImageTask, state: ImageLoadState) {
+        switch state {
+        case .CacheLookup(let op): conf.cachingQueue.addOperation(op)
+        case .Loading(let op): conf.dataLoadingQueue.addOperation(op)
+        case .Decoding(let op): conf.decodingQueue.addOperation(op)
+        case .Processing(let op): conf.processingQueue.addOperation(op)
+        }
+        loadStates[task] = state
     }
 
     /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
@@ -283,7 +298,7 @@ public class ImageLoader: ImageLoading {
                 switch state {
                 case .CacheLookup(let operation): operation.cancel()
                 case .Loading(let operation): operation.cancel()
-                case .Decoding(): return
+                case .Decoding(let operation): operation.cancel()
                 case .Processing(let operation): operation.cancel()
                 }
                 self.loadStates[task] = nil // No longer registered
@@ -306,48 +321,22 @@ public class ImageLoader: ImageLoading {
         conf.cache?.removeAllCachedImages()
         conf.dataLoader.removeAllCachedImages()
     }
+
+    private func then<T>(for task: ImageTask, result: T, block: (T -> Void)) {
+        queue.async {
+            if self.loadStates[task] != nil {
+                block(result) // execute only if task is still registered
+            }
+        }
+    }
 }
 
 private enum ImageLoadState {
     case CacheLookup(NSOperation)
     case Loading(NSOperation)
-    case Decoding
+    case Decoding(NSOperation)
     case Processing(NSOperation)
 }
 
-
 // TEMP:
 typealias DataOperationResult = (NSData?, NSURLResponse?, ErrorType?)
-
-/// Wraps data task in a concurrent NSOperation subclass
-private class DataOperation<T>: Operation {
-    var task: NSURLSessionTask?
-    let starter: (T -> Void) -> NSURLSessionTask
-    var result: T?
-    private let lock = NSRecursiveLock()
-    
-    init(starter: (fulfill: (T) -> Void) -> NSURLSessionTask) {
-        self.starter = starter
-    }
-    
-    private override func start() {
-        lock.lock()
-        executing = true
-        task = starter() { result in
-            self.result = result
-            self.executing = false
-            self.finished = true
-        }
-        task?.resume()
-        lock.unlock()
-    }
-    
-    private override func cancel() {
-        lock.lock()
-        if !self.cancelled {
-            super.cancel()
-            task?.cancel()
-        }
-        lock.unlock()
-    }
-}

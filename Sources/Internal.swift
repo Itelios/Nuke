@@ -46,12 +46,6 @@ extension NSOperationQueue {
         self.init()
         self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
-    
-    func addBlock(block: (Void -> Void)) -> NSOperation {
-        let operation = NSBlockOperation(block: block)
-        self.addOperation(operation)
-        return operation
-    }
 }
 
 
@@ -77,4 +71,35 @@ class Operation: NSOperation {
         }
     }
     private var _finished = false
+}
+
+/// Wraps data task in a concurrent NSOperation subclass
+class DataOperation: Operation {
+    var task: NSURLSessionTask?
+    let starter: (Void -> Void) -> NSURLSessionTask
+    private let lock = NSRecursiveLock()
+
+    init(starter: (fulfill: (Void) -> Void) -> NSURLSessionTask) {
+        self.starter = starter
+    }
+
+    override func start() {
+        lock.lock()
+        executing = true
+        task = starter() {
+            self.executing = false
+            self.finished = true
+        }
+        task?.resume()
+        lock.unlock()
+    }
+
+    override func cancel() {
+        lock.lock()
+        if !self.cancelled {
+            super.cancel()
+            task?.cancel()
+        }
+        lock.unlock()
+    }
 }
