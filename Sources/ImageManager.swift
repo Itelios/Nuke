@@ -4,6 +4,9 @@
 
 import Foundation
 
+/// ImageTask completion block, gets called when task is either completed or cancelled.
+public typealias ImageTaskCompletion = (ImageTask, ImageResponse) -> Void
+
 /**
 The domain used for creating all ImageManager errors.
 

@@ -15,9 +15,6 @@ public enum ImageTaskState {
     case Suspended, Running, Cancelled, Completed
 }
 
-/// ImageTask completion block, gets called when task is either completed or cancelled.
-public typealias ImageTaskCompletion = (ImageTask, ImageResponse) -> Void
-
 /// Represents image task progress.
 public struct ImageTaskProgress {
     /// Completed unit count.
