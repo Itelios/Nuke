@@ -18,7 +18,7 @@ public protocol ImageLoading: class {
     func cancelLoadingFor(task: ImageTask)
 }
 
-// MARK: - ImageLoadingDelegate
+// MARK: - ImageLoadingManager
 
 /// Manages image loading.
 public protocol ImageLoadingManager: class {
@@ -67,37 +67,6 @@ public struct ImageLoaderConfiguration {
     }
 }
 
-// MARK: - ImageLoaderDelegate
-
-/// Image loader customization endpoints.
-public protocol ImageLoaderDelegate {
-    /// Returns processor for the given request and image.
-    func loader(loader: ImageLoader, processorFor: ImageRequest, image: Image) -> ImageProcessing?
-}
-
-/// Default implementation of ImageLoaderDelegate.
-public extension ImageLoaderDelegate {
-    /// Constructs image decompressor based on the request's target size and content mode (if decompression is allowed). Combined the decompressor with the processor provided in the request.
-    public func processorFor(request: ImageRequest, image: Image) -> ImageProcessing? {
-        return request.processor
-    }
-}
-
-/**
- Default implementation of ImageLoaderDelegate.
- 
- The default implementation is provided in a class which allows methods to be overridden.
- */
-public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
-    /// Initializes the delegate.
-    public init() {}
-    
-    /// Constructs image decompressor based on the request's target size and content mode (if decompression is allowed). Combined the decompressor with the processor provided in the request.
-    public func loader(loader: ImageLoader, processorFor request: ImageRequest, image: Image) -> ImageProcessing? {
-        return processorFor(request, image: image)
-    }
-}
-
 // MARK: - ImageLoader
 
 /**
@@ -106,7 +75,6 @@ Performs loading of images for the image tasks.
 This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
 
 - Provides transparent loading, decoding and processing with a single completion signal
-- Reuses session tasks for equivalent request
 */
 public class ImageLoader: ImageLoading {
     /// Manages image loading.
@@ -116,20 +84,12 @@ public class ImageLoader: ImageLoading {
     public let configuration: ImageLoaderConfiguration
     private var conf: ImageLoaderConfiguration { return configuration }
     
-    /// Delegate that the receiver was initialized with. Image loader holds a strong reference to its delegate!
-    public let delegate: ImageLoaderDelegate
-    
     private var loadStates = [ImageTask : ImageLoadState]()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     
-    /**
-     Initializes image loader with a configuration and a delegate.
-
-     - parameter delegate: Instance of `ImageLoaderDefaultDelegate` created if the parameter is omitted. Image loader holds a strong reference to its delegate!
-     */
-    public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
+    /// Initializes image loader with a configuration.
+    public init(configuration: ImageLoaderConfiguration) {
         self.configuration = configuration
-        self.delegate = delegate
     }
 
     /// Resumes loading for the image task.
@@ -212,7 +172,7 @@ public class ImageLoader: ImageLoading {
     }
 
     private func process(image: Image, task: ImageTask) {
-        if let processor = delegate.loader(self, processorFor:task.request, image: image) {
+        if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
             complete(task, image: image)
