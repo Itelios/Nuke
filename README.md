@@ -10,8 +10,7 @@ Loading, processing, caching and [**preheating**](https://kean.github.io/blog/im
 
 ```swift
 var request = ImageRequest(URL: NSURL(string: "http://..."))
-request.targetSize = CGSize(width: 200, height: 200) // Resize image
-request.processor = ImageFilterGaussianBlur() // Apply image filter
+request.processors = [ImageFilterGaussianBlur()] // Apply image filter
 
 Nuke.taskWith(request) { response in
     let image = response.image

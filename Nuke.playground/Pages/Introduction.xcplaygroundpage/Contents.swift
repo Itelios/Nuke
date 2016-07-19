@@ -14,8 +14,8 @@ Nuke's goal is to solve those complex tasks in a most efficient and user-friendl
 ### Zero Config
 Create and resume `ImageTask` with `NSURL`.
 */
-Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) {
-    let image = $0.image
+Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { _, response in
+    let image = response.image
 }.resume()
 
 /*:
@@ -27,11 +27,10 @@ let URLRequest = NSURLRequest(URL: NSURL(string: "https://farm4.staticflickr.com
 var request = ImageRequest(URLRequest: URLRequest)
 
 // Set target size in pixels
-request.targetSize = CGSize(width: 200.0, height: 200.0)
-request.contentMode = .AspectFill
+request.processors = [ImageDecompressor(targetSize: CGSize(width: 200.0, height: 200.0), contentMode: .AspectFill)]
 
 Nuke.taskWith(request) {
-    let image = $0.image
+    let image = $0.1.image
 }.resume()
 
 /*:
@@ -39,7 +38,7 @@ Nuke.taskWith(request) {
 `ImageResponse` is an enum with associated values. If the request is successful `ImageResponse` contains image and response metadata. If request fails `ImageResponse` contains an error.
 */
 
-Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { response in
+Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { _, response in
     switch response {
     case let .Success(image, info):
         if info.isFastResponse {

@@ -33,7 +33,7 @@ class ImageProcessingTest: XCTestCase {
 
     func testThatImageIsProcessed() {
         var request = ImageRequest(URL: defaultURL)
-        request.processor = MockImageProcessor(ID: "processor1")
+        request.processors = [MockImageProcessor(ID: "processor1")]
 
         self.expect { fulfill in
             self.manager.taskWith(request) {
@@ -47,7 +47,7 @@ class ImageProcessingTest: XCTestCase {
     func testThatProcessedImageIsMemCached() {
         self.expect { fulfill in
             var request = ImageRequest(URL: defaultURL)
-            request.processor = MockImageProcessor(ID: "processor1")
+            request.processors = [MockImageProcessor(ID: "processor1")]
 
             self.manager.taskWith(request) {
                 XCTAssertNotNil($0.1.image)
@@ -57,7 +57,7 @@ class ImageProcessingTest: XCTestCase {
         self.wait()
 
         var request = ImageRequest(URL: defaultURL)
-        request.processor = MockImageProcessor(ID: "processor1")
+        request.processors = [MockImageProcessor(ID: "processor1")]
         guard let image = self.manager.responseForRequest(request)?.image else {
             XCTFail()
             return
@@ -67,10 +67,10 @@ class ImageProcessingTest: XCTestCase {
 
     func testThatCorrectFiltersAreAppiedWhenDataTaskIsReusedForMultipleRequests() {
         var request1 = ImageRequest(URL: defaultURL)
-        request1.processor = MockImageProcessor(ID: "processor1")
+        request1.processors = [MockImageProcessor(ID: "processor1")]
 
         var request2 = ImageRequest(URL: defaultURL)
-        request2.processor = MockImageProcessor(ID: "processor2")
+        request2.processors = [MockImageProcessor(ID: "processor2")]
 
         self.expect { fulfill in
             self.manager.taskWith(request1) {
@@ -95,7 +95,7 @@ class ImageProcessingTest: XCTestCase {
 
     func testThatImageIsProcessedWithFilterComposition() {
         var request = ImageRequest(URL: defaultURL)
-        request.processor = ImageProcessorComposition(processors: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+        request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
 
         self.expect { fulfill in
             self.manager.taskWith(request) {
@@ -109,7 +109,7 @@ class ImageProcessingTest: XCTestCase {
     func testThatImageProcessedWithFilterCompositionIsMemCached() {
         self.expect { fulfill in
             var request = ImageRequest(URL: defaultURL)
-            request.processor = ImageProcessorComposition(processors: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+            request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
             self.manager.taskWith(request) {
                 XCTAssertNotNil($0.1.image)
                 fulfill()
@@ -118,7 +118,7 @@ class ImageProcessingTest: XCTestCase {
         self.wait()
 
         var request = ImageRequest(URL: defaultURL)
-        request.processor = ImageProcessorComposition(processors: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+        request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
         guard let image = self.manager.responseForRequest(request)?.image else {
             XCTFail()
             return
