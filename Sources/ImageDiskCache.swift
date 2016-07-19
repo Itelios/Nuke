@@ -15,7 +15,4 @@ public protocol ImageDiskCaching {
     
     /// Returns data for the given task.
     func dataFor(task: ImageTask) -> NSData?
-    
-    /// Clears the receiver's storage.
-    func removeAllCachedImages()
 }

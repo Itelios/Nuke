@@ -19,9 +19,6 @@ public protocol ImageLoading: class {
     
     /// Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
     func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-    
-    /// Clears the receiver's cache storage (if any).
-    func removeAllCachedImages()
 }
 
 // MARK: - ImageLoadingDelegate
@@ -287,12 +284,6 @@ public class ImageLoader: ImageLoading {
     /// Comapres two requests using ImageLoaderDelegate for equivalence in regards to memory caching.
     public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         return delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
-    }
-
-    /// Signals data loader and cache (if not nil) to remove all cached images.
-    public func removeAllCachedImages() {
-        conf.cache?.removeAllCachedImages()
-        conf.dataLoader.removeAllCachedImages()
     }
 
     private func then<T>(for task: ImageTask, result: T, block: (T -> Void)) {

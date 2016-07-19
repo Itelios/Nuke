@@ -51,14 +51,23 @@ public extension ImageManager {
 
 /// Manages shared ImageManager instance.
 public extension ImageManager {
-    private static var manager: ImageManager = {
+    private static var manager = ImageManager.makeDefaultManager()
+    
+    public static func makeDefaultManager() -> ImageManager {
         let dataLoader = ImageDataLoader()
-        let manager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: dataLoader))
+        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: dataLoader, decoder: ImageDecoder()))
+        let memCache = ImageMemoryCache()
+        let manager = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: memCache))
         manager.postInvalidateAndCancel = {
             dataLoader.session.invalidateAndCancel()
         }
+        manager.postRemoveAllCachedImages = {
+            memCache.removeAllCachedImages()
+            dataLoader.session.configuration.URLCache?.removeAllCachedResponses()
+        }
         return manager
-    }()
+    }
+    
     private static var lock = OS_SPINLOCK_INIT
     
     /// The shared image manager. This property and all other `ImageManager` APIs are thread safe.

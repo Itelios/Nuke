@@ -19,9 +19,6 @@ public protocol ImageMemoryCaching {
 
     /// Removes the cached response for the specified key.
     func removeResponseForKey(key: ImageRequestKey)
-    
-    /// Clears the receiver's storage.
-    func clear()
 }
 
 /// Represents a cached image response.
@@ -96,7 +93,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
     }
     
     /// Removes all cached images.
-    public func clear() {
+    public func removeAllCachedImages() {
         cache.removeAllObjects()
     }
 

@@ -84,6 +84,7 @@ public class ImageManager {
     private var cache: ImageMemoryCaching?
     
     public var postInvalidateAndCancel: (Void -> Void)?
+    public var postRemoveAllCachedImages: (Void -> Void)?
     
     // MARK: Configuring Manager
 
@@ -242,15 +243,16 @@ public class ImageManager {
             loader.manager = nil
             cancelTasks(executingTasks)
             preheatingTasks.removeAll()
-            postInvalidateAndCancel?()
             invalidated = true
+            postInvalidateAndCancel?()
         }
     }
     
-    /// Removes all cached images by calling corresponding methods on memory cache and image loader.
+    /// Calls postRemoveAllCachedImages closure, default implementation does nothing.
     public func removeAllCachedImages() {
-        cache?.clear()
-        loader.removeAllCachedImages()
+        perform {
+            postRemoveAllCachedImages?()
+        }
     }
     
     /// Returns all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
