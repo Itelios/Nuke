@@ -9,7 +9,7 @@ import Foundation
 /// Performs loading of images.
 public protocol ImageLoading: class {
     /// Manager that controls image loading.
-    weak var manager: ImageLoadingManager? { get set }
+    weak var delegate: ImageLoadingDelegate? { get set }
     
     /// Resumes loading for the given task.
     func resumeLoadingFor(task: ImageTask)
@@ -18,15 +18,15 @@ public protocol ImageLoading: class {
     func cancelLoadingFor(task: ImageTask)
 }
 
-// MARK: - ImageLoadingManager
+// MARK: - ImageLoadingDelegate
 
 /// Manages image loading.
-public protocol ImageLoadingManager: class {
+public protocol ImageLoadingDelegate: class {
     /// Sent periodically to notify the manager of the task progress.
     func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress)
     
     /// Sent when loading for the task is completed.
-    func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
+    func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?)
 }
 
 // MARK: - ImageLoaderConfiguration
@@ -78,7 +78,7 @@ This class uses multiple dependencies provided in its configuration. Image data 
 */
 public class ImageLoader: ImageLoading {
     /// Manages image loading.
-    public weak var manager: ImageLoadingManager?
+    public weak var delegate: ImageLoadingDelegate?
 
     /// The configuration that the receiver was initialized with.
     public let configuration: ImageLoaderConfiguration
@@ -145,7 +145,7 @@ public class ImageLoader: ImageLoading {
 
     private func updateProgress(progress: ImageTaskProgress, task: ImageTask) {
         queue.async {
-            self.manager?.loader(self, task: task, didUpdateProgress: progress)
+            self.delegate?.loader(self, task: task, didUpdateProgress: progress)
         }
     }
 
@@ -192,7 +192,7 @@ public class ImageLoader: ImageLoading {
     }
 
     private func complete(task: ImageTask, image: Image? = nil, error: ErrorType? = nil) {
-        self.manager?.loader(self, task: task, didCompleteWithImage: image, error: error, userInfo: nil)
+        self.delegate?.loader(self, task: task, didCompleteWithImage: image, error: error)
         self.loadStates[task] = nil
     }
 

@@ -87,7 +87,7 @@ public class ImageManager {
         self.configuration = configuration
         self.cache = configuration.cache
         self.loader = configuration.loader
-        self.loader.manager = self
+        self.loader.delegate = self
     }
     
     // MARK: Adding Tasks
@@ -123,7 +123,7 @@ public class ImageManager {
             if task.request.memoryCachePolicy == .ReturnCachedImageElseLoad {
                 if let response = responseForRequest(task.request) {
                     // FIXME: Should ImageResponse contain a `fastResponse` property?
-                    task.response = ImageResponse.Success(response.image, ImageResponseInfo(isFastResponse: true, userInfo: response.userInfo))
+                    task.response = ImageResponse.Success(response.image, ImageResponseInfo(isFastResponse: true))
                     setState(.Completed, forTask: task)
                     return
                 }
@@ -245,7 +245,7 @@ public class ImageManager {
     /// Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
     public func invalidateAndCancel() {
         perform {
-            loader.manager = nil
+            loader.delegate = nil
             cancelTasks(executingTasks)
             preheatingTasks.removeAll()
             invalidated = true
@@ -285,9 +285,9 @@ public class ImageManager {
     }
 }
 
-extension ImageManager: ImageLoadingManager {
+extension ImageManager: ImageLoadingDelegate {
     
-    // MARK: ImageManager: ImageLoadingManager
+    // MARK: ImageManager: ImageLoadingDelegate
 
     /// Updates ImageTask progress on the main thread.
     public func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
@@ -298,16 +298,16 @@ extension ImageManager: ImageLoadingManager {
     }
 
     /// Completes ImageTask, stores the response in memory cache.
-    public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
+    public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         perform {
             if let image = image where task.request.memoryCacheStorageAllowed {
-                setResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
+                setResponse(ImageCachedResponse(image: image), forRequest: task.request)
             }
             
             let task = task as! ImageTaskInternal
             if task.state == .Running {
                 if let image = image {
-                    task.response = ImageResponse.Success(image, ImageResponseInfo(isFastResponse: false, userInfo: userInfo))
+                    task.response = ImageResponse.Success(image, ImageResponseInfo(isFastResponse: false))
                 } else {
                     task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
                 }

@@ -44,7 +44,4 @@ public extension ImageResponse {
 public struct ImageResponseInfo {
     /// Returns true if the image was retrieved from memory cache.
     public var isFastResponse: Bool
-    
-    /// User info returned by the image loader (see ImageLoading protocol).
-    public var userInfo: Any?
 }

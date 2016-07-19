@@ -26,13 +26,9 @@ public class ImageCachedResponse {
     /// The image that the receiver was initialized with.
     public let image: Image
 
-    /// User info returned by the image loader (see ImageLoading protocol).
-    public let userInfo: Any?
-
     /// Initializes the receiver with a given image and user info.
-    public init(image: Image, userInfo: Any?) {
+    public init(image: Image) {
         self.image = image
-        self.userInfo = userInfo
     }
 }
 
