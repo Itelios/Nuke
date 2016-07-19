@@ -83,6 +83,8 @@ public class ImageManager {
     private var loader: ImageLoading
     private var cache: ImageMemoryCaching?
     
+    public var postInvalidateAndCancel: (Void -> Void)?
+    
     // MARK: Configuring Manager
 
     /// The configuration that the receiver was initialized with.
@@ -240,7 +242,7 @@ public class ImageManager {
             loader.manager = nil
             cancelTasks(executingTasks)
             preheatingTasks.removeAll()
-            loader.invalidate()
+            postInvalidateAndCancel?()
             invalidated = true
         }
     }

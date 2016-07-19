@@ -17,9 +17,6 @@ public protocol ImageDataLoading {
     /// Creates task with a given request. Task is resumed by the object calling the method.
     func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
 
-    /// Invalidates the receiver.
-    func invalidate()
-
     /// Clears the receiver's cache storage (in any).
     func removeAllCachedImages()
 }
@@ -60,11 +57,6 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     /// Factory method for creating session tasks for given image requests.
     public func taskWith(request: ImageRequest) -> NSURLSessionTask {
         return session.dataTaskWithRequest(request.URLRequest)
-    }
-
-    /// Invalidates the instance of NSURLSession class that the receiver was initialized with.
-    public func invalidate() {
-        session.invalidateAndCancel()
     }
 
     /// Removes all cached images from the instance of NSURLCache class from the NSURLSession configuration.
