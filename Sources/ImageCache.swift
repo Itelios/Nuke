@@ -10,19 +10,19 @@ import Foundation
 #endif
 
 /// Provides in-memory storage for image.
-public protocol ImageMemoryCaching {
+public protocol ImageCaching {
     /// Returns an image for the specified key.
-    func imageForKey(_ key: ImageRequestKey) -> Image?
+    func image(for key: ImageRequestKey) -> Image?
 
     /// Stores the image for the specified key.
-    func setImage(_ image: Image, forKey key: ImageRequestKey)
+    func setImage(_ image: Image, for key: ImageRequestKey)
 
     /// Removes the cached image for the specified key.
-    func removeImageForKey(_ key: ImageRequestKey)
+    func removeImage(for key: ImageRequestKey)
 }
 
 /// Auto purging memory cache that uses NSCache as its internal storage.
-public class ImageMemoryCache: ImageMemoryCaching {
+public class ImageCache: ImageCaching {
     deinit {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
@@ -38,14 +38,14 @@ public class ImageMemoryCache: ImageMemoryCaching {
     public init(cache: Cache<AnyObject, AnyObject>) {
         self.cache = cache
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.addObserver(self, selector: #selector(ImageMemoryCache.didReceiveMemoryWarning(_:)), name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
 
     /// Initializes cache with the recommended cache total limit.
     public convenience init() {
         let cache = Cache<AnyObject, AnyObject>()
-        cache.totalCostLimit = ImageMemoryCache.recommendedCostLimit()
+        cache.totalCostLimit = ImageCache.recommendedCostLimit()
         #if os(OSX)
             cache.countLimit = 100
         #endif
@@ -63,29 +63,29 @@ public class ImageMemoryCache: ImageMemoryCaching {
     // MARK: Managing Cached Responses
 
     /// Returns an image for the specified key.
-    public func imageForKey(_ key: ImageRequestKey) -> Image? {
+    public func image(for key: ImageRequestKey) -> Image? {
         return cache.object(forKey: key) as? Image
     }
 
     /// Stores the image for the specified key.
-    public func setImage(_ image: Image, forKey key: ImageRequestKey) {
-        cache.setObject(image, forKey: key, cost: costFor(image))
+    public func setImage(_ image: Image, for key: ImageRequestKey) {
+        cache.setObject(image, forKey: key, cost: cost(for: image))
     }
 
     /// Removes the cached image for the specified key.
-    public func removeImageForKey(_ key: ImageRequestKey) {
+    public func removeImage(for key: ImageRequestKey) {
         cache.removeObject(forKey: key)
     }
     
     /// Removes all cached images.
-    public func removeAllCachedImages() {
+    public func removeAllImages() {
         cache.removeAllObjects()
     }
 
     // MARK: Subclassing Hooks
     
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    public func costFor(_ image: Image) -> Int {
+    public func cost(for image: Image) -> Int {
         #if os(OSX)
             return 1
         #else

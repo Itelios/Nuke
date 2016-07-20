@@ -28,23 +28,23 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
     private var lock = RecursiveLock()
 
     /// Initialzies data loader by creating a session with a given session configuration.
-    public init(sessionConfiguration: URLSessionConfiguration) {
+    public init(configuration: URLSessionConfiguration) {
         super.init()
-        self.session = Foundation.URLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
+        self.session = Foundation.URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
     }
 
     /// Initializes the receiver with a default NSURLSession configuration and NSURLCache with memory capacity set to 0, disk capacity set to 200 Mb.
     public convenience override init() {
         let conf = URLSessionConfiguration.default
         conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.nuke-cache")
-        self.init(sessionConfiguration: conf)
+        self.init(configuration: conf)
     }
     
     // MARK: ImageDataLoading
 
     /// Creates task for the given request.
     public func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> URLSessionTask {
-        let task = taskWith(request)
+        let task = self.task(with: request)
         lock.lock()
         handlers[task] = DataTaskHandler(progress: progress, completion: completion)
         lock.unlock()
@@ -52,8 +52,8 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
     }
     
     /// Factory method for creating session tasks for given image requests.
-    public func taskWith(_ request: ImageRequest) -> URLSessionTask {
-        return session.dataTask(with: request.URLRequest)
+    public func task(with request: ImageRequest) -> URLSessionTask {
+        return session.dataTask(with: request.urlRequest)
     }
     
     // MARK: NSURLSessionDataDelegate

@@ -7,13 +7,13 @@ import Foundation
 // MARK: - Convenience
 
 /// Creates a task with a given URL. After you create a task, start it using resume method.
-public func taskWith(_ URL: Foundation.URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWith(URL, completion: completion)
+public func task(with url: URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    return ImageManager.shared.task(with: url, completion: completion)
 }
 
 /// Creates a task with a given request. After you create a task, start it using resume method.
-public func taskWith(_ request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWith(request, completion: completion)
+public func task(with request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    return ImageManager.shared.task(with: request, completion: completion)
 }
 
 /**
@@ -21,18 +21,18 @@ public func taskWith(_ request: ImageRequest, completion: ImageTaskCompletion? =
 
  When you call this method, `ImageManager` starts to load and cache images for the given requests. `ImageManager` caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
  */
-public func startPreheatingImages(_ requests: [ImageRequest]) {
-    ImageManager.shared.startPreheatingImages(requests)
+public func startPreheating(for requests: [ImageRequest]) {
+    ImageManager.shared.startPreheating(for: requests)
 }
 
 /// Stop preheating for the given requests. The request parameters should match the parameters used in `startPreheatingImages` method.
-public func stopPreheatingImages(_ requests: [ImageRequest]) {
-    ImageManager.shared.stopPreheatingImages(requests)
+public func stopPreheating(for requests: [ImageRequest]) {
+    ImageManager.shared.stopPreheating(for: requests)
 }
 
 /// Stops all preheating tasks.
-public func stopPreheatingImages() {
-    ImageManager.shared.stopPreheatingImages()
+public func stopPreheating() {
+    ImageManager.shared.stopPreheating()
 }
 
 
@@ -40,9 +40,9 @@ public func stopPreheatingImages() {
 
 /// Convenience methods for ImageManager.
 public extension ImageManager {
-    /// Creates a task with a given request. For more info see `taskWith(_)` methpd.
-    func taskWith(_ URL: Foundation.URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-        return self.taskWith(ImageRequest(URL: URL), completion: completion)
+    /// Creates a task with a given request. For more info see `task(with: _)` methpd.
+    func task(with url: URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+        return self.task(with: ImageRequest(url: url), completion: completion)
     }
 }
 
@@ -55,35 +55,35 @@ public extension ImageManager {
     
     public static func makeDefaultManager() -> ImageManager {
         let dataLoader = ImageDataLoader()
-        let dataDecoder = ImageDecoder()
+        let dataDecoder = ImageDataDecoder()
         let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
 
-        let cache = ImageMemoryCache()
+        let cache = ImageCache()
         let manager = ImageManager(loader: loader, cache: cache)
-        manager.postInvalidateAndCancel = {
+        manager.onInvalidateAndCancel = {
             dataLoader.session.invalidateAndCancel()
         }
-        manager.postRemoveAllCachedImages = {
-            cache.removeAllCachedImages()
+        manager.onRemoveAllCachedImages = {
+            cache.removeAllImages()
             dataLoader.session.configuration.urlCache?.removeAllCachedResponses()
         }
         return manager
     }
     
-    private static var lock = OS_SPINLOCK_INIT
+    private static let lock = RecursiveLock()
     
     /// The shared image manager. This property and all other `ImageManager` APIs are thread safe.
     public class var shared: ImageManager {
         set {
-            OSSpinLockLock(&lock)
+            lock.lock()
             manager = newValue
-            OSSpinLockUnlock(&lock)
+            lock.unlock()
         }
         get {
             var result: ImageManager
-            OSSpinLockLock(&lock)
+            lock.lock()
             result = manager
-            OSSpinLockUnlock(&lock)
+            lock.unlock()
             return result
         }
     }

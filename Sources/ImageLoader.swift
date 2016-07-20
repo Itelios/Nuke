@@ -20,7 +20,7 @@ public protocol ImageLoading: class {
 /**
 Performs loading of images for the image tasks.
 
-This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
+This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDataDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
 
 - Provides transparent loading, decoding and processing with a single completion signal
 */
@@ -40,9 +40,9 @@ public class ImageLoader: ImageLoading {
         public var processing = OperationQueue(maxConcurrentOperationCount: 2)
     }
 
-    public let dataCache: ImageDiskCaching?
+    public let dataCache: ImageDataCaching?
     public let dataLoader: ImageDataLoading
-    public let dataDecoder: ImageDecoding
+    public let dataDecoder: ImageDataDecoding
     public let queues: ImageLoader.Queues
 
     private let queue = DispatchQueue(label: "ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
@@ -50,8 +50,8 @@ public class ImageLoader: ImageLoading {
     /// Initializes image loader with a configuration.
     public init(
         dataLoader: ImageDataLoading = ImageDataLoader(),
-        dataDecoder: ImageDecoding = ImageDecoder(),
-        dataCache: ImageDiskCaching? = nil,
+        dataDecoder: ImageDataDecoding = ImageDataDecoder(),
+        dataCache: ImageDataCaching? = nil,
         queues: ImageLoader.Queues = ImageLoader.Queues())
     {
         self.dataLoader = dataLoader
@@ -63,31 +63,31 @@ public class ImageLoader: ImageLoading {
     /// Resumes loading for the image task.
     public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
         let task = ImageLoadTask(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
-            self?.cancelLoadingFor($0)
+            self?.cancelLoading(for: $0)
         })
         queue.async {
             if let dataCache = self.dataCache {
-                self.loadDataFor(task, dataCache: dataCache)
+                self.loadData(for: task, dataCache: dataCache)
             } else {
-                self.loadDataFor(task)
+                self.loadData(for: task)
             }
         }
         return task
     }
 
-    private func loadDataFor(_ task: ImageLoadTask, dataCache: ImageDiskCaching) {
+    private func loadData(for task: ImageLoadTask, dataCache: ImageDataCaching) {
         enterState(task, state: .dataCacheLookup(BlockOperation() {
-            self.then(for: task, result: dataCache.dataFor(task.request)) { data in
+            self.then(for: task, result: dataCache.data(for: task.request)) { data in
                 if let data = data {
-                    self.decode(data, task: task)
+                    self.decode(data: data, task: task)
                 } else {
-                    self.loadDataFor(task)
+                    self.loadData(for: task)
                 }
             }
         }))
     }
 
-    private func loadDataFor(_ task: ImageLoadTask) {
+    private func loadData(for task: ImageLoadTask) {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request,
@@ -99,10 +99,10 @@ public class ImageLoader: ImageLoading {
                 completion: { [weak self] data, response, error in
                     fulfill()
                     let result = (data, response, error)
-                    self?.storeResponse(result, for: task)
+                    self?.store(response: result, for: task.request)
                     self?.then(for: task, result: result) { _ in
                         if let data = data, error == nil {
-                            self?.decode(data, response: response, task: task)
+                            self?.decode(data: data, response: response, task: task)
                         } else {
                             self?.complete(task, error: error)
                         }
@@ -117,19 +117,19 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func storeResponse(_ response: (Data?, URLResponse?, ErrorProtocol?), for task: ImageLoadTask) {
+    private func store(response: (Data?, URLResponse?, ErrorProtocol?), for request: ImageRequest) {
         if let data = response.0, response.2 == nil {
             if let response = response.1, let cache = dataCache {
                 queues.dataCaching.addOperation(BlockOperation() {
-                     cache.setData(data, response: response, for: task.request)
+                    cache.set(data: data, response: response, for: request)
                 })
             }
         }
     }
     
-    private func decode(_ data: Data, response: URLResponse? = nil, task: ImageLoadTask) {
+    private func decode(data: Data, response: URLResponse? = nil, task: ImageLoadTask) {
         enterState(task, state: .dataDecoding(BlockOperation() {
-            self.then(for: task, result: self.dataDecoder.decode(data, response: response)) { image in
+            self.then(for: task, result: self.dataDecoder.decode(data: data, response: response)) { image in
                 if let image = image {
                     self.process(image, task: task)
                 } else {
@@ -173,8 +173,7 @@ public class ImageLoader: ImageLoading {
         task.state = state
     }
 
-    /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
-    private func cancelLoadingFor(_ task: ImageLoadTask) {
+    private func cancelLoading(for task: ImageLoadTask) {
         queue.async {
             if let state = task.state {
                 switch state {

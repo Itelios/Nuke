@@ -21,7 +21,7 @@ public enum ImageRequestMemoryCachePolicy {
 /// Encapsulates image request parameters.
 public struct ImageRequest {
     /// The URL request that the image request was created with.
-    public var URLRequest: Foundation.URLRequest
+    public var urlRequest: Foundation.URLRequest
 
     /// Specifies whether loaded image should be stored into memory cache. Default value is true.
     public var memoryCacheStorageAllowed = true
@@ -46,13 +46,13 @@ public struct ImageRequest {
     public var userInfo: Any?
     
     /// Initializes request with a URL.
-    public init(URL: Foundation.URL) {
-        self.URLRequest = Foundation.URLRequest(url: URL)
+    public init(url: URL) {
+        self.urlRequest = URLRequest(url: url)
     }
     
     /// Initializes request with a URL request.
-    public init(URLRequest: Foundation.URLRequest) {
-        self.URLRequest = URLRequest
+    public init(urlRequest: URLRequest) {
+        self.urlRequest = urlRequest
     }
 }
 

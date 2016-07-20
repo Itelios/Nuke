@@ -9,10 +9,10 @@
 Loading, processing, caching and [**preheating**](https://kean.github.io/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
 
 ```swift
-var request = ImageRequest(URL: NSURL(string: "http://..."))
+var request = ImageRequest(url: NSURL(string: "http://..."))
 request.processors = [ImageFilterGaussianBlur()] // Apply image filter
 
-Nuke.taskWith(request) { response in
+Nuke.task(with: request) { response in
     let image = response.image
 }.resume()
 ```
@@ -57,7 +57,7 @@ Nuke.taskWith(request) { response in
 Loading an image is as simple as creating and resuming an `ImageTask`. Nuke is thread safe, you can freely create and resume tasks from any thread. The completion closure is called on the main thread.
 
 ```swift
-Nuke.taskWith(NSURL(URL: "http://...")!) {
+Nuke.task(with: NSURL(URL: "http://...")!) {
     let image = $0.image
 }.resume()
 ```
@@ -83,7 +83,7 @@ request.memoryCachePolicy = .ReloadIgnoringCachedImage // Force reload
 // Change the priority of the underlying NSURLSessionTask
 request.priority = NSURLSessionTaskPriorityHigh
 
-Nuke.taskWith(request) {
+Nuke.task(with: request) {
     // - Image is resized to fill target size
     // - Blur filter is applied
     let image = $0.image
@@ -97,7 +97,7 @@ Processed images are stored into memory cache.
 The response passed into the completion closure is represented by an `ImageResponse` enum. It has two states: `Success` and `Failure`. Each state has some values associated with it.
 
 ```swift
-Nuke.taskWith(request) { response in
+Nuke.task(with: request) { response in
     switch response {
     case let .Success(image, info):
         if (info.isFastResponse) {
@@ -114,7 +114,7 @@ Nuke.taskWith(request) { response in
 `ImageTask` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
 
 ```swift
-let task = Nuke.taskWith(imageURL).resume()
+let task = Nuke.task(with: imageURL).resume()
 print(task.state) // Prints "Running"
 
 // Cancels the image load, task completes with an error ImageManagerErrorCode.Cancelled
@@ -124,7 +124,7 @@ task.cancel()
 You can also use `ImageTask` to monitor load progress.
 
 ```swift
-let task = Nuke.taskWith(imageURL).resume()
+let task = Nuke.task(with: imageURL).resume()
 print(task.progress) // The initial progress is (completed: 0, total: 0)
 
 // Add progress handler which gets called periodically on the main thread
@@ -207,10 +207,10 @@ Nuke defines a simple `ImageProcessing` protocol that represents image filters. 
 let filter1: ImageProcessing = <#filter#>
 let filter2: ImageProcessing = <#filter#>
 
-var request = ImageRequest(URL: <#image_url#>)
+var request = ImageRequest(url: <#image_url#>)
 request.processor = ImageProcessorComposition(processors: [filter1, filter2])
 
-Nuke.taskWith(request) {
+Nuke.task(with: request) {
     // Filters are applied, processed image is stored into memory cache
     let image = $0.image
 }.resume()
@@ -244,9 +244,9 @@ public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bo
 [Preheating](https://kean.github.io/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
 
 ```swift
-let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
-Nuke.startPreheatingImages(requests: requests)
-Nuke.stopPreheatingImages(requests: requests)
+let requests = [ImageRequest(url: imageURL1), ImageRequest(url: imageURL2)]
+Nuke.startPreheating(for: requests: requests)
+Nuke.stopPreheating(for: requests: requests)
 ```
 
 #### Automating Preheating
@@ -264,9 +264,9 @@ Nuke provides both on-disk and in-memory caching.
 
 For on-disk caching it relies on `NSURLCache`. The `NSURLCache` is used to cache original image data downloaded from the server. This class a part of the URL Loading System's cache management, which relies on HTTP cache.
 
-As an alternative to `NSURLCache` `Nuke` provides an `ImageDiskCaching` protocol that allows you to easily integrate any third-party caching library.
+As an alternative to `NSURLCache` `Nuke` provides an `ImageDataCaching` protocol that allows you to easily integrate any third-party caching library.
 
-For on-memory caching Nuke provides `ImageMemoryCaching` protocol and its implementation in `ImageMemoryCache` class built on top of `NSCache`. The `ImageMemoryCache` is used for fast access to processed images that are ready for display.
+For on-memory caching Nuke provides `ImageCaching` protocol and its implementation in `ImageCache` class built on top of `NSCache`. The `ImageCache` is used for fast access to processed images that are ready for display.
 
 The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](https://kean.github.io/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
 
@@ -278,13 +278,13 @@ If you need to access memory cache directly and synchronously you can use `Image
 
 ```swift
 let manager = ImageManager.shared
-let request = ImageRequest(URL: NSURL(string: "")!)
+let request = ImageRequest(url: NSURL(string: "")!)
 let response = ImageCachedResponse(image: UIImage(), userInfo: nil)
 manager.storeResponse(response, forRequest: request)
 let cachedResponse = manager.cachedResponseForRequest(request)
 ```
 
-`Nuke.taskWith(_:)` family of functions are just shortcuts for methods of the `ImageManager` class.
+`Nuke.task(with: _:)` family of functions are just shortcuts for methods of the `ImageManager` class.
 
 #### Customizing Image Manager
 
@@ -293,27 +293,27 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 |Protocol|Description|
 |--------|-----------|
 |`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDecoding`|Decodes `NSData` to `UIImage` objects|
-|`ImageMemoryCaching`|Stores processed images into memory cache|
-|`ImageDiskCaching`|Stores data into disk cache|
+|`ImageDataDecoding`|Decodes `NSData` to `UIImage` objects|
+|`ImageCaching`|Stores processed images into memory cache|
+|`ImageDataCaching`|Stores data into disk cache|
 
 <br>
 You can either provide your own implementation of these protocols or customize existing classes that implement them. After you have all the dependencies in place you can create an `ImageManager`:
 
 ```swift
 let dataLoader: ImageDataLoading = <#dataLoader#>
-let decoder: ImageDecoding = <#decoder#>
-let cache: ImageMemoryCaching = <#cache#>
+let decoder: ImageDataDecoding = <#decoder#>
+let cache: ImageCaching = <#cache#>
 
 let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
 
-If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `ImageDataLoading`, `ImageDiskCaching`, `ImageDecoding` and `ImageProcessing` protocols.
+If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `ImageDataLoading`, `ImageDataCaching`, `ImageDataDecoding` and `ImageProcessing` protocols.
 
 ```swift
 let loader: ImageLoading = <#loader#>
-let cache: ImageMemoryCaching = <#cache#>
+let cache: ImageCaching = <#cache#>
 
 // The ImageManagerConfiguration(dataLoader:decoder:cache:) constructor is actually
 // just a convenience initializer that creates an instance of ImageLoader class
@@ -329,10 +329,10 @@ ImageManager.shared = ImageManager(configuration: configuration)
 |--------|-----------|
 |`ImageManager`|A top-level API for managing images|
 |`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDecoding`|Converts `NSData` to `UIImage` objects|
+|`ImageDataDecoding`|Converts `NSData` to `UIImage` objects|
 |`ImageProcessing`|Processes decoded images|
-|`ImageMemoryCaching`|Stores processed images into memory cache|
-|`ImageDiskCaching`|Stores data into disk cache|
+|`ImageCaching`|Stores processed images into memory cache|
+|`ImageDataCaching`|Stores data into disk cache|
 
 ## Installation<a name="installation"></a>
 

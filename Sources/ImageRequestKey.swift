@@ -19,7 +19,7 @@ public final class ImageRequestKey: NSObject {
 
     /// Returns hash from the NSURL from image request.
     public override var hash: Int {
-        return request.URLRequest.url?.hashValue ?? 0
+        return request.urlRequest.url?.hashValue ?? 0
     }
 
     /// Compares two keys for equivalence if the belong to the same owner.

@@ -13,21 +13,21 @@
 #endif
 
 /// Decodes data into images.
-public protocol ImageDecoding {
+public protocol ImageDataDecoding {
     /// Decodes data into an image object.
-    func decode(_ data: Data, response: URLResponse?) -> Image?
+    func decode(data: Data, response: URLResponse?) -> Image?
 }
 
 
 private let lock = Lock()
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
-public class ImageDecoder: ImageDecoding {
+public class ImageDataDecoder: ImageDataDecoding {
     /// Initializes the receiver.
     public init() {}
 
     /// Decodes data into an image object using native methods.
-    public func decode(_ data: Data, response: URLResponse?) -> Image? {
+    public func decode(data: Data, response: URLResponse?) -> Image? {
         var image: Image?
         /* Image initializers are not considered thread safe:
         - https://github.com/AFNetworking/AFNetworking/issues/2572
@@ -58,19 +58,19 @@ public class ImageDecoder: ImageDecoding {
 }
 
 /// Composes multiple image decoders.
-public class ImageDecoderComposition: ImageDecoding {
+public class ImageDataDecoderComposition: ImageDataDecoding {
     /// Image decoders that the receiver was initialized with.
-    public let decoders: [ImageDecoding]
+    public let decoders: [ImageDataDecoding]
 
     /// Composes multiple image decoders.
-    public init(decoders: [ImageDecoding]) {
+    public init(decoders: [ImageDataDecoding]) {
         self.decoders = decoders
     }
 
     /// Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
-    public func decode(_ data: Data, response: URLResponse?) -> Image? {
+    public func decode(data: Data, response: URLResponse?) -> Image? {
         for decoder in decoders {
-            if let image = decoder.decode(data, response: response) {
+            if let image = decoder.decode(data: data, response: response) {
                 return image
             }
         }

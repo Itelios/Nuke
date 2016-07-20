@@ -39,21 +39,21 @@ public protocol ImageLoadingView: class {
     func nk_cancelLoading()
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    func nk_setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
+    func nk_setImage(with request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
     
     /// Gets called when the task that is currently associated with the view completes.
-    func nk_handle(_ response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
+    func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
 }
 
 public extension ImageLoadingView {
     /// Loads and displays an image for the given URL. Cancels previously started requests.
-    public func nk_setImageWith(_ URL: Foundation.URL) -> ImageTask? {
-        return nk_setImageWith(ImageRequest(URL: URL))
+    public func nk_setImage(url: URL) -> ImageTask? {
+        return nk_setImage(with: ImageRequest(url: url))
     }
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(_ request: ImageRequest) -> ImageTask? {
-        return nk_setImageWith(request, options: ImageViewLoadingOptions())
+    public func nk_setImage(with request: ImageRequest) -> ImageTask? {
+        return nk_setImage(with: request, options: ImageViewLoadingOptions())
     }
 }
 
@@ -63,7 +63,7 @@ public extension ImageLoadingView {
 /// View that can display images.
 public protocol ImageDisplayingView: class {
     /// Displays a given image.
-    func nk_displayImage(_ image: Image?)
+    func nk_display(_ image: Image?)
 
 }
 
@@ -79,8 +79,8 @@ public extension ImageLoadingView {
     }
 
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
-        return nk_imageLoadingController.setImageWith(request, options: options)
+    public func nk_setImage(with request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
+        return nk_imageLoadingController.setImage(with: request, options: options)
     }
 
     /// Returns current task.
@@ -94,7 +94,7 @@ public extension ImageLoadingView {
             return loader
         }
         let loader = ImageViewLoadingController { [weak self] in
-            self?.nk_handle($0, options: $1, isFromMemoryCache: $2)
+            self?.nk_handle(response: $0, options: $1, isFromMemoryCache: $2)
         }
         objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, loader, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return loader
@@ -109,14 +109,14 @@ private struct AssociatedKeys {
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     
     /// Default implementation that displays the image and runs animations if necessary.
-    public func nk_handle(_ response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
+    public func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
         if let handler = options.handler {
             handler(view: self, response: response, options: options, isFromMemoryCache: isFromMemoryCache)
             return
         }
         switch response {
         case let .success(image):
-            nk_displayImage(image)
+            nk_display(image)
             if options.animated && !isFromMemoryCache {
                 if let animations = options.animations {
                     animations(self) // User provided custom animations
@@ -140,7 +140,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 #if os(iOS) || os(tvOS)
     extension UIImageView: ImageDisplayingView, ImageLoadingView {
         /// Displays a given image.
-        public func nk_displayImage(_ image: Image?) {
+        public func nk_display(_ image: Image?) {
             self.image = image
         }
     }
@@ -149,7 +149,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 #if os(OSX)
     extension NSImageView: ImageDisplayingView, ImageLoadingView {
         /// Displays a given image.
-        public func nk_displayImage(image: Image?) {
+        public func nk_display(_ image: Image?) {
             self.image = image
         }
     }
@@ -187,17 +187,17 @@ public class ImageViewLoadingController {
     }
     
     /// Creates a task, subscribes to it and resumes it.
-    public func setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
+    public func setImage(with request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
         cancelLoading()
         
         if request.memoryCachePolicy != .reloadIgnoringCachedImage {
-            if let image = manager.imageForRequest(request) {
+            if let image = manager.image(for: request) {
                 self.handler(response: ImageResponse.success(image), options: options, isFromMemoryCache: true)
                 return nil
             }
         }
         
-        let task = manager.taskWith(request) { [weak self] task, response in
+        let task = manager.task(with: request) { [weak self] task, response in
             if task == self?.imageTask {
                 self?.handler(response: response, options: options, isFromMemoryCache: false)
             }

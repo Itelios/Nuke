@@ -9,10 +9,10 @@ import Foundation
  
  Nuke doesn't provide a built-in implementation of this protocol. However, it's very easy to implement it in an extension of some existing library, for example, DFCache (see Example project for more info).
 */
-public protocol ImageDiskCaching {
+public protocol ImageDataCaching {
     /// Stores data for the given request.
-    func setData(_ data: Data, response: URLResponse, for request: ImageRequest)
+    func set(data: Data, response: URLResponse, for request: ImageRequest)
     
     /// Returns data for the given request.
-    func dataFor(_ request: ImageRequest) -> Data?
+    func data(for request: ImageRequest) -> Data?
 }

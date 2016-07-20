@@ -14,10 +14,10 @@ class ImageFilterDrawInCircle: ImageProcessing {
 }
 
 example("Applying Filters") {
-    var request = ImageRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+    var request = ImageRequest(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
     request.processor = ImageFilterDrawInCircle()
     
-    Nuke.taskWith(request) {
+    Nuke.task(with: request) {
         let image = $0.image
     }.resume()
 }
@@ -60,17 +60,17 @@ It's easy to combine multiple filters using `ImageFilterComposition` class. Lets
 import CoreImage
 
 example("Composing Filters") {
-    var request = ImageRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+    var request = ImageRequest(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
     
     // Compose filters
     let filter = ImageProcessorComposition(processors: [ ImageFilterGaussianBlur(), ImageFilterDrawInCircle()])
     request.processor = filter
 
-    Nuke.taskWith(request) {
+    Nuke.task(with: request) {
         let image = $0.image
     }.resume()
 }
 
 XCPlaygroundPage.currentPage.needsIndefiniteExecution = true
 
-//: [Next](@next)
+//: [Next](@ne
