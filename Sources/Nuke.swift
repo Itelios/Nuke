@@ -88,3 +88,10 @@ public extension ImageManager {
         }
     }
 }
+
+
+// MARK -
+
+public protocol Cancellable {
+    func cancel()
+}

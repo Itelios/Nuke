@@ -60,7 +60,6 @@ public class ImageManager {
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
     public init(loader: ImageLoading, cache: ImageMemoryCaching?) {
         self.loader = loader
-        self.loader.delegate = self
         self.cache = cache
     }
     
@@ -87,7 +86,7 @@ public class ImageManager {
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
         if fromState == .Running && toState == .Cancelled {
-            loader.cancelLoadingFor(task)
+            task.cancellable?.cancel()
         }
     }
     
@@ -102,7 +101,14 @@ public class ImageManager {
                 }
             }
             executingTasks.insert(task) // Register task until it's completed or cancelled.
-            loader.resumeLoadingFor(task)
+            task.cancellable = loader.loadImage(
+                for: task.request,
+                progress: { [weak self] completed, total in
+                    self?.updateProgress(ImageTaskProgress(completed: completed, total: total), for: task)
+                },
+                completion: { [weak self] image, error in
+                    self?.complete(task, image: image, error: error)
+            })
         case .Cancelled:
             task.response = ImageResponse.Failure(errorWithCode(.Cancelled))
             fallthrough
@@ -118,6 +124,31 @@ public class ImageManager {
                 }
             }
         default: break
+        }
+    }
+
+    private func updateProgress(progress: ImageTaskProgress, for task: ImageTask) {
+        dispatch_get_main_queue().async {
+            task.progress = progress
+            task.progressHandler?(progress: progress)
+        }
+    }
+
+    private func complete(task: ImageTask, image: Image?, error: ErrorType?) {
+        perform {
+            if let image = image where task.request.memoryCacheStorageAllowed {
+                setImage(image, forRequest: task.request)
+            }
+
+            let task = task as! ImageTaskInternal
+            if task.state == .Running {
+                if let image = image {
+                    task.response = ImageResponse.Success(image)
+                } else {
+                    task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
+                }
+                setState(.Completed, forTask: task)
+            }
         }
     }
     
@@ -218,7 +249,6 @@ public class ImageManager {
     /// Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
     public func invalidateAndCancel() {
         perform {
-            loader.delegate = nil
             cancelTasks(executingTasks)
             preheatingTasks.removeAll()
             invalidated = true
@@ -258,38 +288,6 @@ public class ImageManager {
     }
 }
 
-extension ImageManager: ImageLoadingDelegate {
-    
-    // MARK: ImageManager: ImageLoadingDelegate
-
-    /// Updates ImageTask progress on the main thread.
-    public func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress) {
-        dispatch_async(dispatch_get_main_queue()) {
-            task.progress = progress
-            task.progressHandler?(progress: progress)
-        }
-    }
-
-    /// Completes ImageTask, stores the response in memory cache.
-    public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
-        perform {
-            if let image = image where task.request.memoryCacheStorageAllowed {
-                setImage(image, forRequest: task.request)
-            }
-            
-            let task = task as! ImageTaskInternal
-            if task.state == .Running {
-                if let image = image {
-                    task.response = ImageResponse.Success(image)
-                } else {
-                    task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
-                }
-                setState(.Completed, forTask: task)
-            }
-        }
-    }
-}
-
 extension ImageManager: ImageTaskManaging {
     
     // MARK: ImageManager: ImageTaskManaging
@@ -313,6 +311,7 @@ private protocol ImageTaskManaging {
 private class ImageTaskInternal: ImageTask {
     let manager: ImageTaskManaging
     let completion: ImageTaskCompletion?
+    var cancellable: Cancellable?
     
     init(manager: ImageTaskManaging, request: ImageRequest, identifier: Int, completion: ImageTaskCompletion?) {
         self.manager = manager

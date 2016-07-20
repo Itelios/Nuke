@@ -15,7 +15,7 @@ public typealias ImageDataLoadingProgress = (completed: Int64, total: Int64) -> 
 /// Performs loading of image data.
 public protocol ImageDataLoading {
     /// Creates task with a given request. Task is resumed by the object calling the method.
-    func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
+    func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
 }
 
 
@@ -43,7 +43,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     // MARK: ImageDataLoading
 
     /// Creates task for the given request.
-    public func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
+    public func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
         let task = taskWith(request)
         lock.lock()
         handlers[task] = DataTaskHandler(progress: progress, completion: completion)

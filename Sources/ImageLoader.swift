@@ -6,27 +6,13 @@ import Foundation
 
 // MARK: - ImageLoading
 
+public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias ImageLoadingCompletion = (Image?, ErrorType?) -> Void
+
 /// Performs loading of images.
 public protocol ImageLoading: class {
-    /// Manager that controls image loading.
-    weak var delegate: ImageLoadingDelegate? { get set }
-    
     /// Resumes loading for the given task.
-    func resumeLoadingFor(task: ImageTask)
-
-    /// Cancels loading for the given task.
-    func cancelLoadingFor(task: ImageTask)
-}
-
-// MARK: - ImageLoadingDelegate
-
-/// Manages image loading.
-public protocol ImageLoadingDelegate: class {
-    /// Sent periodically to notify the manager of the task progress.
-    func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress)
-    
-    /// Sent when loading for the task is completed.
-    func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?)
+    func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable
 }
 
 // MARK: - ImageLoader
@@ -54,15 +40,11 @@ public class ImageLoader: ImageLoading {
         public var processing = NSOperationQueue(maxConcurrentOperationCount: 2)
     }
 
-    /// Manages image loading.
-    public weak var delegate: ImageLoadingDelegate?
-
     public let dataCache: ImageDiskCaching?
     public let dataLoader: ImageDataLoading
     public let dataDecoder: ImageDecoding
     public let queues: ImageLoader.Queues
 
-    private var loadStates = [ImageTask : ImageLoadState]()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     
     /// Initializes image loader with a configuration.
@@ -79,7 +61,10 @@ public class ImageLoader: ImageLoading {
     }
 
     /// Resumes loading for the image task.
-    public func resumeLoadingFor(task: ImageTask) {
+    public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
+        let task = ImageLoadTask(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
+            self?.cancelLoadingFor($0)
+        })
         queue.async {
             if let dataCache = self.dataCache {
                 self.loadDataFor(task, dataCache: dataCache)
@@ -87,11 +72,12 @@ public class ImageLoader: ImageLoading {
                 self.loadDataFor(task)
             }
         }
+        return task
     }
 
-    private func loadDataFor(task: ImageTask, dataCache: ImageDiskCaching) {
-        enterState(task, state: .CacheLookup(NSBlockOperation() {
-            self.then(for: task, result: dataCache.dataFor(task)) { data in
+    private func loadDataFor(task: ImageLoadTask, dataCache: ImageDiskCaching) {
+        enterState(task, state: .DataCacheLookup(NSBlockOperation() {
+            self.then(for: task, result: dataCache.dataFor(task.request)) { data in
                 if let data = data {
                     self.decode(data, task: task)
                 } else {
@@ -101,12 +87,14 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func loadDataFor(task: ImageTask) {
-        enterState(task, state: .Loading(DataOperation() { fulfill in
-            let dataTask = self.dataLoader.taskWith(
-                task.request,
+    private func loadDataFor(task: ImageLoadTask) {
+        enterState(task, state: .DataLoading(DataOperation() { fulfill in
+            let dataTask = self.dataLoader.loadData(
+                for: task.request,
                 progress: { [weak self] completed, total in
-                    self?.updateProgress(ImageTaskProgress(completed: completed, total: total), task: task)
+                    self?.queue.async {
+                        task.progress(completed: completed, total: total)
+                    }
                 },
                 completion: { [weak self] data, response, error in
                     fulfill()
@@ -129,24 +117,18 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func updateProgress(progress: ImageTaskProgress, task: ImageTask) {
-        queue.async {
-            self.delegate?.loader(self, task: task, didUpdateProgress: progress)
-        }
-    }
-
-    private func storeResponse(response: DataOperationResult, for task: ImageTask) {
+    private func storeResponse(response: (NSData?, NSURLResponse?, ErrorType?), for task: ImageLoadTask) {
         if let data = response.0 where response.2 == nil {
             if let response = response.1, cache = dataCache {
                 queues.dataCaching.addOperation(NSBlockOperation() {
-                     cache.setData(data, response: response, forTask: task)
+                     cache.setData(data, response: response, for: task.request)
                 })
             }
         }
     }
     
-    private func decode(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
-        enterState(task, state: .Decoding(NSBlockOperation() {
+    private func decode(data: NSData, response: NSURLResponse? = nil, task: ImageLoadTask) {
+        enterState(task, state: .DataDecoding(NSBlockOperation() {
             self.then(for: task, result: self.dataDecoder.decode(data, response: response)) { image in
                 if let image = image {
                     self.process(image, task: task)
@@ -157,7 +139,7 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func process(image: Image, task: ImageTask) {
+    private func process(image: Image, task: ImageLoadTask) {
         if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
@@ -165,7 +147,7 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func process(image: Image, task: ImageTask, processor: ImageProcessing) {
+    private func process(image: Image, task: ImageLoadTask, processor: ImageProcessing) {
         enterState(task, state: .Processing(NSBlockOperation() {
             self.then(for: task, result: processor.process(image)) { image in
                 if let image = image {
@@ -177,39 +159,38 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func complete(task: ImageTask, image: Image? = nil, error: ErrorType? = nil) {
-        self.delegate?.loader(self, task: task, didCompleteWithImage: image, error: error)
-        self.loadStates[task] = nil
+    private func complete(task: ImageLoadTask, image: Image? = nil, error: ErrorType? = nil) {
+        task.completion(image, error)
     }
 
-    private func enterState(task: ImageTask, state: ImageLoadState) {
+    private func enterState(task: ImageLoadTask, state: ImageLoadState) {
         switch state {
-        case .CacheLookup(let op): queues.dataCaching.addOperation(op)
-        case .Loading(let op): queues.dataLoading.addOperation(op)
-        case .Decoding(let op): queues.dataLoading.addOperation(op)
+        case .DataCacheLookup(let op): queues.dataCaching.addOperation(op)
+        case .DataLoading(let op): queues.dataLoading.addOperation(op)
+        case .DataDecoding(let op): queues.dataLoading.addOperation(op)
         case .Processing(let op): queues.processing.addOperation(op)
         }
-        loadStates[task] = state
+        task.state = state
     }
 
     /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
-    public func cancelLoadingFor(task: ImageTask) {
+    private func cancelLoadingFor(task: ImageLoadTask) {
         queue.async {
-            if let state = self.loadStates[task] {
+            if let state = task.state {
                 switch state {
-                case .CacheLookup(let operation): operation.cancel()
-                case .Loading(let operation): operation.cancel()
-                case .Decoding(let operation): operation.cancel()
-                case .Processing(let operation): operation.cancel()
+                case .DataCacheLookup(let op): op.cancel()
+                case .DataLoading(let op): op.cancel()
+                case .DataDecoding(let op): op.cancel()
+                case .Processing(let op): op.cancel()
                 }
-                self.loadStates[task] = nil // No longer registered
             }
+            task.cancelled = true
         }
     }
 
-    private func then<T>(for task: ImageTask, result: T, block: (T -> Void)) {
+    private func then<T>(for task: ImageLoadTask, result: T, block: (T -> Void)) {
         queue.async {
-            if self.loadStates[task] != nil {
+            if !task.cancelled {
                 block(result) // execute only if task is still registered
             }
         }
@@ -217,11 +198,38 @@ public class ImageLoader: ImageLoading {
 }
 
 private enum ImageLoadState {
-    case CacheLookup(NSOperation)
-    case Loading(NSOperation)
-    case Decoding(NSOperation)
+    case DataCacheLookup(NSOperation)
+    case DataLoading(NSOperation)
+    case DataDecoding(NSOperation)
     case Processing(NSOperation)
 }
 
-// TEMP:
-typealias DataOperationResult = (NSData?, NSURLResponse?, ErrorType?)
+// Implemented in a similar fation that ImageTaskInternal is
+private class ImageLoadTask: Cancellable, Hashable {
+    var request: ImageRequest
+    let progress: ImageLoadingProgress
+    let completion: ImageLoadingCompletion
+    var cancellation: ImageLoadTask -> Void
+    var cancelled = false
+    var state: ImageLoadState?
+
+    init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: (ImageLoadTask -> Void)) {
+        self.request = request
+        self.progress = progress
+        self.completion = completion
+        self.cancellation = cancellation
+    }
+
+    func cancel() {
+        cancellation(self)
+    }
+
+    var hashValue: Int {
+        return unsafeAddressOf(self).hashValue
+    }
+}
+
+/// Compares two image tasks by reference.
+private func ==(lhs: ImageLoadTask, rhs: ImageLoadTask) -> Bool {
+    return lhs === rhs
+}

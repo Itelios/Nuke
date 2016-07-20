@@ -18,7 +18,7 @@ class MockImageDataLoader: ImageDataLoader {
     var createdTaskCount = 0
     private let queue = NSOperationQueue()
 
-    override func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
+    override func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
         self.queue.addOperationWithBlock {
             progress(completed: 50, total: 100)
             progress(completed: 100, total: 100)
