@@ -42,9 +42,12 @@ public class ImageManager {
     private let lock = RecursiveLock()
     private var invalidated = false
     private var needsToExecutePreheatingTasks = false
-    private var taskIdentifier: Int32 = 0
+    private var taskIdentifier: Int = 0
     private var nextTaskIdentifier: Int {
-        return Int(OSAtomicIncrement32(&taskIdentifier))
+        return performed {
+            taskIdentifier += 1
+            return taskIdentifier
+        }
     }
     private var loader: ImageLoading
     private var cache: ImageCaching?
@@ -265,11 +268,9 @@ public class ImageManager {
     
     /// Returns all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
     public var tasks: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) {
-        var tasks: (Set<ImageTask>, Set<ImageTask>)!
-        perform {
-            tasks = (self.executingTasks, Set(self.preheatingTasks.values))
+        return performed {
+            return (self.executingTasks, Set(self.preheatingTasks.values))
         }
-        return tasks
     }
 
 
@@ -279,6 +280,13 @@ public class ImageManager {
         lock.lock()
         if !invalidated { closure() }
         lock.unlock()
+    }
+    
+    private func performed<T>(_ closure: @noescape (Void) -> T) -> T {
+        lock.lock()
+        let result = closure()
+        lock.unlock()
+        return result
     }
     
     private func cancel<T: Sequence where T.Iterator.Element == ImageManagerTask>(_ tasks: T) {

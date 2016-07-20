@@ -80,9 +80,8 @@ public extension ImageManager {
             lock.unlock()
         }
         get {
-            var result: ImageManager
             lock.lock()
-            result = manager
+            let result = manager
             lock.unlock()
             return result
         }
