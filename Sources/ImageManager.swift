@@ -121,8 +121,8 @@ public class ImageManager {
         switch state {
         case .Running:
             if task.request.memoryCachePolicy == .ReturnCachedImageElseLoad {
-                if let response = responseForRequest(task.request) {
-                    task.response = ImageResponse.Success(response.image)
+                if let image = imageForRequest(task.request) {
+                    task.response = ImageResponse.Success(image)
                     setState(.Completed, forTask: task)
                     return
                 }
@@ -214,19 +214,19 @@ public class ImageManager {
     
     // MARK: Memory Caching
     
-    /// Returns response from the memory cache.
-    public func responseForRequest(request: ImageRequest) -> ImageCachedResponse? {
-        return cache?.responseForKey(makeCacheKey(request))
+    /// Returns image from the memory cache.
+    public func imageForRequest(request: ImageRequest) -> Image? {
+        return cache?.imageForKey(makeCacheKey(request))
     }
     
-    /// Stores response into the memory cache.
-    public func setResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
-        cache?.setResponse(response, forKey: makeCacheKey(request))
+    /// Stores image into the memory cache.
+    public func setImage(image: Image, forRequest request: ImageRequest) {
+        cache?.setImage(image, forKey: makeCacheKey(request))
     }
     
-    /// Stores response from the memory cache.
-    public func removeResponseForRequest(request: ImageRequest) {
-        cache?.removeResponseForKey(makeCacheKey(request))
+    /// Removes image from the memory cache.
+    public func removeImageForRequest(request: ImageRequest) {
+        cache?.removeImageForKey(makeCacheKey(request))
     }
     
     private func makeCacheKey(request: ImageRequest) -> ImageRequestKey {
@@ -300,7 +300,7 @@ extension ImageManager: ImageLoadingDelegate {
     public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         perform {
             if let image = image where task.request.memoryCacheStorageAllowed {
-                setResponse(ImageCachedResponse(image: image), forRequest: task.request)
+                setImage(image, forRequest: task.request)
             }
             
             let task = task as! ImageTaskInternal

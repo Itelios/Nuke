@@ -9,27 +9,16 @@ import Foundation
     import UIKit
 #endif
 
-/// Provides in-memory storage for image responses.
+/// Provides in-memory storage for image.
 public protocol ImageMemoryCaching {
-    /// Returns the cached response for the specified key.
-    func responseForKey(key: ImageRequestKey) -> ImageCachedResponse?
+    /// Returns an image for the specified key.
+    func imageForKey(key: ImageRequestKey) -> Image?
 
-    /// Stores the cached response for the specified key.
-    func setResponse(response: ImageCachedResponse, forKey key: ImageRequestKey)
+    /// Stores the image for the specified key.
+    func setImage(image: Image, forKey key: ImageRequestKey)
 
-    /// Removes the cached response for the specified key.
-    func removeResponseForKey(key: ImageRequestKey)
-}
-
-/// Represents a cached image response.
-public class ImageCachedResponse {
-    /// The image that the receiver was initialized with.
-    public let image: Image
-
-    /// Initializes the receiver with a given image and user info.
-    public init(image: Image) {
-        self.image = image
-    }
+    /// Removes the cached image for the specified key.
+    func removeImageForKey(key: ImageRequestKey)
 }
 
 /// Auto purging memory cache that uses NSCache as its internal storage.
@@ -73,18 +62,18 @@ public class ImageMemoryCache: ImageMemoryCaching {
     
     // MARK: Managing Cached Responses
 
-    /// Returns the cached response for the specified key.
-    public func responseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
-        return cache.objectForKey(key) as? ImageCachedResponse
+    /// Returns an image for the specified key.
+    public func imageForKey(key: ImageRequestKey) -> Image? {
+        return cache.objectForKey(key) as? Image
     }
 
-    /// Stores the cached response for the specified key.
-    public func setResponse(response: ImageCachedResponse, forKey key: ImageRequestKey) {
-        cache.setObject(response, forKey: key, cost: costFor(response.image))
+    /// Stores the image for the specified key.
+    public func setImage(image: Image, forKey key: ImageRequestKey) {
+        cache.setObject(image, forKey: key, cost: costFor(image))
     }
 
-    /// Removes the cached response for the specified key.
-    public func removeResponseForKey(key: ImageRequestKey) {
+    /// Removes the cached image for the specified key.
+    public func removeImageForKey(key: ImageRequestKey) {
         cache.removeObjectForKey(key)
     }
     
@@ -104,7 +93,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
         #endif
     }
     
-    @objc private func didReceiveMemoryWarning(notification: NSNotification) {
+    dynamic private func didReceiveMemoryWarning(notification: NSNotification) {
         cache.removeAllObjects()
     }
 }

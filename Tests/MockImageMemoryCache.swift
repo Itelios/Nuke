@@ -11,26 +11,26 @@ import Nuke
 
 class MockImageMemoryCache: ImageMemoryCaching {
     var enabled = true
-    var responses = [ImageRequestKey: ImageCachedResponse]()
+    var images = [ImageRequestKey: Image]()
     init() {}
 
-    func responseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
-        return self.enabled ? self.responses[key] : nil
+    func imageForKey(key: ImageRequestKey) -> Image? {
+        return self.enabled ? self.images[key] : nil
     }
     
-    func setResponse(response: ImageCachedResponse, forKey key: ImageRequestKey) {
+    func setImage(image: Image, forKey key: ImageRequestKey) {
         if self.enabled {
-            self.responses[key] = response
+            self.images[key] = image
         }
     }
     
-    func removeResponseForKey(key: ImageRequestKey) {
+    func removeImageForKey(key: ImageRequestKey) {
         if self.enabled {
-            self.responses[key] = nil
+            self.images[key] = nil
         }
     }
     
     func clear() {
-        self.responses.removeAll()
+        self.images.removeAll()
     }
 }

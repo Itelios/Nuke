@@ -58,7 +58,7 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(URL: defaultURL)
         request.processors = [MockImageProcessor(ID: "processor1")]
-        guard let image = self.manager.responseForRequest(request)?.image else {
+        guard let image = self.manager.imageForRequest(request) else {
             XCTFail()
             return
         }
@@ -119,7 +119,7 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(URL: defaultURL)
         request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
-        guard let image = self.manager.responseForRequest(request)?.image else {
+        guard let image = self.manager.imageForRequest(request) else {
             XCTFail()
             return
         }

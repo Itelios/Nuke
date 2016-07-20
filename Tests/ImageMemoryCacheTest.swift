@@ -9,7 +9,7 @@
 import XCTest
 import Nuke
 
-class ImageMemoryCacheTest: XCTestCase {
+class ImageMockMemoryCacheTest: XCTestCase {
     var manager: ImageManager!
     var mockMemoryCache: MockImageMemoryCache!
     var mockSessionManager: MockImageDataLoader!
@@ -30,8 +30,8 @@ class ImageMemoryCacheTest: XCTestCase {
     func testThatMemoryCacheWorks() {
         let request = ImageRequest(URL: defaultURL)
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
 
         self.expect { fulfill in
             self.manager.taskWith(request) { _, response in
@@ -41,8 +41,8 @@ class ImageMemoryCacheTest: XCTestCase {
         }
         self.wait()
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
-        XCTAssertNotNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 1)
+        XCTAssertNotNil(self.manager.imageForRequest(request))
         
         self.mockSessionManager.enabled = false
         
@@ -58,31 +58,31 @@ class ImageMemoryCacheTest: XCTestCase {
     func testThatStoreResponseMethodWorks() {
         let request = ImageRequest(URL: defaultURL)
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
         
-        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
+        self.manager.setImage(Image(), forRequest: request)
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
-        let response = self.manager.responseForRequest(request)
+        XCTAssertEqual(self.mockMemoryCache.images.count, 1)
+        let response = self.manager.imageForRequest(request)
         XCTAssertNotNil(response)
     }
     
     func testThatRemoveResponseMethodWorks() {
         let request = ImageRequest(URL: defaultURL)
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
         
-        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
+        self.manager.setImage(Image(), forRequest: request)
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
-        let response = self.manager.responseForRequest(request)
+        XCTAssertEqual(self.mockMemoryCache.images.count, 1)
+        let response = self.manager.imageForRequest(request)
         XCTAssertNotNil(response)
         
-        self.manager.removeResponseForRequest(request)
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        self.manager.removeImageForRequest(request)
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
     }
     
     func testThatMemoryCacheStorageCanBeDisabled() {
@@ -90,8 +90,8 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertTrue(request.memoryCacheStorageAllowed)
         request.memoryCacheStorageAllowed = false // Test default value
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
         
         self.expect { fulfill in
             self.manager.taskWith(request) { _, response in
@@ -101,19 +101,72 @@ class ImageMemoryCacheTest: XCTestCase {
         }
         self.wait()
         
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
     }
 
     func testThatAllCachedImageAreRemoved() {
         let request = ImageRequest(URL: defaultURL)
-        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
+        self.manager.setImage(Image(), forRequest: request)
 
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
+        XCTAssertEqual(self.mockMemoryCache.images.count, 1)
 
         self.manager.removeAllCachedImages()
 
-        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.responseForRequest(request))
+        XCTAssertEqual(self.mockMemoryCache.images.count, 0)
+        XCTAssertNil(self.manager.imageForRequest(request))
     }
+}
+
+class ImageMemoryCacheTest: XCTestCase {
+    var cache: ImageMemoryCache!
+    var manager: ImageManager!
+    var mockSessionManager: MockImageDataLoader!
+    
+    override func setUp() {
+        super.setUp()
+        
+        self.cache = ImageMemoryCache()
+        self.mockSessionManager = MockImageDataLoader()
+        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: self.mockSessionManager))
+        self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: self.cache))
+    }
+    
+    func testThatImagesAreStoredInMemoryCache() {
+        let request = ImageRequest(URL: defaultURL)
+        
+        XCTAssertNil(self.manager.imageForRequest(request))
+        
+        self.expect { fulfill in
+            self.manager.taskWith(request) { _, response in
+                XCTAssertTrue(response.isSuccess)
+                fulfill()
+                }.resume()
+        }
+        self.wait()
+        
+        XCTAssertNotNil(self.manager.imageForRequest(request))
+        
+        self.mockSessionManager.enabled = false
+        
+        self.expect { fulfill in
+            self.manager.taskWith(request) { _, response in
+                XCTAssertTrue(response.isSuccess)
+                fulfill()
+                }.resume()
+        }
+        self.wait()
+    }
+    
+    #if os(iOS) || os(tvOS)
+    func testThatImageAreRemovedOnMemoryWarnings() {
+        let request = ImageRequest(URL: defaultURL)
+        self.manager.setImage(Image(), forRequest: request)
+        XCTAssertNotNil(self.manager.imageForRequest(request))
+        
+        NSNotificationCenter.defaultCenter().postNotificationName(UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+        
+        XCTAssertNil(self.manager.imageForRequest(request))
+    }
+    #endif
 }
