@@ -40,10 +40,7 @@ Nuke.taskWith(request) {
 
 Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { _, response in
     switch response {
-    case let .Success(image, info):
-        if info.isFastResponse {
-            // Image was retrieved synchronously from memory cache
-        }
+    case let .Success(image):
         let image = image
     case let .Failure(error):
         // Handle error

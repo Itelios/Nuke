@@ -7,7 +7,7 @@ import Foundation
 /// Represents image response.
 public enum ImageResponse {
     /// Task completed successfully.
-    case Success(Image, ImageResponseInfo)
+    case Success(Image)
 
     /// Task either failed or was cancelled. See ImageManagerErrorDomain for more info.
     case Failure(ErrorType)
@@ -18,7 +18,7 @@ public extension ImageResponse {
     /// Returns image if the response was successful.
     public var image: Image? {
         switch self {
-        case .Success(let image, _): return image
+        case .Success(let image): return image
         case .Failure(_): return nil
         }
     }
@@ -38,10 +38,4 @@ public extension ImageResponse {
         case .Failure: return false
         }
     }
-}
-
-/// Metadata associated with the image response.
-public struct ImageResponseInfo {
-    /// Returns true if the image was retrieved from memory cache.
-    public var isFastResponse: Bool
 }

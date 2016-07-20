@@ -21,7 +21,7 @@ public struct ImageViewLoadingOptions {
     public var animated = true
     
     /// Custom handler to run when the task completes. Overrides the default completion handler. Default value is nil.
-    public var handler: ((ImageLoadingView, ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void)? = nil
+    public var handler: ((view: ImageLoadingView, response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
     
     /// Default value is nil.
     public var userInfo: Any? = nil
@@ -39,20 +39,20 @@ public protocol ImageLoadingView: class {
     func nk_cancelLoading()
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask
+    func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
     
     /// Gets called when the task that is currently associated with the view completes.
-    func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions)
+    func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
 }
 
 public extension ImageLoadingView {
     /// Loads and displays an image for the given URL. Cancels previously started requests.
-    public func nk_setImageWith(URL: NSURL) -> ImageTask {
+    public func nk_setImageWith(URL: NSURL) -> ImageTask? {
         return nk_setImageWith(ImageRequest(URL: URL))
     }
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(request: ImageRequest) -> ImageTask {
+    public func nk_setImageWith(request: ImageRequest) -> ImageTask? {
         return nk_setImageWith(request, options: ImageViewLoadingOptions())
     }
 }
@@ -79,7 +79,7 @@ public extension ImageLoadingView {
     }
 
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
+    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
         return nk_imageLoadingController.setImageWith(request, options: options)
     }
 
@@ -94,7 +94,7 @@ public extension ImageLoadingView {
             return loader
         }
         let loader = ImageViewLoadingController { [weak self] in
-            self?.nk_imageTask($0, didFinishWithResponse: $1, options: $2)
+            self?.nk_handle($0, options: $1, isFromMemoryCache: $2)
         }
         objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, loader, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return loader
@@ -109,15 +109,15 @@ private struct AssociatedKeys {
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     
     /// Default implementation that displays the image and runs animations if necessary.
-    public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
+    public func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
         if let handler = options.handler {
-            handler(self, task, response, options)
+            handler(view: self, response: response, options: options, isFromMemoryCache: isFromMemoryCache)
             return
         }
         switch response {
-        case let .Success(image, info):
+        case let .Success(image):
             nk_displayImage(image)
-            if options.animated && !info.isFastResponse {
+            if options.animated && !isFromMemoryCache {
                 if let animations = options.animations {
                     animations(self) // User provided custom animations
                 } else {
@@ -158,13 +158,15 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 
 // MARK: - ImageViewLoadingController
 
+public typealias ImageViewLoadingHandler = (response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void
+
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {
     /// Current task.
     public var imageTask: ImageTask?
     
     /// Handler that gets called each time current task completes.
-    public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void
+    public var handler: ImageViewLoadingHandler
     
     /// The image manager used for creating tasks. The shared manager is used by default.
     public var manager: ImageManager = ImageManager.shared
@@ -174,7 +176,7 @@ public class ImageViewLoadingController {
     }
     
     /// Initializes the receiver with a given handler.
-    public init(handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void) {
+    public init(handler: ImageViewLoadingHandler) {
         self.handler = handler
     }
     
@@ -185,14 +187,21 @@ public class ImageViewLoadingController {
     }
     
     /// Creates a task, subscribes to it and resumes it.
-    public func setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
+    public func setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
         cancelLoading()
-        let task = manager.taskWith(request) { [weak self] task, response in
-            if task == self?.imageTask {
-                self?.handler(task, response, options)
+        
+        if request.memoryCachePolicy != .ReloadIgnoringCachedImage {
+            if let response = manager.responseForRequest(request) {
+                self.handler(response: ImageResponse.Success(response.image), options: options, isFromMemoryCache: true)
+                return nil
             }
         }
-        imageTask = task
-        return task.resume()
+        
+        imageTask = manager.taskWith(request) { [weak self] task, response in
+            if task == self?.imageTask {
+                self?.handler(response: response, options: options, isFromMemoryCache: false)
+            }
+            }.resume()
+        return imageTask
     }
 }

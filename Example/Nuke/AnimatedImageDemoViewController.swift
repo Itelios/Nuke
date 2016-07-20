@@ -29,7 +29,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         self.previousImageManager = ImageManager.shared
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: ImageDataLoader(), decoder: decoder), delegate: AnimatedImageLoaderDelegate())
+        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: ImageDataLoader(), decoder: decoder))
         let cache = AnimatedImageMemoryCache()
         ImageManager.shared = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: cache))
         
@@ -137,7 +137,7 @@ private class AnimatedImageCell: UICollectionViewCell {
     
     func setImageWith(request: ImageRequest) {
         let task = self.imageView.nk_setImageWith(request)
-        task.progressHandler = { [weak self, weak task] _ in
+        task?.progressHandler = { [weak self, weak task] _ in
             guard let task = task where task == self?.imageView.nk_imageTask else {
                 return
             }
@@ -147,9 +147,6 @@ private class AnimatedImageCell: UICollectionViewCell {
                     self?.progressView.alpha = 0
                 }
             }
-        }
-        if task.state == .Completed {
-            self.progressView.alpha = 0
         }
     }
     

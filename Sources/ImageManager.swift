@@ -122,8 +122,7 @@ public class ImageManager {
         case .Running:
             if task.request.memoryCachePolicy == .ReturnCachedImageElseLoad {
                 if let response = responseForRequest(task.request) {
-                    // FIXME: Should ImageResponse contain a `fastResponse` property?
-                    task.response = ImageResponse.Success(response.image, ImageResponseInfo(isFastResponse: true))
+                    task.response = ImageResponse.Success(response.image)
                     setState(.Completed, forTask: task)
                     return
                 }
@@ -140,7 +139,7 @@ public class ImageManager {
             assert(task.response != nil)
             let response = task.response!
             if let completion = task.completion {
-                dispathOnMainThread {
+                dispatch_get_main_queue().async {
                     completion(task, response)
                 }
             }
@@ -307,7 +306,7 @@ extension ImageManager: ImageLoadingDelegate {
             let task = task as! ImageTaskInternal
             if task.state == .Running {
                 if let image = image {
-                    task.response = ImageResponse.Success(image, ImageResponseInfo(isFastResponse: false))
+                    task.response = ImageResponse.Success(image)
                 } else {
                     task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
                 }

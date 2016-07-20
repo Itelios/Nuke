@@ -90,7 +90,7 @@ Nuke.taskWith(request) {
 }.resume()
 ```
 
-Processed images are stored into memory cache. Next time you start the same request the completion will be called synchronously.
+Processed images are stored into memory cache.
 
 #### Using Image Response
 
@@ -272,9 +272,9 @@ The combination of two cache layers results in a high performance caching system
 
 #### Accessing Memory Cache
 
-Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `ImageTask` and calls a completion closure synchronously if the image is found.
+Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `ImageTask`.
 
-If you need to access memory cache directly you can use `ImageManager`:
+If you need to access memory cache directly and synchronously you can use `ImageManager`:
 
 ```swift
 let manager = ImageManager.shared

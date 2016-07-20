@@ -30,10 +30,6 @@ func errorWithCode(code: ImageManagerErrorCode) -> NSError {
 
 // MARK: GCD
 
-func dispathOnMainThread(closure: (Void) -> Void) {
-    NSThread.isMainThread() ? closure() : dispatch_async(dispatch_get_main_queue(), closure)
-}
-
 extension dispatch_queue_t {
     func async(block: (Void -> Void)) { dispatch_async(self, block) }
 }

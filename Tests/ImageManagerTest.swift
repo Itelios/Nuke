@@ -72,7 +72,7 @@ class ImageManagerTest: XCTestCase {
         let task = self.expect { fulfill in
             return self.manager.taskWith(defaultURL) { task, response in
                 switch response {
-                case .Success(_, _): XCTFail()
+                case .Success(_): XCTFail()
                 case let .Failure(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.Cancelled.rawValue, "")
@@ -95,7 +95,7 @@ class ImageManagerTest: XCTestCase {
         let task = self.expect { fulfill in
             return self.manager.taskWith(defaultURL) { task, response in
                 switch response {
-                case .Success(_, _): XCTFail()
+                case .Success(_): XCTFail()
                 case let .Failure(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.Cancelled.rawValue, "")

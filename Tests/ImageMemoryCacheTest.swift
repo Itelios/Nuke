@@ -34,12 +34,8 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNil(self.manager.responseForRequest(request))
 
         self.expect { fulfill in
-            self.manager.taskWith(request) {
-                switch $0.1 {
-                case .Success(_, let info):
-                    XCTAssertFalse(info.isFastResponse)
-                default: XCTFail()
-                }
+            self.manager.taskWith(request) { _, response in
+                XCTAssertTrue(response.isSuccess)
                 fulfill()
             }.resume()
         }
@@ -50,17 +46,13 @@ class ImageMemoryCacheTest: XCTestCase {
         
         self.mockSessionManager.enabled = false
         
-        var isCompletionCalled = false
-        self.manager.taskWith(request) {
-            switch $0.1 {
-            case .Success(_, let info):
-                XCTAssertTrue(info.isFastResponse)
-            default: XCTFail()
-            }
-            // Completion closure should be called synchronously on the main thread
-            isCompletionCalled = true
-        }.resume()
-        XCTAssertTrue(isCompletionCalled, "")
+        self.expect { fulfill in
+            self.manager.taskWith(request) { _, response in
+                XCTAssertTrue(response.isSuccess)
+                fulfill()
+            }.resume()
+        }
+        self.wait()
     }
     
     func testThatStoreResponseMethodWorks() {
@@ -69,24 +61,11 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
         XCTAssertNil(self.manager.responseForRequest(request))
         
-        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
+        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
         let response = self.manager.responseForRequest(request)
         XCTAssertNotNil(response)
-        XCTAssertEqual(response?.userInfo as? String, "info")
-        
-        var isCompletionCalled = false
-        self.manager.taskWith(request) {
-            switch $0.1 {
-            case .Success(_, let info):
-                XCTAssertTrue(info.isFastResponse)
-            default: XCTFail()
-            }
-            // Completion closure should be called synchronously on the main thread
-            isCompletionCalled = true
-        }.resume()
-        XCTAssertTrue(isCompletionCalled, "")
     }
     
     func testThatRemoveResponseMethodWorks() {
@@ -95,52 +74,15 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
         XCTAssertNil(self.manager.responseForRequest(request))
         
-        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
+        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
         let response = self.manager.responseForRequest(request)
         XCTAssertNotNil(response)
-        XCTAssertEqual(response?.userInfo as? String, "info")
         
         self.manager.removeResponseForRequest(request)
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
         XCTAssertNil(self.manager.responseForRequest(request))
-    }
-    
-    func testThatRequestMemoryCachePolicyIsHonored() {
-        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
-        
-        let request1 = ImageRequest(URL: defaultURL)
-        var request2 = ImageRequest(URL: defaultURL)
-        request2.memoryCachePolicy = .ReloadIgnoringCachedImage
-        
-        // responseForRequest should ignore ImageRequestMemoryCachePolicy
-        XCTAssertNotNil(self.manager.responseForRequest(request1))
-        XCTAssertNotNil(self.manager.responseForRequest(request2))
-        
-        var isCompletionCalled = false
-        self.manager.taskWith(request1) {
-            switch $0.1 {
-            case .Success(_, let info):
-                XCTAssertTrue(info.isFastResponse)
-            default: XCTFail()
-            }
-            // Completion closure should be called synchronously on the main thread
-            isCompletionCalled = true
-        }.resume()
-        XCTAssertTrue(isCompletionCalled, "")
-        
-        self.expect { fulfill in
-            self.manager.taskWith(request2) {
-                switch $0.1 {
-                case .Success(_, let info):
-                    XCTAssertFalse(info.isFastResponse)
-                default: XCTFail()
-                }
-                fulfill()
-            }.resume()
-        }
-        self.wait()
     }
     
     func testThatMemoryCacheStorageCanBeDisabled() {
@@ -152,12 +94,8 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNil(self.manager.responseForRequest(request))
         
         self.expect { fulfill in
-            self.manager.taskWith(request) {
-                switch $0.1 {
-                case .Success(_, let info):
-                    XCTAssertFalse(info.isFastResponse)
-                default: XCTFail()
-                }
+            self.manager.taskWith(request) { _, response in
+                XCTAssertTrue(response.isSuccess)
                 fulfill()
             }.resume()
         }
@@ -169,7 +107,7 @@ class ImageMemoryCacheTest: XCTestCase {
 
     func testThatAllCachedImageAreRemoved() {
         let request = ImageRequest(URL: defaultURL)
-        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
+        self.manager.setResponse(ImageCachedResponse(image: Image()), forRequest: request)
 
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
 
