@@ -29,31 +29,6 @@ public enum ImageManagerErrorCode: Int {
     case ProcessingFailed = -15004
 }
 
-// MARK: - ImageManagerConfiguration
-
-/// Configuration options for an ImageManager.
-public struct ImageManagerConfiguration {
-    /// Performs loading of images.
-    public var loader: ImageLoading
-
-    /// In-memory storage for image responses.
-    public var cache: ImageMemoryCaching?
-    
-    /// Default value is 2.
-    public var maxConcurrentPreheatingTaskCount = 2
-    
-    /**
-     Initializes configuration with an image loader and memory cache.
-     
-     - parameter loader: Image loader.
-     - parameter cache: Memory cache. Default `ImageMemoryCache` instance is created if the parameter is omitted.
-     */
-    public init(loader: ImageLoading, cache: ImageMemoryCaching?) {
-        self.loader = loader
-        self.cache = cache
-    }
-}
-
 // MARK: - ImageManager
 
 /**
@@ -79,15 +54,14 @@ public class ImageManager {
     
     // MARK: Configuring Manager
 
-    /// The configuration that the receiver was initialized with.
-    public let configuration: ImageManagerConfiguration
+    /// Default value is 2.
+    public var maxConcurrentPreheatingTaskCount = 2
 
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
-    public init(configuration: ImageManagerConfiguration) {
-        self.configuration = configuration
-        self.cache = configuration.cache
-        self.loader = configuration.loader
+    public init(loader: ImageLoading, cache: ImageMemoryCaching?) {
+        self.loader = loader
         self.loader.delegate = self
+        self.cache = cache
     }
     
     // MARK: Adding Tasks
@@ -202,7 +176,7 @@ public class ImageManager {
         var executingTaskCount = executingTasks.count
         // FIXME: Use sorted dictionary
         for task in (preheatingTasks.values.sort { $0.identifier < $1.identifier }) {
-            if executingTaskCount > configuration.maxConcurrentPreheatingTaskCount {
+            if executingTaskCount > maxConcurrentPreheatingTaskCount {
                 break
             }
             if task.state == .Suspended {

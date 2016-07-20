@@ -29,44 +29,6 @@ public protocol ImageLoadingDelegate: class {
     func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?)
 }
 
-// MARK: - ImageLoaderConfiguration
-
-/// Configuration options for an ImageLoader.
-public struct ImageLoaderConfiguration {
-    /// Performs loading of image data.
-    public var dataLoader: ImageDataLoading
-
-    /// Decodes data into image objects.
-    public var decoder: ImageDecoding
-
-    /// Stores image data into a disk cache.
-    public var cache: ImageDiskCaching?
-    
-    /// Image caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
-    public var cachingQueue = NSOperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
-    
-    /// Data loading queue.
-    public var dataLoadingQueue = NSOperationQueue(maxConcurrentOperationCount: 8)
-    
-    /// Image decoding queue. Default queue has a maximum concurrent operation count 1.
-    public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
-    
-    /// Image processing queue. Default queue has a maximum concurrent operation count 2.
-    public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
-    
-    /**
-     Initializes configuration with data loader and image decoder.
-     
-     - parameter dataLoader: Image data loader.
-     - parameter decoder: Image decoder. Default `ImageDecoder` instance is created if the parameter is omitted.
-     */
-    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageDiskCaching? = nil) {
-        self.dataLoader = dataLoader
-        self.decoder = decoder
-        self.cache = cache
-    }
-}
-
 // MARK: - ImageLoader
 
 /**
@@ -77,35 +39,59 @@ This class uses multiple dependencies provided in its configuration. Image data 
 - Provides transparent loading, decoding and processing with a single completion signal
 */
 public class ImageLoader: ImageLoading {
+    /// Queues on which to execute certain tasks.
+    public struct Queues {
+        /// Image caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
+        public var dataCaching = NSOperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
+
+        /// Data loading queue. Default queue has a maximum concurrent operation count 8.
+        public var dataLoading = NSOperationQueue(maxConcurrentOperationCount: 8)
+
+        /// Image decoding queue. Default queue has a maximum concurrent operation count 1.
+        public var dataDecoding = NSOperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
+
+        /// Image processing queue. Default queue has a maximum concurrent operation count 2.
+        public var processing = NSOperationQueue(maxConcurrentOperationCount: 2)
+    }
+
     /// Manages image loading.
     public weak var delegate: ImageLoadingDelegate?
 
-    /// The configuration that the receiver was initialized with.
-    public let configuration: ImageLoaderConfiguration
-    private var conf: ImageLoaderConfiguration { return configuration }
-    
+    public let dataCache: ImageDiskCaching?
+    public let dataLoader: ImageDataLoading
+    public let dataDecoder: ImageDecoding
+    public let queues: ImageLoader.Queues
+
     private var loadStates = [ImageTask : ImageLoadState]()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     
     /// Initializes image loader with a configuration.
-    public init(configuration: ImageLoaderConfiguration) {
-        self.configuration = configuration
+    public init(
+        dataLoader: ImageDataLoading = ImageDataLoader(),
+        dataDecoder: ImageDecoding = ImageDecoder(),
+        dataCache: ImageDiskCaching? = nil,
+        queues: ImageLoader.Queues = ImageLoader.Queues())
+    {
+        self.dataLoader = dataLoader
+        self.dataCache = dataCache
+        self.dataDecoder = dataDecoder
+        self.queues = queues
     }
 
     /// Resumes loading for the image task.
     public func resumeLoadingFor(task: ImageTask) {
         queue.async {
-            if let cache = self.conf.cache {
-                self.loadDataFor(task, cache: cache)
+            if let dataCache = self.dataCache {
+                self.loadDataFor(task, dataCache: dataCache)
             } else {
                 self.loadDataFor(task)
             }
         }
     }
 
-    private func loadDataFor(task: ImageTask, cache: ImageDiskCaching) {
+    private func loadDataFor(task: ImageTask, dataCache: ImageDiskCaching) {
         enterState(task, state: .CacheLookup(NSBlockOperation() {
-            self.then(for: task, result: cache.dataFor(task)) { data in
+            self.then(for: task, result: dataCache.dataFor(task)) { data in
                 if let data = data {
                     self.decode(data, task: task)
                 } else {
@@ -117,7 +103,7 @@ public class ImageLoader: ImageLoading {
 
     private func loadDataFor(task: ImageTask) {
         enterState(task, state: .Loading(DataOperation() { fulfill in
-            let dataTask = self.conf.dataLoader.taskWith(
+            let dataTask = self.dataLoader.taskWith(
                 task.request,
                 progress: { [weak self] completed, total in
                     self?.updateProgress(ImageTaskProgress(completed: completed, total: total), task: task)
@@ -151,8 +137,8 @@ public class ImageLoader: ImageLoading {
 
     private func storeResponse(response: DataOperationResult, for task: ImageTask) {
         if let data = response.0 where response.2 == nil {
-            if let response = response.1, cache = conf.cache {
-                conf.cachingQueue.addOperation(NSBlockOperation() {
+            if let response = response.1, cache = dataCache {
+                queues.dataCaching.addOperation(NSBlockOperation() {
                      cache.setData(data, response: response, forTask: task)
                 })
             }
@@ -161,7 +147,7 @@ public class ImageLoader: ImageLoading {
     
     private func decode(data: NSData, response: NSURLResponse? = nil, task: ImageTask) {
         enterState(task, state: .Decoding(NSBlockOperation() {
-            self.then(for: task, result: self.conf.decoder.decode(data, response: response)) { image in
+            self.then(for: task, result: self.dataDecoder.decode(data, response: response)) { image in
                 if let image = image {
                     self.process(image, task: task)
                 } else {
@@ -198,10 +184,10 @@ public class ImageLoader: ImageLoading {
 
     private func enterState(task: ImageTask, state: ImageLoadState) {
         switch state {
-        case .CacheLookup(let op): conf.cachingQueue.addOperation(op)
-        case .Loading(let op): conf.dataLoadingQueue.addOperation(op)
-        case .Decoding(let op): conf.decodingQueue.addOperation(op)
-        case .Processing(let op): conf.processingQueue.addOperation(op)
+        case .CacheLookup(let op): queues.dataCaching.addOperation(op)
+        case .Loading(let op): queues.dataLoading.addOperation(op)
+        case .Decoding(let op): queues.dataLoading.addOperation(op)
+        case .Processing(let op): queues.processing.addOperation(op)
         }
         loadStates[task] = state
     }

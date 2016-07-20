@@ -55,14 +55,16 @@ public extension ImageManager {
     
     public static func makeDefaultManager() -> ImageManager {
         let dataLoader = ImageDataLoader()
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: dataLoader, decoder: ImageDecoder()))
-        let memCache = ImageMemoryCache()
-        let manager = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: memCache))
+        let dataDecoder = ImageDecoder()
+        let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
+
+        let cache = ImageMemoryCache()
+        let manager = ImageManager(loader: loader, cache: cache)
         manager.postInvalidateAndCancel = {
             dataLoader.session.invalidateAndCancel()
         }
         manager.postRemoveAllCachedImages = {
-            memCache.removeAllCachedImages()
+            cache.removeAllCachedImages()
             dataLoader.session.configuration.URLCache?.removeAllCachedResponses()
         }
         return manager

@@ -19,8 +19,8 @@ class ImageMockMemoryCacheTest: XCTestCase {
 
         self.mockMemoryCache = MockImageMemoryCache()
         self.mockSessionManager = MockImageDataLoader()
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: self.mockSessionManager))
-        self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: self.mockMemoryCache))
+        let loader = ImageLoader(dataLoader: self.mockSessionManager)
+        self.manager = ImageManager(loader: loader, cache: self.mockMemoryCache)
     }
     
     override func tearDown() {
@@ -128,8 +128,8 @@ class ImageMemoryCacheTest: XCTestCase {
         
         self.cache = ImageMemoryCache()
         self.mockSessionManager = MockImageDataLoader()
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: self.mockSessionManager))
-        self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: self.cache))
+        let loader = ImageLoader(dataLoader: self.mockSessionManager)
+        self.manager = ImageManager(loader: loader, cache: self.cache)
     }
     
     func testThatImagesAreStoredInMemoryCache() {
