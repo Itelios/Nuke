@@ -1,5 +1,5 @@
 //
-//  MockImageDataLoader.swift
+//  MockDataLoader.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 3/14/15.
@@ -9,7 +9,7 @@
 import Foundation
 import Nuke
 
-class MockImageDataLoader: ImageDataLoader {
+class MockDataLoader: DataLoader {
     var enabled = true {
         didSet {
             self.queue.isSuspended = !enabled
@@ -18,11 +18,11 @@ class MockImageDataLoader: ImageDataLoader {
     var createdTaskCount = 0
     private let queue = OperationQueue()
 
-    override func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> URLSessionTask {
+    override func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
         self.queue.addOperation {
             progress(completed: 50, total: 100)
             progress(completed: 100, total: 100)
-            let bundle = Bundle(for: MockImageDataLoader.self)
+            let bundle = Bundle(for: MockDataLoader.self)
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try? Data(contentsOf: URL!)
             DispatchQueue.main.async {

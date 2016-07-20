@@ -54,8 +54,8 @@ public extension ImageManager {
     private static var manager = ImageManager.makeDefaultManager()
     
     public static func makeDefaultManager() -> ImageManager {
-        let dataLoader = ImageDataLoader()
-        let dataDecoder = ImageDataDecoder()
+        let dataLoader = DataLoader()
+        let dataDecoder = DataDecoder()
         let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
 
         let cache = ImageCache()

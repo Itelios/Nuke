@@ -12,13 +12,13 @@ import Nuke
 class ImageMockCacheTest: XCTestCase {
     var manager: ImageManager!
     var mocCache: MockImageCache!
-    var mockSessionManager: MockImageDataLoader!
+    var mockSessionManager: MockDataLoader!
     
     override func setUp() {
         super.setUp()
 
         self.mocCache = MockImageCache()
-        self.mockSessionManager = MockImageDataLoader()
+        self.mockSessionManager = MockDataLoader()
         let loader = ImageLoader(dataLoader: self.mockSessionManager)
         self.manager = ImageManager(loader: loader, cache: self.mocCache)
     }
@@ -121,13 +121,13 @@ class ImageMockCacheTest: XCTestCase {
 class ImageCacheTest: XCTestCase {
     var cache: ImageCache!
     var manager: ImageManager!
-    var mockSessionManager: MockImageDataLoader!
+    var mockSessionManager: MockDataLoader!
     
     override func setUp() {
         super.setUp()
         
         self.cache = ImageCache()
-        self.mockSessionManager = MockImageDataLoader()
+        self.mockSessionManager = MockDataLoader()
         let loader = ImageLoader(dataLoader: self.mockSessionManager)
         self.manager = ImageManager(loader: loader, cache: self.cache)
     }

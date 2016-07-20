@@ -264,7 +264,7 @@ Nuke provides both on-disk and in-memory caching.
 
 For on-disk caching it relies on `NSURLCache`. The `NSURLCache` is used to cache original image data downloaded from the server. This class a part of the URL Loading System's cache management, which relies on HTTP cache.
 
-As an alternative to `NSURLCache` `Nuke` provides an `ImageDataCaching` protocol that allows you to easily integrate any third-party caching library.
+As an alternative to `NSURLCache` `Nuke` provides an `DataCaching` protocol that allows you to easily integrate any third-party caching library.
 
 For on-memory caching Nuke provides `ImageCaching` protocol and its implementation in `ImageCache` class built on top of `NSCache`. The `ImageCache` is used for fast access to processed images that are ready for display.
 
@@ -292,24 +292,24 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 
 |Protocol|Description|
 |--------|-----------|
-|`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDataDecoding`|Decodes `NSData` to `UIImage` objects|
+|`DataLoading`|Performs loading of image data (`NSData`)|
+|`DataDecoding`|Decodes `NSData` to `UIImage` objects|
 |`ImageCaching`|Stores processed images into memory cache|
-|`ImageDataCaching`|Stores data into disk cache|
+|`DataCaching`|Stores data into disk cache|
 
 <br>
 You can either provide your own implementation of these protocols or customize existing classes that implement them. After you have all the dependencies in place you can create an `ImageManager`:
 
 ```swift
-let dataLoader: ImageDataLoading = <#dataLoader#>
-let decoder: ImageDataDecoding = <#decoder#>
+let dataLoader: DataLoading = <#dataLoader#>
+let decoder: DataDecoding = <#decoder#>
 let cache: ImageCaching = <#cache#>
 
 let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
 
-If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `ImageDataLoading`, `ImageDataCaching`, `ImageDataDecoding` and `ImageProcessing` protocols.
+If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `DataLoading`, `DataCaching`, `DataDecoding` and `ImageProcessing` protocols.
 
 ```swift
 let loader: ImageLoading = <#loader#>
@@ -328,11 +328,11 @@ ImageManager.shared = ImageManager(configuration: configuration)
 |Protocol|Description|
 |--------|-----------|
 |`ImageManager`|A top-level API for managing images|
-|`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDataDecoding`|Converts `NSData` to `UIImage` objects|
+|`DataLoading`|Performs loading of image data (`NSData`)|
+|`DataDecoding`|Converts `NSData` to `UIImage` objects|
 |`ImageProcessing`|Processes decoded images|
 |`ImageCaching`|Stores processed images into memory cache|
-|`ImageDataCaching`|Stores data into disk cache|
+|`DataCaching`|Stores data into disk cache|
 
 ## Installation<a name="installation"></a>
 

@@ -5,11 +5,11 @@
 import Foundation
 
 /**
- On-disk storage for image data.
+ On-disk storage for data.
  
- Nuke doesn't provide a built-in implementation of this protocol. However, it's very easy to implement it in an extension of some existing library, for example, DFCache (see Example project for more info).
+ Nuke doesn't provide a built-in implementation of this protocol. However, it's very easy to implement one in an extension of some existing library, for example, DFCache (see Example project for more info).
 */
-public protocol ImageDataCaching {
+public protocol DataCaching {
     /// Stores data for the given request.
     func setData(_ data: Data, response: URLResponse, for request: ImageRequest)
     

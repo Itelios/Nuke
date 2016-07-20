@@ -20,7 +20,7 @@ public protocol ImageLoading: class {
 /**
 Performs loading of images for the image tasks.
 
-This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDataDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
+This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `DataLoading` protocol. Image data is decoded via `DataDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
 
 - Provides transparent loading, decoding and processing with a single completion signal
 */
@@ -40,18 +40,18 @@ public class ImageLoader: ImageLoading {
         public var processing = OperationQueue(maxConcurrentOperationCount: 2)
     }
 
-    public let dataCache: ImageDataCaching?
-    public let dataLoader: ImageDataLoading
-    public let dataDecoder: ImageDataDecoding
+    public let dataCache: DataCaching?
+    public let dataLoader: DataLoading
+    public let dataDecoder: DataDecoding
     public let queues: ImageLoader.Queues
 
     private let queue = DispatchQueue(label: "ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
     
     /// Initializes image loader with a configuration.
     public init(
-        dataLoader: ImageDataLoading = ImageDataLoader(),
-        dataDecoder: ImageDataDecoding = ImageDataDecoder(),
-        dataCache: ImageDataCaching? = nil,
+        dataLoader: DataLoading = DataLoader(),
+        dataDecoder: DataDecoding = DataDecoder(),
+        dataCache: DataCaching? = nil,
         queues: ImageLoader.Queues = ImageLoader.Queues())
     {
         self.dataLoader = dataLoader
@@ -75,7 +75,7 @@ public class ImageLoader: ImageLoading {
         return task
     }
 
-    private func loadData(for task: Task, dataCache: ImageDataCaching) {
+    private func loadData(for task: Task, dataCache: DataCaching) {
         enterState(task, state: .dataCacheLookup(BlockOperation() {
             self.then(for: task, result: dataCache.data(for: task.request)) { data in
                 if let data = data {

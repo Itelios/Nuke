@@ -4,25 +4,25 @@
 
 import Foundation
 
-// MARK: - ImageDataLoading
+// MARK: - DataLoading
 
 /// Data loading progress closure.
-public typealias ImageDataLoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias DataLoadingProgress = (completed: Int64, total: Int64) -> Void
 
 /// Data loading completion closure.
-public typealias ImageDataLoadingCompletion = (data: Data?, response: URLResponse?, error: ErrorProtocol?) -> Void
+public typealias DataLoadingCompletion = (data: Data?, response: URLResponse?, error: ErrorProtocol?) -> Void
 
 /// Performs loading of image data.
-public protocol ImageDataLoading {
+public protocol DataLoading {
     /// Creates task with a given request. Task is resumed by the object calling the method.
-    func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> URLSessionTask
+    func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask
 }
 
 
-// MARK: - ImageDataLoader
+// MARK: - DataLoader
 
 /// Provides basic networking using NSURLSession.
-public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading {
+public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     public private(set) var session: URLSession!
     private var handlers = [URLSessionTask: Handler]()
     private var lock = RecursiveLock()
@@ -40,10 +40,10 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
         self.init(configuration: conf)
     }
     
-    // MARK: ImageDataLoading
+    // MARK: DataLoading
 
     /// Creates task for the given request.
-    public func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> URLSessionTask {
+    public func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
         let task = self.task(with: request)
         lock.lock()
         handlers[task] = Handler(progress: progress, completion: completion)
@@ -80,10 +80,10 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
     
     private class Handler {
         var data = Data()
-        let progress: ImageDataLoadingProgress
-        let completion: ImageDataLoadingCompletion
+        let progress: DataLoadingProgress
+        let completion: DataLoadingCompletion
         
-        init(progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) {
+        init(progress: DataLoadingProgress, completion: DataLoadingCompletion) {
             self.progress = progress
             self.completion = completion
         }

@@ -69,7 +69,7 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - Implement congestion control for `ImageLoader` that prevents `NSURLSession` trashing
 - Simplify `ImageLoaderDelegate` by combining methods that were customizing processing in a single high-level method: `imageLoader(_:processorFor:image:)`. Users now have more control over processing
 - Add `NSURLResponse?` parameter to `decode` method from `ImageDecoding` protocol
-- `ImageDataLoading` protocol no longer has `isLoadEquivalentRequest(_:toRequest)` and `isCacheEquivalentRequest(_:toRequest)`. Those methods are now part of `ImageLoaderDelegate` and they have default implementation
+- `DataLoading` protocol no longer has `isLoadEquivalentRequest(_:toRequest)` and `isCacheEquivalentRequest(_:toRequest)`. Those methods are now part of `ImageLoaderDelegate` and they have default implementation
 - `ImageResponseInfo` is now a struct
 - Improved error reporting (codes are now stored in enum, more codes were added, error is now created with a failure reason)
 
@@ -110,7 +110,7 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - #20 Add preheating for UITableView (see ImagePreheatingControllerForTableView class)
 - #41 Enhanced tvOS support thanks to @joergbirkhold
 - #39 UIImageView: ImageLoadingView extension no available on tvOS
-- Add factory method for creating session tasks in ImageDataLoader
+- Add factory method for creating session tasks in DataLoader
 - Improved documentation
 
 

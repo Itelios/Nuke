@@ -13,7 +13,7 @@
 #endif
 
 /// Decodes data into images.
-public protocol ImageDataDecoding {
+public protocol DataDecoding {
     /// Decodes data into an image object.
     func decode(data: Data, response: URLResponse?) -> Image?
 }
@@ -22,7 +22,7 @@ public protocol ImageDataDecoding {
 private let lock = Lock()
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
-public class ImageDataDecoder: ImageDataDecoding {
+public class DataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 
@@ -58,12 +58,12 @@ public class ImageDataDecoder: ImageDataDecoding {
 }
 
 /// Composes multiple image decoders.
-public class ImageDataDecoderComposition: ImageDataDecoding {
+public class DataDecoderComposition: DataDecoding {
     /// Image decoders that the receiver was initialized with.
-    public let decoders: [ImageDataDecoding]
+    public let decoders: [DataDecoding]
 
     /// Composes multiple image decoders.
-    public init(decoders: [ImageDataDecoding]) {
+    public init(decoders: [DataDecoding]) {
         self.decoders = decoders
     }
 

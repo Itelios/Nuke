@@ -7,18 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C0FD5E01CA47FE1002A78FB /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */; };
-		0C0FD5E11CA47FE1002A78FB /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */; };
-		0C0FD5E21CA47FE1002A78FB /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */; };
-		0C0FD5E31CA47FE1002A78FB /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */; };
-		0C0FD5E41CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */; };
-		0C0FD5E51CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */; };
-		0C0FD5E61CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */; };
-		0C0FD5E71CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */; };
-		0C0FD5E81CA47FE1002A78FB /* ImageDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */; };
-		0C0FD5E91CA47FE1002A78FB /* ImageDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */; };
-		0C0FD5EA1CA47FE1002A78FB /* ImageDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */; };
-		0C0FD5EB1CA47FE1002A78FB /* ImageDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */; };
+		0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
+		0C0FD5E11CA47FE1002A78FB /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
+		0C0FD5E21CA47FE1002A78FB /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
+		0C0FD5E31CA47FE1002A78FB /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
+		0C0FD5E41CA47FE1002A78FB /* DataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */; };
+		0C0FD5E51CA47FE1002A78FB /* DataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */; };
+		0C0FD5E61CA47FE1002A78FB /* DataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */; };
+		0C0FD5E71CA47FE1002A78FB /* DataDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */; };
+		0C0FD5E81CA47FE1002A78FB /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* DataCache.swift */; };
+		0C0FD5E91CA47FE1002A78FB /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* DataCache.swift */; };
+		0C0FD5EA1CA47FE1002A78FB /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* DataCache.swift */; };
+		0C0FD5EB1CA47FE1002A78FB /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D21CA47FE1002A78FB /* DataCache.swift */; };
 		0C0FD5EC1CA47FE1002A78FB /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D31CA47FE1002A78FB /* ImageLoader.swift */; };
 		0C0FD5ED1CA47FE1002A78FB /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D31CA47FE1002A78FB /* ImageLoader.swift */; };
 		0C0FD5EE1CA47FE1002A78FB /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D31CA47FE1002A78FB /* ImageLoader.swift */; };
@@ -127,9 +127,9 @@
 
 /* Begin PBXFileReference section */
 		0C096C791BAE9AC9007FE380 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDataLoader.swift; sourceTree = "<group>"; };
-		0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDataDecoder.swift; sourceTree = "<group>"; };
-		0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDataCache.swift; sourceTree = "<group>"; };
+		0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataLoader.swift; sourceTree = "<group>"; };
+		0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataDecoder.swift; sourceTree = "<group>"; };
+		0C0FD5D21CA47FE1002A78FB /* DataCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCache.swift; sourceTree = "<group>"; };
 		0C0FD5D31CA47FE1002A78FB /* ImageLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		0C0FD5D41CA47FE1002A78FB /* ImageLoadingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageLoadingView.swift; sourceTree = "<group>"; };
 		0C0FD5D61CA47FE1002A78FB /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
@@ -231,9 +231,9 @@
 			children = (
 				0CAD12051D3FDCEB004CE84F /* Nuke.h */,
 				0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */,
-				0C0FD5D01CA47FE1002A78FB /* ImageDataLoader.swift */,
-				0C0FD5D11CA47FE1002A78FB /* ImageDataDecoder.swift */,
-				0C0FD5D21CA47FE1002A78FB /* ImageDataCache.swift */,
+				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
+				0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */,
+				0C0FD5D21CA47FE1002A78FB /* DataCache.swift */,
 				0C0FD5D31CA47FE1002A78FB /* ImageLoader.swift */,
 				0C0FD5D41CA47FE1002A78FB /* ImageLoadingView.swift */,
 				0C0FD5D61CA47FE1002A78FB /* ImageManager.swift */,
@@ -598,11 +598,11 @@
 			files = (
 				0C0FD6021CA47FE1002A78FB /* ImageProcessor.swift in Sources */,
 				0C0FD5FE1CA47FE1002A78FB /* ImageCache.swift in Sources */,
-				0C0FD5E61CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */,
+				0C0FD5E61CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5FA1CA47FE1002A78FB /* ImageManager.swift in Sources */,
-				0C0FD5EA1CA47FE1002A78FB /* ImageDataCache.swift in Sources */,
+				0C0FD5EA1CA47FE1002A78FB /* DataCache.swift in Sources */,
 				0C0FD5EE1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
-				0C0FD5E21CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
+				0C0FD5E21CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD60E1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6121CA47FE1002A78FB /* ImageTask.swift in Sources */,
@@ -618,11 +618,11 @@
 			files = (
 				0C0FD6011CA47FE1002A78FB /* ImageProcessor.swift in Sources */,
 				0C0FD5FD1CA47FE1002A78FB /* ImageCache.swift in Sources */,
-				0C0FD5E51CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */,
+				0C0FD5E51CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5F91CA47FE1002A78FB /* ImageManager.swift in Sources */,
-				0C0FD5E91CA47FE1002A78FB /* ImageDataCache.swift in Sources */,
+				0C0FD5E91CA47FE1002A78FB /* DataCache.swift in Sources */,
 				0C0FD5ED1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
-				0C0FD5E11CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
+				0C0FD5E11CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD60D1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6111CA47FE1002A78FB /* ImageTask.swift in Sources */,
@@ -671,11 +671,11 @@
 			files = (
 				0C0FD6001CA47FE1002A78FB /* ImageProcessor.swift in Sources */,
 				0C0FD5FC1CA47FE1002A78FB /* ImageCache.swift in Sources */,
-				0C0FD5E41CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */,
+				0C0FD5E41CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5F81CA47FE1002A78FB /* ImageManager.swift in Sources */,
-				0C0FD5E81CA47FE1002A78FB /* ImageDataCache.swift in Sources */,
+				0C0FD5E81CA47FE1002A78FB /* DataCache.swift in Sources */,
 				0C0FD5EC1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
-				0C0FD5E01CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
+				0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD60C1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6101CA47FE1002A78FB /* ImageTask.swift in Sources */,
@@ -692,11 +692,11 @@
 			files = (
 				0C0FD6031CA47FE1002A78FB /* ImageProcessor.swift in Sources */,
 				0C0FD5FF1CA47FE1002A78FB /* ImageCache.swift in Sources */,
-				0C0FD5E71CA47FE1002A78FB /* ImageDataDecoder.swift in Sources */,
+				0C0FD5E71CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5FB1CA47FE1002A78FB /* ImageManager.swift in Sources */,
-				0C0FD5EB1CA47FE1002A78FB /* ImageDataCache.swift in Sources */,
+				0C0FD5EB1CA47FE1002A78FB /* DataCache.swift in Sources */,
 				0C0FD5EF1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
-				0C0FD5E31CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
+				0C0FD5E31CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD60F1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6131CA47FE1002A78FB /* ImageTask.swift in Sources */,
