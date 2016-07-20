@@ -17,16 +17,16 @@ public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
 /// The image manager error codes.
 public enum ImageManagerErrorCode: Int {
     /// Returned when the image manager encountered an error that it cannot interpret.
-    case Unknown = -15001
+    case unknown = -15001
 
     /// Returned when the image task gets cancelled.
-    case Cancelled = -15002
+    case cancelled = -15002
     
     /// Returned when the image manager fails decode image data.
-    case DecodingFailed = -15003
+    case decodingFailed = -15003
     
     /// Returned when the image manager fails to process image data.
-    case ProcessingFailed = -15004
+    case processingFailed = -15004
 }
 
 // MARK: - ImageManager
@@ -39,7 +39,7 @@ The `ImageManager` class and related classes provide methods for loading, proces
 public class ImageManager {
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
-    private let lock = NSRecursiveLock()
+    private let lock = RecursiveLock()
     private var invalidated = false
     private var needsToExecutePreheatingTasks = false
     private var taskIdentifier: Int32 = 0
@@ -49,8 +49,8 @@ public class ImageManager {
     private var loader: ImageLoading
     private var cache: ImageMemoryCaching?
     
-    public var postInvalidateAndCancel: (Void -> Void)?
-    public var postRemoveAllCachedImages: (Void -> Void)?
+    public var postInvalidateAndCancel: ((Void) -> Void)?
+    public var postRemoveAllCachedImages: ((Void) -> Void)?
     
     // MARK: Configuring Manager
 
@@ -70,13 +70,13 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func taskWith(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    public func taskWith(_ request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: nextTaskIdentifier, completion: completion)
     }
     
     // MARK: FSM (ImageTaskState)
     
-    private func setState(state: ImageTaskState, forTask task: ImageTaskInternal)  {
+    private func setState(_ state: ImageTaskState, forTask task: ImageTaskInternal)  {
         if task.isValidNextState(state) {
             transitionStateAction(task.state, toState: state, task: task)
             task.state = state
@@ -84,19 +84,19 @@ public class ImageManager {
         }
     }
     
-    private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
-        if fromState == .Running && toState == .Cancelled {
+    private func transitionStateAction(_ fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
+        if fromState == .running && toState == .cancelled {
             task.cancellable?.cancel()
         }
     }
     
-    private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
+    private func enterStateAction(_ state: ImageTaskState, task: ImageTaskInternal) {
         switch state {
-        case .Running:
-            if task.request.memoryCachePolicy == .ReturnCachedImageElseLoad {
+        case .running:
+            if task.request.memoryCachePolicy == .returnCachedImageElseLoad {
                 if let image = imageForRequest(task.request) {
-                    task.response = ImageResponse.Success(image)
-                    setState(.Completed, forTask: task)
+                    task.response = ImageResponse.success(image)
+                    setState(.completed, forTask: task)
                     return
                 }
             }
@@ -109,17 +109,17 @@ public class ImageManager {
                 completion: { [weak self] image, error in
                     self?.complete(task, image: image, error: error)
             })
-        case .Cancelled:
-            task.response = ImageResponse.Failure(errorWithCode(.Cancelled))
+        case .cancelled:
+            task.response = ImageResponse.failure(errorWithCode(.cancelled))
             fallthrough
-        case .Completed:
+        case .completed:
             executingTasks.remove(task)
             setNeedsExecutePreheatingTasks()
             
             assert(task.response != nil)
             let response = task.response!
             if let completion = task.completion {
-                dispatch_get_main_queue().async {
+                DispatchQueue.main.async {
                     completion(task, response)
                 }
             }
@@ -127,27 +127,27 @@ public class ImageManager {
         }
     }
 
-    private func updateProgress(progress: ImageTaskProgress, for task: ImageTask) {
-        dispatch_get_main_queue().async {
+    private func updateProgress(_ progress: ImageTaskProgress, for task: ImageTask) {
+        DispatchQueue.main.async {
             task.progress = progress
             task.progressHandler?(progress: progress)
         }
     }
 
-    private func complete(task: ImageTask, image: Image?, error: ErrorType?) {
+    private func complete(_ task: ImageTask, image: Image?, error: ErrorProtocol?) {
         perform {
-            if let image = image where task.request.memoryCacheStorageAllowed {
+            if let image = image, task.request.memoryCacheStorageAllowed {
                 setImage(image, forRequest: task.request)
             }
 
             let task = task as! ImageTaskInternal
-            if task.state == .Running {
+            if task.state == .running {
                 if let image = image {
-                    task.response = ImageResponse.Success(image)
+                    task.response = ImageResponse.success(image)
                 } else {
-                    task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
+                    task.response = ImageResponse.failure(error ?? errorWithCode(.unknown))
                 }
-                setState(.Completed, forTask: task)
+                setState(.completed, forTask: task)
             }
         }
     }
@@ -159,7 +159,7 @@ public class ImageManager {
     
     When you call this method, ImageManager starts to load and cache images for the given requests. ImageManager caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
     */
-    public func startPreheatingImages(requests: [ImageRequest]) {
+    public func startPreheatingImages(_ requests: [ImageRequest]) {
         perform {
             requests.forEach {
                 let key = makePreheatKey($0)
@@ -173,12 +173,12 @@ public class ImageManager {
         }
     }
     
-    private func makePreheatKey(request: ImageRequest) -> ImageRequestKey {
+    private func makePreheatKey(_ request: ImageRequest) -> ImageRequestKey {
         return makeCacheKey(request)
     }
     
     /// Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
-    public func stopPreheatingImages(requests: [ImageRequest]) {
+    public func stopPreheatingImages(_ requests: [ImageRequest]) {
         perform {
             cancelTasks(requests.flatMap {
                 return preheatingTasks[makePreheatKey($0)]
@@ -194,7 +194,7 @@ public class ImageManager {
     private func setNeedsExecutePreheatingTasks() {
         if !needsToExecutePreheatingTasks && !invalidated {
             needsToExecutePreheatingTasks = true
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64((0.15 * Double(NSEC_PER_SEC)))), dispatch_get_main_queue()) {
+            DispatchQueue.main.after(when: DispatchTime.now() + Double(Int64((0.15 * Double(NSEC_PER_SEC)))) / Double(NSEC_PER_SEC)) {
                 [weak self] in self?.perform {
                     self?.executePreheatingTasksIfNeeded()
                 }
@@ -206,12 +206,12 @@ public class ImageManager {
         needsToExecutePreheatingTasks = false
         var executingTaskCount = executingTasks.count
         // FIXME: Use sorted dictionary
-        for task in (preheatingTasks.values.sort { $0.identifier < $1.identifier }) {
+        for task in (preheatingTasks.values.sorted { $0.identifier < $1.identifier }) {
             if executingTaskCount > maxConcurrentPreheatingTaskCount {
                 break
             }
-            if task.state == .Suspended {
-                setState(.Running, forTask: task)
+            if task.state == .suspended {
+                setState(.running, forTask: task)
                 executingTaskCount += 1
             }
         }
@@ -220,28 +220,28 @@ public class ImageManager {
     // MARK: Memory Caching
     
     /// Returns image from the memory cache.
-    public func imageForRequest(request: ImageRequest) -> Image? {
+    public func imageForRequest(_ request: ImageRequest) -> Image? {
         return cache?.imageForKey(makeCacheKey(request))
     }
     
     /// Stores image into the memory cache.
-    public func setImage(image: Image, forRequest request: ImageRequest) {
+    public func setImage(_ image: Image, forRequest request: ImageRequest) {
         cache?.setImage(image, forKey: makeCacheKey(request))
     }
     
     /// Removes image from the memory cache.
-    public func removeImageForRequest(request: ImageRequest) {
+    public func removeImageForRequest(_ request: ImageRequest) {
         cache?.removeImageForKey(makeCacheKey(request))
     }
     
-    private func makeCacheKey(request: ImageRequest) -> ImageRequestKey {
+    private func makeCacheKey(_ request: ImageRequest) -> ImageRequestKey {
         return ImageRequestKey(request: request) { [weak self] lhs, rhs in
             return self?.isCacheEquivalent(lhs.request, rhs.request) ?? false
         }
     }
     
-    private func isCacheEquivalent(lhs: ImageRequest, _ rhs: ImageRequest) -> Bool {
-        return lhs.URLRequest.URL == rhs.URLRequest.URL && isEquivalent(lhs.processor, rhs: rhs.processor)
+    private func isCacheEquivalent(_ lhs: ImageRequest, _ rhs: ImageRequest) -> Bool {
+        return lhs.URLRequest.url == rhs.URLRequest.url && isEquivalent(lhs.processor, rhs: rhs.processor)
     }
     
     // MARK: Misc
@@ -277,14 +277,14 @@ public class ImageManager {
 
     // MARK: Misc
     
-    private func perform(@noescape closure: Void -> Void) {
+    private func perform(_ closure: @noescape (Void) -> Void) {
         lock.lock()
         if !invalidated { closure() }
         lock.unlock()
     }
     
-    private func cancelTasks<T: SequenceType where T.Generator.Element == ImageTaskInternal>(tasks: T) {
-        tasks.forEach { setState(.Cancelled, forTask: $0) }
+    private func cancelTasks<T: Sequence where T.Iterator.Element == ImageTaskInternal>(_ tasks: T) {
+        tasks.forEach { setState(.cancelled, forTask: $0) }
     }
 }
 
@@ -292,20 +292,20 @@ extension ImageManager: ImageTaskManaging {
     
     // MARK: ImageManager: ImageTaskManaging
     
-    private func resume(task: ImageTaskInternal) {
-        perform { setState(.Running, forTask: task) }
+    private func resume(_ task: ImageTaskInternal) {
+        perform { setState(.running, forTask: task) }
     }
     
-    private func cancel(task: ImageTaskInternal) {
-        perform { setState(.Cancelled, forTask: task) }
+    private func cancel(_ task: ImageTaskInternal) {
+        perform { setState(.cancelled, forTask: task) }
     }
 }
 
 // MARK: - ImageTaskInternal
 
 private protocol ImageTaskManaging {
-    func resume(task: ImageTaskInternal)
-    func cancel(task: ImageTaskInternal)
+    func resume(_ task: ImageTaskInternal)
+    func cancel(_ task: ImageTaskInternal)
 }
 
 private class ImageTaskInternal: ImageTask {
@@ -319,20 +319,18 @@ private class ImageTaskInternal: ImageTask {
         super.init(request: request, identifier: identifier)
     }
     
-    override func resume() -> Self {
+    override func resume() {
         manager.resume(self)
-        return self
     }
     
-    override func cancel() -> Self {
+    override func cancel() {
         manager.cancel(self)
-        return self
     }
 
-    func isValidNextState(nextState: ImageTaskState) -> Bool {
+    func isValidNextState(_ nextState: ImageTaskState) -> Bool {
         switch (self.state) {
-        case .Suspended: return (nextState == .Running || nextState == .Cancelled)
-        case .Running: return (nextState == .Completed || nextState == .Cancelled)
+        case .suspended: return (nextState == .running || nextState == .cancelled)
+        case .running: return (nextState == .completed || nextState == .cancelled)
         default: return false
         }
     }

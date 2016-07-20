@@ -19,11 +19,11 @@ public final class ImageRequestKey: NSObject {
 
     /// Returns hash from the NSURL from image request.
     public override var hash: Int {
-        return request.URLRequest.URL?.hashValue ?? 0
+        return request.URLRequest.url?.hashValue ?? 0
     }
 
     /// Compares two keys for equivalence if the belong to the same owner.
-    public override func isEqual(other: AnyObject?) -> Bool {
+    public override func isEqual(_ other: AnyObject?) -> Bool {
         guard let other = other as? ImageRequestKey else {
             return false
         }

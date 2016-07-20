@@ -39,20 +39,20 @@ public protocol ImageLoadingView: class {
     func nk_cancelLoading()
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
+    func nk_setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
     
     /// Gets called when the task that is currently associated with the view completes.
-    func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
+    func nk_handle(_ response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
 }
 
 public extension ImageLoadingView {
     /// Loads and displays an image for the given URL. Cancels previously started requests.
-    public func nk_setImageWith(URL: NSURL) -> ImageTask? {
+    public func nk_setImageWith(_ URL: Foundation.URL) -> ImageTask? {
         return nk_setImageWith(ImageRequest(URL: URL))
     }
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(request: ImageRequest) -> ImageTask? {
+    public func nk_setImageWith(_ request: ImageRequest) -> ImageTask? {
         return nk_setImageWith(request, options: ImageViewLoadingOptions())
     }
 }
@@ -63,7 +63,7 @@ public extension ImageLoadingView {
 /// View that can display images.
 public protocol ImageDisplayingView: class {
     /// Displays a given image.
-    func nk_displayImage(image: Image?)
+    func nk_displayImage(_ image: Image?)
 
 }
 
@@ -79,7 +79,7 @@ public extension ImageLoadingView {
     }
 
     /// Loads and displays an image for the given request. Cancels previously started requests.
-    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
+    public func nk_setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
         return nk_imageLoadingController.setImageWith(request, options: options)
     }
 
@@ -109,13 +109,13 @@ private struct AssociatedKeys {
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     
     /// Default implementation that displays the image and runs animations if necessary.
-    public func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
+    public func nk_handle(_ response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
         if let handler = options.handler {
             handler(view: self, response: response, options: options, isFromMemoryCache: isFromMemoryCache)
             return
         }
         switch response {
-        case let .Success(image):
+        case let .success(image):
             nk_displayImage(image)
             if options.animated && !isFromMemoryCache {
                 if let animations = options.animations {
@@ -126,7 +126,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
                     animation.fromValue = 0
                     animation.toValue = 1
                     let layer: CALayer? = self.layer // Make compiler happy
-                    layer?.addAnimation(animation, forKey: "imageTransition")
+                    layer?.add(animation, forKey: "imageTransition")
                 }
             }
         default: return
@@ -140,7 +140,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 #if os(iOS) || os(tvOS)
     extension UIImageView: ImageDisplayingView, ImageLoadingView {
         /// Displays a given image.
-        public func nk_displayImage(image: Image?) {
+        public func nk_displayImage(_ image: Image?) {
             self.image = image
         }
     }
@@ -187,21 +187,23 @@ public class ImageViewLoadingController {
     }
     
     /// Creates a task, subscribes to it and resumes it.
-    public func setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
+    public func setImageWith(_ request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask? {
         cancelLoading()
         
-        if request.memoryCachePolicy != .ReloadIgnoringCachedImage {
+        if request.memoryCachePolicy != .reloadIgnoringCachedImage {
             if let image = manager.imageForRequest(request) {
-                self.handler(response: ImageResponse.Success(image), options: options, isFromMemoryCache: true)
+                self.handler(response: ImageResponse.success(image), options: options, isFromMemoryCache: true)
                 return nil
             }
         }
         
-        imageTask = manager.taskWith(request) { [weak self] task, response in
+        let task = manager.taskWith(request) { [weak self] task, response in
             if task == self?.imageTask {
                 self?.handler(response: response, options: options, isFromMemoryCache: false)
             }
-            }.resume()
-        return imageTask
+        }
+        imageTask = task
+        task.resume()
+        return task
     }
 }

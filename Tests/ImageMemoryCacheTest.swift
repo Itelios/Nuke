@@ -164,7 +164,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.manager.setImage(Image(), forRequest: request)
         XCTAssertNotNil(self.manager.imageForRequest(request))
         
-        NSNotificationCenter.defaultCenter().postNotificationName(UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+        NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
         
         XCTAssertNil(self.manager.imageForRequest(request))
     }

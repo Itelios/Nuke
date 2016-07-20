@@ -7,11 +7,11 @@ import Foundation
 // MARK: - ImageLoading
 
 public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias ImageLoadingCompletion = (Image?, ErrorType?) -> Void
+public typealias ImageLoadingCompletion = (Image?, ErrorProtocol?) -> Void
 
 /// Performs loading of images.
 public protocol ImageLoading: class {
-    /// Resumes loading for the given task.
+    /// Loads image for the given request.
     func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable
 }
 
@@ -28,16 +28,16 @@ public class ImageLoader: ImageLoading {
     /// Queues on which to execute certain tasks.
     public struct Queues {
         /// Image caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
-        public var dataCaching = NSOperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
+        public var dataCaching = OperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
 
         /// Data loading queue. Default queue has a maximum concurrent operation count 8.
-        public var dataLoading = NSOperationQueue(maxConcurrentOperationCount: 8)
+        public var dataLoading = OperationQueue(maxConcurrentOperationCount: 8)
 
         /// Image decoding queue. Default queue has a maximum concurrent operation count 1.
-        public var dataDecoding = NSOperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
+        public var dataDecoding = OperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
 
         /// Image processing queue. Default queue has a maximum concurrent operation count 2.
-        public var processing = NSOperationQueue(maxConcurrentOperationCount: 2)
+        public var processing = OperationQueue(maxConcurrentOperationCount: 2)
     }
 
     public let dataCache: ImageDiskCaching?
@@ -45,7 +45,7 @@ public class ImageLoader: ImageLoading {
     public let dataDecoder: ImageDecoding
     public let queues: ImageLoader.Queues
 
-    private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
+    private let queue = DispatchQueue(label: "ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
     
     /// Initializes image loader with a configuration.
     public init(
@@ -75,8 +75,8 @@ public class ImageLoader: ImageLoading {
         return task
     }
 
-    private func loadDataFor(task: ImageLoadTask, dataCache: ImageDiskCaching) {
-        enterState(task, state: .DataCacheLookup(NSBlockOperation() {
+    private func loadDataFor(_ task: ImageLoadTask, dataCache: ImageDiskCaching) {
+        enterState(task, state: .dataCacheLookup(BlockOperation() {
             self.then(for: task, result: dataCache.dataFor(task.request)) { data in
                 if let data = data {
                     self.decode(data, task: task)
@@ -87,8 +87,8 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func loadDataFor(task: ImageLoadTask) {
-        enterState(task, state: .DataLoading(DataOperation() { fulfill in
+    private func loadDataFor(_ task: ImageLoadTask) {
+        enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request,
                 progress: { [weak self] completed, total in
@@ -101,7 +101,7 @@ public class ImageLoader: ImageLoading {
                     let result = (data, response, error)
                     self?.storeResponse(result, for: task)
                     self?.then(for: task, result: result) { _ in
-                        if let data = data where error == nil {
+                        if let data = data, error == nil {
                             self?.decode(data, response: response, task: task)
                         } else {
                             self?.complete(task, error: error)
@@ -117,29 +117,29 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func storeResponse(response: (NSData?, NSURLResponse?, ErrorType?), for task: ImageLoadTask) {
-        if let data = response.0 where response.2 == nil {
-            if let response = response.1, cache = dataCache {
-                queues.dataCaching.addOperation(NSBlockOperation() {
+    private func storeResponse(_ response: (Data?, URLResponse?, ErrorProtocol?), for task: ImageLoadTask) {
+        if let data = response.0, response.2 == nil {
+            if let response = response.1, let cache = dataCache {
+                queues.dataCaching.addOperation(BlockOperation() {
                      cache.setData(data, response: response, for: task.request)
                 })
             }
         }
     }
     
-    private func decode(data: NSData, response: NSURLResponse? = nil, task: ImageLoadTask) {
-        enterState(task, state: .DataDecoding(NSBlockOperation() {
+    private func decode(_ data: Data, response: URLResponse? = nil, task: ImageLoadTask) {
+        enterState(task, state: .dataDecoding(BlockOperation() {
             self.then(for: task, result: self.dataDecoder.decode(data, response: response)) { image in
                 if let image = image {
                     self.process(image, task: task)
                 } else {
-                    self.complete(task, error: errorWithCode(.DecodingFailed))
+                    self.complete(task, error: errorWithCode(.decodingFailed))
                 }
             }
         }))
     }
 
-    private func process(image: Image, task: ImageLoadTask) {
+    private func process(_ image: Image, task: ImageLoadTask) {
         if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
@@ -147,48 +147,48 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func process(image: Image, task: ImageLoadTask, processor: ImageProcessing) {
-        enterState(task, state: .Processing(NSBlockOperation() {
+    private func process(_ image: Image, task: ImageLoadTask, processor: ImageProcessing) {
+        enterState(task, state: .processing(BlockOperation() {
             self.then(for: task, result: processor.process(image)) { image in
                 if let image = image {
                     self.complete(task, image: image)
                 } else {
-                    self.complete(task, error: errorWithCode(.ProcessingFailed))
+                    self.complete(task, error: errorWithCode(.processingFailed))
                 }
             }
         }))
     }
 
-    private func complete(task: ImageLoadTask, image: Image? = nil, error: ErrorType? = nil) {
+    private func complete(_ task: ImageLoadTask, image: Image? = nil, error: ErrorProtocol? = nil) {
         task.completion(image, error)
     }
 
-    private func enterState(task: ImageLoadTask, state: ImageLoadState) {
+    private func enterState(_ task: ImageLoadTask, state: ImageLoadState) {
         switch state {
-        case .DataCacheLookup(let op): queues.dataCaching.addOperation(op)
-        case .DataLoading(let op): queues.dataLoading.addOperation(op)
-        case .DataDecoding(let op): queues.dataLoading.addOperation(op)
-        case .Processing(let op): queues.processing.addOperation(op)
+        case .dataCacheLookup(let op): queues.dataCaching.addOperation(op)
+        case .dataLoading(let op): queues.dataLoading.addOperation(op)
+        case .dataDecoding(let op): queues.dataLoading.addOperation(op)
+        case .processing(let op): queues.processing.addOperation(op)
         }
         task.state = state
     }
 
     /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
-    private func cancelLoadingFor(task: ImageLoadTask) {
+    private func cancelLoadingFor(_ task: ImageLoadTask) {
         queue.async {
             if let state = task.state {
                 switch state {
-                case .DataCacheLookup(let op): op.cancel()
-                case .DataLoading(let op): op.cancel()
-                case .DataDecoding(let op): op.cancel()
-                case .Processing(let op): op.cancel()
+                case .dataCacheLookup(let op): op.cancel()
+                case .dataLoading(let op): op.cancel()
+                case .dataDecoding(let op): op.cancel()
+                case .processing(let op): op.cancel()
                 }
             }
             task.cancelled = true
         }
     }
 
-    private func then<T>(for task: ImageLoadTask, result: T, block: (T -> Void)) {
+    private func then<T>(for task: ImageLoadTask, result: T, block: ((T) -> Void)) {
         queue.async {
             if !task.cancelled {
                 block(result) // execute only if task is still registered
@@ -198,22 +198,22 @@ public class ImageLoader: ImageLoading {
 }
 
 private enum ImageLoadState {
-    case DataCacheLookup(NSOperation)
-    case DataLoading(NSOperation)
-    case DataDecoding(NSOperation)
-    case Processing(NSOperation)
+    case dataCacheLookup(Foundation.Operation)
+    case dataLoading(Foundation.Operation)
+    case dataDecoding(Foundation.Operation)
+    case processing(Foundation.Operation)
 }
 
 // Implemented in a similar fation that ImageTaskInternal is
-private class ImageLoadTask: Cancellable, Hashable {
+private class ImageLoadTask: Cancellable {
     var request: ImageRequest
     let progress: ImageLoadingProgress
     let completion: ImageLoadingCompletion
-    var cancellation: ImageLoadTask -> Void
+    var cancellation: (ImageLoadTask) -> Void
     var cancelled = false
     var state: ImageLoadState?
 
-    init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: (ImageLoadTask -> Void)) {
+    init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: ((ImageLoadTask) -> Void)) {
         self.request = request
         self.progress = progress
         self.completion = completion
@@ -223,13 +223,4 @@ private class ImageLoadTask: Cancellable, Hashable {
     func cancel() {
         cancellation(self)
     }
-
-    var hashValue: Int {
-        return unsafeAddressOf(self).hashValue
-    }
-}
-
-/// Compares two image tasks by reference.
-private func ==(lhs: ImageLoadTask, rhs: ImageLoadTask) -> Bool {
-    return lhs === rhs
 }

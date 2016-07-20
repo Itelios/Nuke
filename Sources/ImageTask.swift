@@ -12,7 +12,7 @@ import Foundation
  - Completed -> []
 */
 public enum ImageTaskState {
-    case Suspended, Running, Cancelled, Completed
+    case suspended, running, cancelled, completed
 }
 
 /// Represents image task progress.
@@ -22,7 +22,9 @@ public struct ImageTaskProgress {
     
     /// Total unit count.
     public var total: Int64 = 0
-    
+}
+
+public extension ImageTaskProgress {
     /// The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
     public var fractionCompleted: Double {
         return total == 0 ? 0.0 : Double(completed) / Double(total)
@@ -68,13 +70,13 @@ public class ImageTask: Hashable {
     // MARK: Controlling Task State
     
     /// The current state of the task.
-    public internal(set) var state: ImageTaskState = .Suspended
+    public internal(set) var state: ImageTaskState = .suspended
     
     /// Resumes the task if suspended. Resume methods are nestable.
-    public func resume() -> Self { fatalError("Abstract method") }
+    public func resume() { fatalError("Abstract method") }
     
     /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
-    public func cancel() -> Self { fatalError("Abstract method") }
+    public func cancel() { fatalError("Abstract method") }
 }
 
 /// Compares two image tasks by reference.

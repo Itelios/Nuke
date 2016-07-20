@@ -15,29 +15,22 @@
 
 // MARK: Error Handling
 
-func errorWithCode(code: ImageManagerErrorCode) -> NSError {
+func errorWithCode(_ code: ImageManagerErrorCode) -> NSError {
     func reason() -> String {
         switch code {
-        case .Unknown: return "The image manager encountered an error that it cannot interpret."
-        case .Cancelled: return "The image task was cancelled."
-        case .DecodingFailed: return "The image manager failed to decode image data."
-        case .ProcessingFailed: return "The image manager failed to process image data."
+        case .unknown: return "The image manager encountered an error that it cannot interpret."
+        case .cancelled: return "The image task was cancelled."
+        case .decodingFailed: return "The image manager failed to decode image data."
+        case .processingFailed: return "The image manager failed to process image data."
         }
     }
     return NSError(domain: ImageManagerErrorDomain, code: code.rawValue, userInfo: [NSLocalizedFailureReasonErrorKey: reason()])
 }
 
 
-// MARK: GCD
+// MARK: Foundation.OperationQueue Extensions
 
-extension dispatch_queue_t {
-    func async(block: (Void -> Void)) { dispatch_async(self, block) }
-}
-
-
-// MARK: NSOperationQueue Extensions
-
-extension NSOperationQueue {
+extension OperationQueue {
     convenience init(maxConcurrentOperationCount: Int) {
         self.init()
         self.maxConcurrentOperationCount = maxConcurrentOperationCount
@@ -47,44 +40,44 @@ extension NSOperationQueue {
 
 // MARK: Operation
 
-class Operation: NSOperation {
-    override var executing : Bool {
-        get { return _executing }
+class Operation: Foundation.Operation {
+    override var isExecuting : Bool {
+        get { return _isExecuting }
         set {
-            willChangeValueForKey("isExecuting")
-            _executing = newValue
-            didChangeValueForKey("isExecuting")
+            willChangeValue(forKey: "isExecuting")
+            _isExecuting = newValue
+            didChangeValue(forKey: "isExecuting")
         }
     }
-    private var _executing = false
+    private var _isExecuting = false
     
-    override var finished : Bool {
-        get { return _finished }
+    override var isFinished : Bool {
+        get { return _isFinished }
         set {
-            willChangeValueForKey("isFinished")
-            _finished = newValue
-            didChangeValueForKey("isFinished")
+            willChangeValue(forKey: "isFinished")
+            _isFinished = newValue
+            didChangeValue(forKey: "isFinished")
         }
     }
-    private var _finished = false
+    private var _isFinished = false
 }
 
-/// Wraps data task in a concurrent NSOperation subclass
-class DataOperation: Operation {
-    var task: NSURLSessionTask?
-    let starter: (Void -> Void) -> NSURLSessionTask
-    private let lock = NSRecursiveLock()
+/// Wraps data task in a concurrent Foundation.Operation subclass
+class DataOperation: Nuke.Operation {
+    var task: URLSessionTask?
+    let starter: ((Void) -> Void) -> URLSessionTask
+    private let lock = RecursiveLock()
 
-    init(starter: (fulfill: (Void) -> Void) -> NSURLSessionTask) {
+    init(starter: (fulfill: (Void) -> Void) -> URLSessionTask) {
         self.starter = starter
     }
 
     override func start() {
         lock.lock()
-        executing = true
+        isExecuting = true
         task = starter() {
-            self.executing = false
-            self.finished = true
+            self.isExecuting = false
+            self.isFinished = true
         }
         task?.resume()
         lock.unlock()
@@ -92,7 +85,7 @@ class DataOperation: Operation {
 
     override func cancel() {
         lock.lock()
-        if !self.cancelled {
+        if !self.isCancelled {
             super.cancel()
             task?.cancel()
         }

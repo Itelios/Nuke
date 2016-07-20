@@ -11,8 +11,8 @@ import Foundation
 */
 public protocol ImageDiskCaching {
     /// Stores data for the given request.
-    func setData(data: NSData, response: NSURLResponse, for request: ImageRequest)
+    func setData(_ data: Data, response: URLResponse, for request: ImageRequest)
     
     /// Returns data for the given request.
-    func dataFor(request: ImageRequest) -> NSData?
+    func dataFor(_ request: ImageRequest) -> Data?
 }

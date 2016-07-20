@@ -7,10 +7,10 @@ import Foundation
 /// Represents image response.
 public enum ImageResponse {
     /// Task completed successfully.
-    case Success(Image)
+    case success(Image)
 
     /// Task either failed or was cancelled. See ImageManagerErrorDomain for more info.
-    case Failure(ErrorType)
+    case failure(ErrorProtocol)
 }
 
 /// Convenience methods to access associated values.
@@ -18,24 +18,24 @@ public extension ImageResponse {
     /// Returns image if the response was successful.
     public var image: Image? {
         switch self {
-        case .Success(let image): return image
-        case .Failure(_): return nil
+        case .success(let image): return image
+        case .failure(_): return nil
         }
     }
 
     /// Returns error if the response failed.
-    public var error: ErrorType? {
+    public var error: ErrorProtocol? {
         switch self {
-        case .Success: return nil
-        case .Failure(let error): return error
+        case .success: return nil
+        case .failure(let error): return error
         }
     }
 
     /// Returns true if the response was successful.
     public var isSuccess: Bool {
         switch self {
-        case .Success: return true
-        case .Failure: return false
+        case .success: return true
+        case .failure: return false
         }
     }
 }

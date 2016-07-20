@@ -14,17 +14,17 @@ class MockImageMemoryCache: ImageMemoryCaching {
     var images = [ImageRequestKey: Image]()
     init() {}
 
-    func imageForKey(key: ImageRequestKey) -> Image? {
+    func imageForKey(_ key: ImageRequestKey) -> Image? {
         return self.enabled ? self.images[key] : nil
     }
     
-    func setImage(image: Image, forKey key: ImageRequestKey) {
+    func setImage(_ image: Image, forKey key: ImageRequestKey) {
         if self.enabled {
             self.images[key] = image
         }
     }
     
-    func removeImageForKey(key: ImageRequestKey) {
+    func removeImageForKey(_ key: ImageRequestKey) {
         if self.enabled {
             self.images[key] = nil
         }

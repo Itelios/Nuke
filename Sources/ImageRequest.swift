@@ -12,22 +12,22 @@ import Foundation
 /// Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
 public enum ImageRequestMemoryCachePolicy {
     /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
-    case ReturnCachedImageElseLoad
+    case returnCachedImageElseLoad
     
     /// Reload using ignoring memory cached images. Doesn't affect on-disk caching.
-    case ReloadIgnoringCachedImage
+    case reloadIgnoringCachedImage
 }
 
 /// Encapsulates image request parameters.
 public struct ImageRequest {
     /// The URL request that the image request was created with.
-    public var URLRequest: NSURLRequest
+    public var URLRequest: Foundation.URLRequest
 
     /// Specifies whether loaded image should be stored into memory cache. Default value is true.
     public var memoryCacheStorageAllowed = true
     
     /// The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
-    public var memoryCachePolicy = ImageRequestMemoryCachePolicy.ReturnCachedImageElseLoad
+    public var memoryCachePolicy = ImageRequestMemoryCachePolicy.returnCachedImageElseLoad
 
     #if os(OSX)
     /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters. Empty by default.
@@ -46,12 +46,12 @@ public struct ImageRequest {
     public var userInfo: Any?
     
     /// Initializes request with a URL.
-    public init(URL: NSURL) {
-        self.URLRequest = NSURLRequest(URL: URL)
+    public init(URL: Foundation.URL) {
+        self.URLRequest = Foundation.URLRequest(url: URL)
     }
     
     /// Initializes request with a URL request.
-    public init(URLRequest: NSURLRequest) {
+    public init(URLRequest: Foundation.URLRequest) {
         self.URLRequest = URLRequest
     }
 }
