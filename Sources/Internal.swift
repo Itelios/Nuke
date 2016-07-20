@@ -63,7 +63,7 @@ class Operation: Foundation.Operation {
 }
 
 /// Wraps data task in a concurrent Foundation.Operation subclass
-class DataOperation: Nuke.Operation {
+class DataOperation: Operation {
     var task: URLSessionTask?
     let starter: ((Void) -> Void) -> URLSessionTask
     private let lock = RecursiveLock()

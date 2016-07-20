@@ -40,13 +40,13 @@ class ImageManagerTest: XCTestCase {
     func testThatTaskChangesStateWhenCompleted() {
         let task = self.expected { fulfill in
             return self.manager.task(with: defaultURL) { task, _ in
-                XCTAssertEqual(task.state, ImageTaskState.completed)
+                XCTAssertTrue(task.state == .completed)
                 fulfill()
             }
         }
-        XCTAssertEqual(task.state, ImageTaskState.suspended)
+        XCTAssertTrue(task.state == .suspended)
         task.resume()
-        XCTAssertEqual(task.state, ImageTaskState.running)
+        XCTAssertTrue(task.state == .running)
         self.wait()
     }
 
@@ -54,12 +54,12 @@ class ImageManagerTest: XCTestCase {
         let expectation = self.expectation()
         DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
             let task = self.manager.task(with: defaultURL) { task, _ in
-                XCTAssertEqual(task.state, ImageTaskState.completed)
+                XCTAssertTrue(task.state == .completed)
                 expectation.fulfill()
             }
-            XCTAssertEqual(task.state, ImageTaskState.suspended)
+            XCTAssertTrue(task.state == .suspended)
             task.resume()
-            XCTAssertEqual(task.state, ImageTaskState.running)
+            XCTAssertTrue(task.state == .running)
         }
         self.wait()
     }
@@ -77,16 +77,16 @@ class ImageManagerTest: XCTestCase {
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
                 }
-                XCTAssertEqual(task.state, ImageTaskState.cancelled)
+                XCTAssertTrue(task.state == .cancelled)
                 fulfill()
             }
         }
 
-        XCTAssertEqual(task.state, ImageTaskState.suspended)
+        XCTAssertTrue(task.state == .suspended)
         task.resume()
-        XCTAssertEqual(task.state, ImageTaskState.running)
+        XCTAssertTrue(task.state == .running)
         task.cancel()
-        XCTAssertEqual(task.state, ImageTaskState.cancelled)
+        XCTAssertTrue(task.state == .cancelled)
 
         self.wait()
     }
@@ -100,13 +100,13 @@ class ImageManagerTest: XCTestCase {
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
                 }
-                XCTAssertEqual(task.state, ImageTaskState.cancelled)
+                XCTAssertTrue(task.state == .cancelled)
                 fulfill()
             }
         }
-        XCTAssertEqual(task.state, ImageTaskState.suspended)
+        XCTAssertTrue(task.state == .suspended)
         task.cancel()
-        XCTAssertEqual(task.state, ImageTaskState.cancelled)
+        XCTAssertTrue(task.state == .cancelled)
         self.wait()
     }
 
@@ -172,7 +172,7 @@ class ImageManagerTest: XCTestCase {
 
         let task1 = self.expected { fulfill in
             return self.manager.task(with: defaultURL) {
-                XCTAssertEqual($0.state, ImageTaskState.cancelled)
+                XCTAssertTrue($0.state == .cancelled)
                 XCTAssertNil($1.image)
                 fulfill()
             }
@@ -180,7 +180,7 @@ class ImageManagerTest: XCTestCase {
         
         let task2 = self.expected { fulfill in
             return self.manager.task(with: defaultURL) {
-                XCTAssertEqual($0.state, ImageTaskState.completed)
+                XCTAssertTrue($0.state == .completed)
                 XCTAssertNotNil($1.image)
                 fulfill()
             }
@@ -305,9 +305,9 @@ class ImageManagerTest: XCTestCase {
             let (executingTasks, _) = self.manager.tasks
             XCTAssertEqual(executingTasks.count, 1)
             XCTAssertTrue(executingTasks.contains(task1))
-            XCTAssertEqual(task1.state, ImageTaskState.running)
+            XCTAssertTrue(task1.state == .running)
             XCTAssertFalse(executingTasks.contains(task2))
-            XCTAssertEqual(task2.state, ImageTaskState.suspended)
+            XCTAssertTrue(task2.state == .suspended)
             fulfill()
         }
         self.wait()

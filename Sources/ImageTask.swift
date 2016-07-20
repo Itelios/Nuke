@@ -4,35 +4,18 @@
 
 import Foundation
 
-/**
- The state of the task. Allowed transitions include:
- - Suspended -> [Running, Cancelled]
- - Running -> [Cancelled, Completed]
- - Cancelled -> []
- - Completed -> []
-*/
-public enum ImageTaskState {
-    case suspended, running, cancelled, completed
-}
-
-/// Represents image task progress.
-public struct ImageTaskProgress {
-    /// Completed unit count.
-    public var completed: Int64 = 0
-    
-    /// Total unit count.
-    public var total: Int64 = 0
-}
-
-public extension ImageTaskProgress {
-    /// The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
-    public var fractionCompleted: Double {
-        return total == 0 ? 0.0 : Double(completed) / Double(total)
-    }
-}
-
 /// Abstract class for image tasks. Tasks are always part of the image manager, you create a task by calling one of the methods on ImageManager.
 public class ImageTask: Hashable {
+    /**
+     The state of the task. Allowed transitions include:
+     - suspended -> [running, cancelled]
+     - running -> [cancelled, completed]
+     - cancelled -> []
+     - completed -> []
+     */
+    public enum State {
+        case suspended, running, cancelled, completed
+    }
     
     // MARK: Obtainig General Task Information
     
@@ -61,16 +44,16 @@ public class ImageTask: Hashable {
     // MARK: Obraining Task Progress
     
     /// Return current task progress. Initial value is (0, 0).
-    public internal(set) var progress = ImageTaskProgress()
+    public internal(set) var progress = Progress()
     
     /// A progress closure that gets periodically during the lifecycle of the task.
-    public var progressHandler: ((progress: ImageTaskProgress) -> Void)?
+    public var progressHandler: ((progress: Progress) -> Void)?
     
     
     // MARK: Controlling Task State
     
     /// The current state of the task.
-    public internal(set) var state: ImageTaskState = .suspended
+    public internal(set) var state: State = .suspended
     
     /// Resumes the task if suspended. Resume methods are nestable.
     public func resume() { fatalError("Abstract method") }

@@ -23,8 +23,8 @@ public protocol ImageDataLoading {
 
 /// Provides basic networking using NSURLSession.
 public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading {
-    public private(set) var session: Foundation.URLSession!
-    private var handlers = [URLSessionTask: DataTaskHandler]()
+    public private(set) var session: URLSession!
+    private var handlers = [URLSessionTask: Handler]()
     private var lock = RecursiveLock()
 
     /// Initialzies data loader by creating a session with a given session configuration.
@@ -46,7 +46,7 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
     public func loadData(for request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> URLSessionTask {
         let task = self.task(with: request)
         lock.lock()
-        handlers[task] = DataTaskHandler(progress: progress, completion: completion)
+        handlers[task] = Handler(progress: progress, completion: completion)
         lock.unlock()
         return task
     }
@@ -70,20 +70,22 @@ public class ImageDataLoader: NSObject, URLSessionDataDelegate, ImageDataLoading
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
         lock.lock()
         if let handler = handlers[task] {
-            handler.completion(data: handler.data as Data, response: task.response, error: error)
+            handler.completion(data: handler.data, response: task.response, error: error)
             handlers[task] = nil
         }
         lock.unlock()
     }
-}
-
-private class DataTaskHandler {
-    let data = NSMutableData()
-    let progress: ImageDataLoadingProgress
-    let completion: ImageDataLoadingCompletion
     
-    init(progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) {
-        self.progress = progress
-        self.completion = completion
+    // MARK: Handler
+    
+    private class Handler {
+        var data = Data()
+        let progress: ImageDataLoadingProgress
+        let completion: ImageDataLoadingCompletion
+        
+        init(progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) {
+            self.progress = progress
+            self.completion = completion
+        }
     }
 }

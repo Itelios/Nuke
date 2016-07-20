@@ -89,7 +89,26 @@ public extension ImageManager {
 }
 
 
-// MARK -
+// MARK - Progress
+
+/// Represents image task progress.
+public struct Progress {
+    /// Completed unit count.
+    public var completed: Int64 = 0
+    
+    /// Total unit count.
+    public var total: Int64 = 0
+}
+
+public extension Progress {
+    /// The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
+    public var fractionCompleted: Double {
+        return total == 0 ? 0.0 : Double(completed) / Double(total)
+    }
+}
+
+
+// MARK - Cancellable
 
 public protocol Cancellable {
     func cancel()

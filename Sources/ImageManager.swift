@@ -37,8 +37,8 @@ The `ImageManager` class and related classes provide methods for loading, proces
 `ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
-    private var executingTasks = Set<ImageManagerTask>()
-    private var preheatingTasks = [ImageRequestKey: ImageManagerTask]()
+    private var executingTasks = Set<Task>()
+    private var preheatingTasks = [ImageRequestKey: Task]()
     private let lock = RecursiveLock()
     private var invalidated = false
     private var needsToExecutePreheatingTasks = false
@@ -74,12 +74,12 @@ public class ImageManager {
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
     public func task(with request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
-        return ImageManagerTask(delegate: self, request: request, identifier: nextTaskIdentifier, completion: completion)
+        return Task(manager: self, request: request, identifier: nextTaskIdentifier, completion: completion)
     }
     
-    // MARK: FSM (ImageTaskState)
+    // MARK: FSM (ImageTask.State)
     
-    private func setState(_ state: ImageTaskState, for task: ImageManagerTask)  {
+    private func setState(_ state: ImageTask.State, for task: Task)  {
         if task.isValid(nextState: state) {
             transitionStateAction(from: task.state, to: state, task: task)
             task.state = state
@@ -87,13 +87,13 @@ public class ImageManager {
         }
     }
     
-    private func transitionStateAction(from: ImageTaskState, to: ImageTaskState, task: ImageManagerTask) {
+    private func transitionStateAction(from: ImageTask.State, to: ImageTask.State, task: Task) {
         if from == .running && to == .cancelled {
             task.cancellable?.cancel()
         }
     }
     
-    private func enterStateAction(to state: ImageTaskState, task: ImageManagerTask) {
+    private func enterStateAction(to state: ImageTask.State, task: Task) {
         switch state {
         case .running:
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad {
@@ -107,7 +107,7 @@ public class ImageManager {
             task.cancellable = loader.loadImage(
                 for: task.request,
                 progress: { [weak self] completed, total in
-                    self?.updateProgress(ImageTaskProgress(completed: completed, total: total), for: task)
+                    self?.updateProgress(Progress(completed: completed, total: total), for: task)
                 },
                 completion: { [weak self] image, error in
                     self?.complete(task, image: image, error: error)
@@ -130,7 +130,7 @@ public class ImageManager {
         }
     }
 
-    private func updateProgress(_ progress: ImageTaskProgress, for task: ImageTask) {
+    private func updateProgress(_ progress: Progress, for task: ImageTask) {
         DispatchQueue.main.async {
             task.progress = progress
             task.progressHandler?(progress: progress)
@@ -143,7 +143,7 @@ public class ImageManager {
                 setImage(image, for: task.request)
             }
 
-            let task = task as! ImageManagerTask
+            let task = task as! Task
             if task.state == .running {
                 if let image = image {
                     task.response = ImageResponse.success(image)
@@ -167,7 +167,7 @@ public class ImageManager {
             requests.forEach {
                 let key = makePreheatKey($0)
                 if preheatingTasks[key] == nil { // Don't create more than one task for the equivalent requests.
-                    preheatingTasks[key] = ImageManagerTask(delegate: self, request: $0, identifier: nextTaskIdentifier) { [weak self] _ in
+                    preheatingTasks[key] = Task(manager: self, request: $0, identifier: nextTaskIdentifier) { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
                 }
@@ -274,7 +274,7 @@ public class ImageManager {
     }
 
 
-    // MARK: Misc
+    // MARK: Private
     
     private func perform(_ closure: @noescape (Void) -> Void) {
         lock.lock()
@@ -289,55 +289,45 @@ public class ImageManager {
         return result
     }
     
-    private func cancel<T: Sequence where T.Iterator.Element == ImageManagerTask>(_ tasks: T) {
+    private func cancel<T: Sequence where T.Iterator.Element == Task>(_ tasks: T) {
         tasks.forEach { setState(.cancelled, for: $0) }
     }
-}
-
-extension ImageManager: ImageManagerTaskDelegate {
     
-    // MARK: ImageManager: ImageManagerTaskDelegate
+    // MARK: - Task
     
-    private func resume(_ task: ImageManagerTask) {
+    private func resume(_ task: Task) {
         perform { setState(.running, for: task) }
     }
     
-    private func cancel(_ task: ImageManagerTask) {
+    private func cancel(_ task: Task) {
         perform { setState(.cancelled, for: task) }
     }
-}
-
-// MARK: - ImageManagerTask
-
-private protocol ImageManagerTaskDelegate {
-    func resume(_ task: ImageManagerTask)
-    func cancel(_ task: ImageManagerTask)
-}
-
-private class ImageManagerTask: ImageTask {
-    let delegate: ImageManagerTaskDelegate
-    let completion: ImageTaskCompletion?
-    var cancellable: Cancellable?
     
-    init(delegate: ImageManagerTaskDelegate, request: ImageRequest, identifier: Int, completion: ImageTaskCompletion?) {
-        self.delegate = delegate
-        self.completion = completion
-        super.init(request: request, identifier: identifier)
-    }
-    
-    override func resume() {
-        delegate.resume(self)
-    }
-    
-    override func cancel() {
-        delegate.cancel(self)
-    }
-
-    func isValid(nextState: ImageTaskState) -> Bool {
-        switch (self.state) {
-        case .suspended: return (nextState == .running || nextState == .cancelled)
-        case .running: return (nextState == .completed || nextState == .cancelled)
-        default: return false
+    private class Task: ImageTask {
+        weak var manager: ImageManager?
+        let completion: ImageTaskCompletion?
+        var cancellable: Cancellable?
+        
+        init(manager: ImageManager, request: ImageRequest, identifier: Int, completion: ImageTaskCompletion?) {
+            self.manager = manager
+            self.completion = completion
+            super.init(request: request, identifier: identifier)
+        }
+        
+        override func resume() {
+            manager?.resume(self)
+        }
+        
+        override func cancel() {
+            manager?.cancel(self)
+        }
+        
+        func isValid(nextState: State) -> Bool {
+            switch (self.state) {
+            case .suspended: return (nextState == .running || nextState == .cancelled)
+            case .running: return (nextState == .completed || nextState == .cancelled)
+            default: return false
+            }
         }
     }
 }

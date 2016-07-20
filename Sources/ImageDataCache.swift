@@ -11,7 +11,7 @@ import Foundation
 */
 public protocol ImageDataCaching {
     /// Stores data for the given request.
-    func set(data: Data, response: URLResponse, for request: ImageRequest)
+    func setData(_ data: Data, response: URLResponse, for request: ImageRequest)
     
     /// Returns data for the given request.
     func data(for request: ImageRequest) -> Data?

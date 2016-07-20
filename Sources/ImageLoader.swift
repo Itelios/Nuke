@@ -62,7 +62,7 @@ public class ImageLoader: ImageLoading {
 
     /// Resumes loading for the image task.
     public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
-        let task = ImageLoadTask(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
+        let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
             self?.cancelLoading(for: $0)
         })
         queue.async {
@@ -75,7 +75,7 @@ public class ImageLoader: ImageLoading {
         return task
     }
 
-    private func loadData(for task: ImageLoadTask, dataCache: ImageDataCaching) {
+    private func loadData(for task: Task, dataCache: ImageDataCaching) {
         enterState(task, state: .dataCacheLookup(BlockOperation() {
             self.then(for: task, result: dataCache.data(for: task.request)) { data in
                 if let data = data {
@@ -87,7 +87,7 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func loadData(for task: ImageLoadTask) {
+    private func loadData(for task: Task) {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request,
@@ -121,13 +121,13 @@ public class ImageLoader: ImageLoading {
         if let data = response.0, response.2 == nil {
             if let response = response.1, let cache = dataCache {
                 queues.dataCaching.addOperation(BlockOperation() {
-                    cache.set(data: data, response: response, for: request)
+                    cache.setData(data, response: response, for: request)
                 })
             }
         }
     }
     
-    private func decode(data: Data, response: URLResponse? = nil, task: ImageLoadTask) {
+    private func decode(data: Data, response: URLResponse? = nil, task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
             self.then(for: task, result: self.dataDecoder.decode(data: data, response: response)) { image in
                 if let image = image {
@@ -139,7 +139,7 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func process(_ image: Image, task: ImageLoadTask) {
+    private func process(_ image: Image, task: Task) {
         if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
@@ -147,7 +147,7 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func process(_ image: Image, task: ImageLoadTask, processor: ImageProcessing) {
+    private func process(_ image: Image, task: Task, processor: ImageProcessing) {
         enterState(task, state: .processing(BlockOperation() {
             self.then(for: task, result: processor.process(image)) { image in
                 if let image = image {
@@ -159,11 +159,11 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func complete(_ task: ImageLoadTask, image: Image? = nil, error: ErrorProtocol? = nil) {
+    private func complete(_ task: Task, image: Image? = nil, error: ErrorProtocol? = nil) {
         task.completion(image, error)
     }
 
-    private func enterState(_ task: ImageLoadTask, state: ImageLoadState) {
+    private func enterState(_ task: Task, state: Task.State) {
         switch state {
         case .dataCacheLookup(let op): queues.dataCaching.addOperation(op)
         case .dataLoading(let op): queues.dataLoading.addOperation(op)
@@ -173,7 +173,7 @@ public class ImageLoader: ImageLoading {
         task.state = state
     }
 
-    private func cancelLoading(for task: ImageLoadTask) {
+    private func cancelLoading(for task: Task) {
         queue.async {
             if let state = task.state {
                 switch state {
@@ -187,39 +187,40 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func then<T>(for task: ImageLoadTask, result: T, block: ((T) -> Void)) {
+    private func then<T>(for task: Task, result: T, block: ((T) -> Void)) {
         queue.async {
             if !task.cancelled {
                 block(result) // execute only if task is still registered
             }
         }
     }
-}
-
-private enum ImageLoadState {
-    case dataCacheLookup(Foundation.Operation)
-    case dataLoading(Foundation.Operation)
-    case dataDecoding(Foundation.Operation)
-    case processing(Foundation.Operation)
-}
-
-// Implemented in a similar fation that ImageTaskInternal is
-private class ImageLoadTask: Cancellable {
-    var request: ImageRequest
-    let progress: ImageLoadingProgress
-    let completion: ImageLoadingCompletion
-    var cancellation: (ImageLoadTask) -> Void
-    var cancelled = false
-    var state: ImageLoadState?
-
-    init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: ((ImageLoadTask) -> Void)) {
-        self.request = request
-        self.progress = progress
-        self.completion = completion
-        self.cancellation = cancellation
-    }
-
-    func cancel() {
-        cancellation(self)
+    
+    // MARK: - Task
+    
+    private class Task: Cancellable {
+        enum State {
+            case dataCacheLookup(Foundation.Operation)
+            case dataLoading(Foundation.Operation)
+            case dataDecoding(Foundation.Operation)
+            case processing(Foundation.Operation)
+        }
+        
+        var request: ImageRequest
+        let progress: ImageLoadingProgress
+        let completion: ImageLoadingCompletion
+        var cancellation: (Task) -> Void
+        var cancelled = false
+        var state: State?
+        
+        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: ((Task) -> Void)) {
+            self.request = request
+            self.progress = progress
+            self.completion = completion
+            self.cancellation = cancellation
+        }
+        
+        func cancel() {
+            cancellation(self)
+        }
     }
 }
