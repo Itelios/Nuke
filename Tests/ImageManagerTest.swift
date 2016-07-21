@@ -228,27 +228,31 @@ class ImageManagerTest: XCTestCase {
     func testThatPreheatingRequestsAreStopped() {
         self.mockSessionManager.enabled = false
 
+        let preheat = ImagePreheatController(manager: self.manager)
+
         let request = ImageRequest(url: defaultURL)
         _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        self.manager.startPreheating(for: [request])
+        preheat.startPreheating(for: [request])
         self.wait()
 
         _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        self.manager.stopPreheating(for: [request])
+        preheat.stopPreheating(for: [request])
         self.wait()
     }
 
     func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
         self.mockSessionManager.enabled = false
 
+        let preheat = ImagePreheatController(manager: self.manager)
+
         let request = ImageRequest(url: defaultURL)
         _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        self.manager.startPreheating(for: [request, request])
-        self.manager.startPreheating(for: [request])
+        preheat.startPreheating(for: [request, request])
+        preheat.startPreheating(for: [request])
         self.wait()
 
         _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        self.manager.stopPreheating(for: [request])
+        preheat.stopPreheating(for: [request])
 
         self.wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
@@ -258,13 +262,15 @@ class ImageManagerTest: XCTestCase {
     func testThatAllPreheatingRequestsAreStopped() {
         self.mockSessionManager.enabled = false
 
+        let preheat = ImagePreheatController(manager: self.manager)
+
         let request = ImageRequest(url: defaultURL)
         _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        self.manager.startPreheating(for: [request])
+        preheat.startPreheating(for: [request])
         self.wait(2)
 
         _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        self.manager.stopPreheating()
+        preheat.stopPreheating()
         self.wait(2)
     }
 
@@ -298,7 +304,7 @@ class ImageManagerTest: XCTestCase {
         // task3 is not getting resumed
         
         self.expect { fulfill in
-            let (executingTasks, _) = self.manager.tasks
+            let executingTasks = self.manager.tasks
             XCTAssertEqual(executingTasks.count, 1)
             XCTAssertTrue(executingTasks.contains(task1))
             XCTAssertTrue(task1.state == .running)

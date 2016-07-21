@@ -16,25 +16,6 @@ public func task(with request: ImageRequest, completion: ImageManager.Task.Compl
     return ImageManager.shared.task(with: request, completion: completion)
 }
 
-/**
- Prepares images for the given requests for later use.
-
- When you call this method, `ImageManager` starts to load and cache images for the given requests. `ImageManager` caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
- */
-public func startPreheating(for requests: [ImageRequest]) {
-    ImageManager.shared.startPreheating(for: requests)
-}
-
-/// Stop preheating for the given requests. The request parameters should match the parameters used in `startPreheatingImages` method.
-public func stopPreheating(for requests: [ImageRequest]) {
-    ImageManager.shared.stopPreheating(for: requests)
-}
-
-/// Stops all preheating tasks.
-public func stopPreheating() {
-    ImageManager.shared.stopPreheating()
-}
-
 
 // MARK: - ImageManager (Convenience)
 

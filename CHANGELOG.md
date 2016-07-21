@@ -18,7 +18,7 @@
 ## Nuke 3.0.0
 
 - Update for Swift 2.2
-- Move `ImagePreheatingController` to a standalone package [Preheat](https://github.com/kean/Preheat)
+- Move `ImagePreheatController` to a standalone package [Preheat](https://github.com/kean/Preheat)
 - Remove deprecated `suspend` method from `ImageTask`
 - Remove `ImageFilterGaussianBlur` and Core Image helper functions which are now part of [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
 - Cleanup project structure (as expected by SPM)
@@ -107,7 +107,7 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 
 ## Nuke 1.2.0
 
-- #20 Add preheating for UITableView (see ImagePreheatingControllerForTableView class)
+- #20 Add preheating for UITableView (see ImagePreheatControllerForTableView class)
 - #41 Enhanced tvOS support thanks to @joergbirkhold
 - #39 UIImageView: ImageLoadingView extension no available on tvOS
 - Add factory method for creating session tasks in DataLoader
