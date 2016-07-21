@@ -10,7 +10,7 @@ public class ImagePreheatController {
     /// Default value is 2.
     public var maxConcurrentTaskCount = 2
 
-    private var tasks: [ImageRequestKey: ImageManager.Task] = [:]
+    private var tasks: [ImageRequestKey: ImageTask] = [:]
     private var needsToResumeTasks = false
     private let queue = DispatchQueue(label: "ImagePreheatController.Queue", attributes: DispatchQueueAttributes.serial)
 
@@ -30,7 +30,7 @@ public class ImagePreheatController {
         queue.async {
             requests.forEach {
                 let key = self.makePreheatKey($0)
-                if self.tasks[key] == nil { // Don't create more than one task for the equivalent requests.
+                if self.tasks[key] == nil { // Don't create more than one for the equivalent requests.
                     self.tasks[key] = self.manager.task(with: $0) { [weak self] _ in
                         self?.tasks[key] = nil
                     }
@@ -41,8 +41,8 @@ public class ImagePreheatController {
     }
 
     private func makePreheatKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request) { [weak self] lhs, rhs in
-            return self?.manager.isLoadEquivalent(lhs.request, to: rhs.request) ?? false
+        return ImageRequestKey(request: request) { [weak self] in
+            return self?.manager.isLoadEquivalent($0.request, to: $1.request) ?? false
         }
     }
 
@@ -58,25 +58,21 @@ public class ImagePreheatController {
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.values.forEach {
-                $0.cancel()
-            }
+            self.tasks.values.forEach { $0.cancel() }
         }
     }
 
     public func setNeedsResumeTasks() {
         if !needsToResumeTasks {
             needsToResumeTasks = true
-            queue.after(when: DispatchTime.now() + Double(Int64((0.15 * Double(NSEC_PER_SEC)))) / Double(NSEC_PER_SEC)) { [weak self] in
-                self?.resumeTasksIfNeeded()
+            queue.after(when: .now() + 0.2) { [weak self] in
+                self?.resumeTasks()
             }
         }
     }
 
-    private func resumeTasksIfNeeded() {
-        needsToResumeTasks = false
+    private func resumeTasks() {
         var executingTaskCount = manager.tasks.count
-        // FIXME: Use sorted dictionary
         for task in (tasks.values.sorted { $0.identifier < $1.identifier }) {
             if executingTaskCount > maxConcurrentTaskCount {
                 break
@@ -86,5 +82,6 @@ public class ImagePreheatController {
                 executingTaskCount += 1
             }
         }
+        needsToResumeTasks = false
     }
 }

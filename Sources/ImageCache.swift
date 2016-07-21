@@ -89,11 +89,10 @@ public class ImageCache: ImageCaching {
         #if os(OSX)
             return 1
         #else
-            if let cgImage = image.cgImage {
-                return cgImage.bytesPerRow * cgImage.height
-            } else {
+            guard let cgImage = image.cgImage else {
                 return 1
             }
+            return cgImage.bytesPerRow * cgImage.height
         #endif
     }
     

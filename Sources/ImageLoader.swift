@@ -56,7 +56,7 @@ public class ImageLoader: ImageLoading {
     
     /// Initializes image loader with a configuration.
     public init(
-        dataLoader: DataLoading = DataLoader(),
+        dataLoader: DataLoading,
         dataDecoder: DataDecoding = DataDecoder(),
         dataCache: DataCaching? = nil,
         queues: ImageLoader.Queues = ImageLoader.Queues())
@@ -69,8 +69,8 @@ public class ImageLoader: ImageLoading {
 
     /// Resumes loading for the image task.
     public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
-        let task = Task(request: request, progress: progress, completion: completion, onCancel: { [weak self] in
-            self?.cancelLoading(for: $0)
+        let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
+            self?.cancel($0)
         })
         queue.async {
             if let dataCache = self.dataCache {
@@ -99,16 +99,16 @@ public class ImageLoader: ImageLoading {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request.urlRequest,
-                progress: { [weak self] completed, total in
-                    self?.queue.async {
+                progress: { completed, total in
+                    self.queue.async {
                         task.progress(progress: Progress(completed: completed, total: total))
                     }
                 },
-                completion: { [weak self] in
+                completion: {
                     fulfill()
-                    self?.then(for: task, result: $0) { data, response in
-                        self?.store(data: data, response: response, for: task.request)
-                        self?.decode(data: data, response: response, task: task)
+                    self.then(for: task, result: $0) { data, response in
+                        self.store(data: data, response: response, for: task.request)
+                        self.decode(data: data, response: response, task: task)
                     }
                 })
             if let priority = task.request.priority {
@@ -128,7 +128,8 @@ public class ImageLoader: ImageLoading {
     
     private func decode(data: Data, response: URLResponse? = nil, task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
-            let result = Result(value: self.dataDecoder.decode(data: data, response: response), error: Error.decodingFailed)
+            let image = self.dataDecoder.decode(data: data, response: response)
+            let result = Result(value: image, error: Error.decodingFailed)
             self.then(for: task, result: result) { image in
                 self.process(image, task: task)
             }
@@ -166,7 +167,7 @@ public class ImageLoader: ImageLoading {
         task.state = state
     }
 
-    private func cancelLoading(for task: Task) {
+    private func cancel(_ task: Task) {
         queue.async {
             if let state = task.state {
                 switch state {
@@ -210,19 +211,19 @@ public class ImageLoader: ImageLoading {
         var request: ImageRequest
         let progress: ImageLoadingProgress
         let completion: ImageLoadingCompletion
-        var onCancel: (Task) -> Void
+        var cancellationHandler: (Task) -> Void
         var cancelled = false
         var state: State?
         
-        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, onCancel: ((Task) -> Void)) {
+        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: (Task) -> Void) {
             self.request = request
             self.progress = progress
             self.completion = completion
-            self.onCancel = onCancel
+            self.cancellationHandler = cancellation
         }
         
         func cancel() {
-            onCancel(self)
+            cancellationHandler(self)
         }
     }
 }

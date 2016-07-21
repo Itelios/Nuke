@@ -12,7 +12,7 @@ The `ImageManager` class and related classes provide methods for loading, proces
 `ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
-    private var executingTasks = Set<Task>()
+    private var executingTasks = Set<ImageTask>()
     private let lock = RecursiveLock()
     private var taskIdentifier: Int = 0
     private var nextTaskIdentifier: Int {
@@ -21,19 +21,19 @@ public class ImageManager {
             return taskIdentifier
         }
     }
-    private var loader: ImageLoading
-    private var cache: ImageCaching?
+    public var loader: ImageLoading
+    public var cache: ImageCaching?
     
-    public var onDidUpdateTasks: ((Set<Task>) -> Void)?
+    public var onDidUpdateTasks: ((Set<ImageTask>) -> Void)?
     
     /// Returns all executing tasks.
-    public var tasks: Set<Task> {
+    public var tasks: Set<ImageTask> {
         return synced { executingTasks }
     }
 
     // MARK: Configuring Manager
 
-    /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
+    /// Initializes image manager with a given loader and cache.
     public init(loader: ImageLoading, cache: ImageCaching?) {
         self.loader = loader
         self.cache = cache
@@ -46,12 +46,12 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func task(with request: ImageRequest, completion: Task.Completion? = nil) -> Task {
-        let task = Task(request: request, identifier: nextTaskIdentifier, completion: completion)
-        task.onResume = { [weak self] task in
+    public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
+        let task = ImageTask(request: request, identifier: nextTaskIdentifier, completion: completion)
+        task.resumeHandler = { [weak self] task in
             self?.sync { self?.run(task) }
         }
-        task.onCancel = { [weak self] task in
+        task.cancellationHandler = { [weak self] task in
             self?.sync { self?.cancel(task) }
         }
         return task
@@ -59,7 +59,7 @@ public class ImageManager {
     
     // MARK: Task Execution
 
-    private func run(_ task: Task) {
+    private func run(_ task: ImageTask) {
         if task.state == .suspended {
             task.state = .running
 
@@ -73,8 +73,8 @@ public class ImageManager {
         }
     }
 
-    private func loadImage(for task: Task) {
-        task.cancellable = loader.loadImage(
+    private func loadImage(for task: ImageTask) {
+        task.loadTask = loader.loadImage(
             for: task.request,
             progress: { progress in
                 DispatchQueue.main.async {
@@ -95,10 +95,10 @@ public class ImageManager {
             })
     }
 
-    private func cancel(_ task: Task) {
+    private func cancel(_ task: ImageTask) {
         if task.state == .suspended || task.state == .running {
             if task.state == .running {
-                task.cancellable?.cancel()
+                task.loadTask?.cancel()
                 didStopExecuting(task)
             }
             task.state = .cancelled
@@ -106,7 +106,7 @@ public class ImageManager {
         }
     }
 
-    private func complete(_ task: Task, result: Task.ResultType) {
+    private func complete(_ task: ImageTask, result: ImageTask.ResultType) {
         if task.state == .running {
             task.state = .completed
             didStopExecuting(task)
@@ -114,7 +114,7 @@ public class ImageManager {
         }
     }
 
-    private func dispatch(result: Task.ResultType, for task: Task) {
+    private func dispatch(result: ImageTask.ResultType, for task: ImageTask) {
         if let completion = task.completion {
             DispatchQueue.main.async {
                 completion(task: task, result: result)
@@ -122,12 +122,12 @@ public class ImageManager {
         }
     }
 
-    private func didStartExecuting(_ task: Task) {
+    private func didStartExecuting(_ task: ImageTask) {
         executingTasks.insert(task)
         onDidUpdateTasks?(executingTasks)
     }
 
-    private func didStopExecuting(_ task: Task) {
+    private func didStopExecuting(_ task: ImageTask) {
         executingTasks.remove(task)
         onDidUpdateTasks?(executingTasks)
     }
@@ -150,8 +150,8 @@ public class ImageManager {
     }
     
     private func makeCacheKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request) { [weak self] lhs, rhs in
-            return self?.isCacheEquivalent(lhs.request, to: rhs.request) ?? false
+        return ImageRequestKey(request: request) { [weak self] in
+            return self?.isCacheEquivalent($0.request, to: $1.request) ?? false
         }
     }
 
@@ -179,82 +179,77 @@ public class ImageManager {
     }
 }
 
-public extension ImageManager {
-
-    // MARK: - Task
+/// Respresents image task.
+public class ImageTask: Hashable {
+    public enum Error: ErrorProtocol {
+        case cancelled
+        
+        /// Some underlying error returned by class conforming to ImageLoading protocol
+        case loadingFailed(Nuke.Error)
+    }
     
-    /// Respresents image task.
-    public class Task: Hashable {
-        public enum Error: ErrorProtocol {
-            case cancelled
-            
-            /// Some underlying error returned by class conforming to ImageLoading protocol
-            case loadingFailed(Nuke.Error)
-        }
-        
-        public typealias ResultType = Result<Image, Error>
-        
-        /// ImageTask completion block, gets called when task is either completed or cancelled.
-        public typealias Completion = (task: Task, result: ResultType) -> Void
-        /**
-         The state of the task. Allowed transitions include:
-         - suspended -> [running, cancelled]
-         - running -> [cancelled, completed]
-         - cancelled -> []
-         - completed -> []
-         */
-        public enum State {
-            case suspended, running, cancelled, completed
-        }
-        
-        // MARK: Obtainig General Task Information
-        
-        /// The request that task was created with.
-        public let request: ImageRequest
-
-        /// Return hash value for the receiver.
-        public var hashValue: Int { return identifier }
-        
-        /// Uniquely identifies the task within an image manager.
-        public let identifier: Int
-        
-        
-        // MARK: Obraining Task Progress
-        
-        /// Return current task progress. Initial value is (0, 0).
-        public private(set) var progress = Progress()
-        
-        /// A progress closure that gets periodically during the lifecycle of the task.
-        public var progressHandler: ((progress: Progress) -> Void)?
-        
-        
-        // MARK: Controlling Task State
-        
-        /// The current state of the task.
-        public private(set) var state: State = .suspended
-        
-        /// Resumes the task if suspended. Resume methods are nestable.
-        public func resume() { onResume?(task: self) }
-        private var onResume: ((task: Task) -> Void)?
-        
-        /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
-        public func cancel() { onCancel?(task: self) }
-        private var onCancel: ((task: Task) -> Void)?
-        
-        // MARK: Private
-
-        private let completion: Completion?
-        private var cancellable: Cancellable?
-        
-        private init(request: ImageRequest, identifier: Int, completion: Completion?) {
-            self.request = request
-            self.identifier = identifier
-            self.completion = completion
-        }
+    public typealias ResultType = Result<Image, Error>
+    
+    /// ImageTask completion block, gets called when task is either completed or cancelled.
+    public typealias Completion = (task: ImageTask, result: ResultType) -> Void
+    /**
+     The state of the task. Allowed transitions include:
+     - suspended -> [running, cancelled]
+     - running -> [cancelled, completed]
+     - cancelled -> []
+     - completed -> []
+     */
+    public enum State {
+        case suspended, running, cancelled, completed
+    }
+    
+    // MARK: Obtainig General Task Information
+    
+    /// The request that task was created with.
+    public let request: ImageRequest
+    
+    /// Return hash value for the receiver.
+    public var hashValue: Int { return identifier }
+    
+    /// Uniquely identifies the task within an image manager.
+    public let identifier: Int
+    
+    
+    // MARK: Obraining Task Progress
+    
+    /// Return current task progress. Initial value is (0, 0).
+    public private(set) var progress = Progress()
+    
+    /// A progress closure that gets periodically during the lifecycle of the task.
+    public var progressHandler: ((progress: Progress) -> Void)?
+    
+    
+    // MARK: Controlling Task State
+    
+    /// The current state of the task.
+    public private(set) var state: State = .suspended
+    
+    /// Resumes the task if suspended. Resume methods are nestable.
+    public func resume() { resumeHandler?(task: self) }
+    private var resumeHandler: ((task: ImageTask) -> Void)?
+    
+    /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
+    public func cancel() { cancellationHandler?(task: self) }
+    private var cancellationHandler: ((task: ImageTask) -> Void)?
+    
+    // MARK: Private
+    
+    private let completion: Completion?
+    private var loadTask: Cancellable?
+    
+    private init(request: ImageRequest, identifier: Int, completion: Completion?) {
+        self.request = request
+        self.identifier = identifier
+        self.completion = completion
     }
 }
 
 /// Compares two image tasks by reference.
-public func ==(lhs: ImageManager.Task, rhs: ImageManager.Task) -> Bool {
+public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
     return lhs === rhs
 }

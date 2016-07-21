@@ -11,7 +11,8 @@ public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NS
 
 /// Performs loading of image data.
 public protocol DataLoading {
-    /// Creates task with a given request. Task is resumed by the object calling the method.
+    /// Creates a task with a given URL request.
+    /// Task is resumed by the user that called the method.
     func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask
 }
 
@@ -24,13 +25,14 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     private var handlers = [URLSessionTask: Handler]()
     private var lock = RecursiveLock()
 
-    /// Initialzies data loader by creating a session with a given session configuration.
+    /// Initialzies data loader with a given configuration.
     public init(configuration: URLSessionConfiguration) {
         super.init()
         self.session = Foundation.URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
     }
 
-    /// Initializes the receiver with a default NSURLSession configuration and NSURLCache with memory capacity set to 0, disk capacity set to 200 Mb.
+    /// Initializes the receiver with a default NSURLSession configuration 
+    /// and NSURLCache with memory capacity 0, disk capacity 200 Mb.
     public convenience override init() {
         let conf = URLSessionConfiguration.default
         conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.nuke-cache")
@@ -71,7 +73,8 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
                 let val = (handler.data, response)
                 handler.completion(result: .success(val))
             } else {
-                handler.completion(result: .failure(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+                let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
+                handler.completion(result: .failure(error))
             }
             handlers[task] = nil
         }

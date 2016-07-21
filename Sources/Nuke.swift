@@ -6,68 +6,61 @@ import Foundation
 
 // MARK: - Convenience
 
-/// Creates a task with a given URL. After you create a task, start it using resume method.
-public func task(with url: URL, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
+/// Creates a task with a given URL using shared ImageManager. 
+/// After you create a task, start it using resume method.
+public func task(with url: URL, completion: ImageTask.Completion? = nil) -> ImageTask {
     return ImageManager.shared.task(with: url, completion: completion)
 }
 
-/// Creates a task with a given request. After you create a task, start it using resume method.
-public func task(with request: ImageRequest, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
+/// Creates a task with a given request using shared ImageManager.
+/// After you create a task, start it using resume method.
+public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
     return ImageManager.shared.task(with: request, completion: completion)
 }
-
 
 // MARK: - ImageManager (Convenience)
 
 /// Convenience methods for ImageManager.
 public extension ImageManager {
-    /// Creates a task with a given request. For more info see `task(with: _)` methpd.
-    func task(with url: URL, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
-        return self.task(with: ImageRequest(url: url), completion: completion)
+    /// Creates a task with a given request.
+    /// For more info see `task(with:completion:)` methpd.
+    func task(with url: URL, completion: ImageTask.Completion? = nil) -> ImageTask {
+        return task(with: ImageRequest(url: url), completion: completion)
     }
 }
-
 
 // MARK: - ImageManager (Shared)
 
 /// Shared ImageManager instance.
 public extension ImageManager {
     public static var shared: ImageManager = {
-        let dataLoader = DataLoader()
-        let dataDecoder = DataDecoder()
-        let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
-        
-        let cache = ImageCache()
-        return ImageManager(loader: loader, cache: cache)
+        let loader = ImageLoader(dataLoader: DataLoader(), dataDecoder: DataDecoder())
+        return ImageManager(loader: loader, cache: ImageCache())
     }()
 }
 
-
 // MARK: - Progress
 
-/// Represents image task progress.
+/// Represents progress.
 public struct Progress {
     /// Completed unit count.
     public var completed: Int64 = 0
     
     /// Total unit count.
     public var total: Int64 = 0
-}
-
-public extension Progress {
-    /// The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
+    
+    /// The fraction of overall work completed.
+    /// If the total unit count is 0 fraction completed is also 0.
     public var fractionCompleted: Double {
         return total == 0 ? 0.0 : Double(completed) / Double(total)
     }
 }
-
 
 // MARK: - Cancellable
 
 public protocol Cancellable {
     func cancel()
 }
-
 
 // MARK: Error
 
@@ -84,7 +77,7 @@ public struct Error: ErrorProtocol {
 
 // MARK: - Result
 
-/// Result is the type that represent either success (.success) or a failure (.error).
+/// Result is the type that represent either success or a failure.
 public enum Result<V, E: ErrorProtocol> {
     case success(V)
     case failure(E)

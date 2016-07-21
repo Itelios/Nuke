@@ -39,7 +39,7 @@ public class DataDecoder: DataDecoding {
         #if os(OSX)
             image = NSImage(data: data)
         #else
-            image = UIImage(data: data, scale: self.imageScale)
+            image = UIImage(data: data, scale: imageScale)
         #endif
         lock.unlock()
         return image
