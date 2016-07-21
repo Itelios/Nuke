@@ -21,7 +21,7 @@ public struct ImageRequest {
     }
     
     /// The URL request that the image request was created with.
-    public var urlRequest: Foundation.URLRequest
+    public var urlRequest: URLRequest
 
     /// Specifies whether loaded image should be stored into memory cache. Default value is true.
     public var memoryCacheStorageAllowed = true
@@ -31,16 +31,14 @@ public struct ImageRequest {
 
     #if os(OSX)
     /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters. Empty by default.
-        public var processors: [ImageProcessing]
+        public var processors = [ImageProcessing]()
     #else
     /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters. By default contains an instance of ImageDecompressor.
         public var processors: [ImageProcessing] = [ImageDecompressor()]
     #endif
-    
-    #if !os(OSX)
+
     /// The relative priority at which you’d like a host to handle the task. The priority is used when creating an underlying NSURLSessionTask.
     public var priority: Float?
-    #endif
     
     /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?

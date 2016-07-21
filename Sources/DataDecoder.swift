@@ -51,7 +51,7 @@ public class DataDecoder: DataDecoding {
         #if os(iOS) || os(tvOS)
             return UIScreen.main().scale
         #else
-            return WKInterfaceDevice.currentDevice().screenScale
+            return WKInterfaceDevice.current().screenScale
         #endif
     }
     #endif

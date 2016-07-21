@@ -25,7 +25,7 @@ public protocol ImageCaching {
 public class ImageCache: ImageCaching {
     deinit {
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.removeObserver(self, name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
     
@@ -38,7 +38,7 @@ public class ImageCache: ImageCaching {
     public init(cache: Cache<AnyObject, AnyObject>) {
         self.cache = cache
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
 
@@ -60,7 +60,7 @@ public class ImageCache: ImageCaching {
         return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }
     
-    // MARK: Managing Cached Responses
+    // MARK: Managing Cached Images
 
     /// Returns an image for the specified key.
     public func image(for key: ImageRequestKey) -> Image? {

@@ -69,7 +69,7 @@ public class ImageLoader: ImageLoading {
 
     /// Resumes loading for the image task.
     public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
-        let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
+        let task = Task(request: request, progress: progress, completion: completion, onCancel: { [weak self] in
             self?.cancelLoading(for: $0)
         })
         queue.async {
@@ -104,17 +104,16 @@ public class ImageLoader: ImageLoading {
                         task.progress(progress: Progress(completed: completed, total: total))
                     }
                 },
-                completion: { [weak self] in                    fulfill()
+                completion: { [weak self] in
+                    fulfill()
                     self?.then(for: task, result: $0) { data, response in
                         self?.store(data: data, response: response, for: task.request)
                         self?.decode(data: data, response: response, task: task)
                     }
                 })
-            #if !os(OSX)
-                if let priority = task.request.priority {
-                    dataTask.priority = priority
-                }
-            #endif
+            if let priority = task.request.priority {
+                dataTask.priority = priority
+            }
             return dataTask
         }))
     }
@@ -211,19 +210,19 @@ public class ImageLoader: ImageLoading {
         var request: ImageRequest
         let progress: ImageLoadingProgress
         let completion: ImageLoadingCompletion
-        var cancellation: (Task) -> Void
+        var onCancel: (Task) -> Void
         var cancelled = false
         var state: State?
         
-        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: ((Task) -> Void)) {
+        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, onCancel: ((Task) -> Void)) {
             self.request = request
             self.progress = progress
             self.completion = completion
-            self.cancellation = cancellation
+            self.onCancel = onCancel
         }
         
         func cancel() {
-            cancellation(self)
+            onCancel(self)
         }
     }
 }

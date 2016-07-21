@@ -33,7 +33,7 @@ Nuke.task(with: request) { response in
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 
-- iOS 8.0+ / watchOS 2.0+ / OS X 10.9+ / tvOS 9.0+
+- iOS 9.0+ / watchOS 2.0+ / OS X 10.10+ / tvOS 9.0+
 - Xcode 7.3+, Swift 2.2+
 
 ## <a name="h_getting_started"></a>Getting Started
@@ -343,7 +343,7 @@ To install Nuke add a dependency to your Podfile:
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.9" / :tvos, "9.0"
+# platform :ios, "9.0" / :watchos, "2.0" / :osx, "10.10" / :tvos, "9.0"
 
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional
