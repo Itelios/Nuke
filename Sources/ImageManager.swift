@@ -4,28 +4,6 @@
 
 import Foundation
 
-/**
-The domain used for creating all ImageManager errors.
-
-The image manager would produce either errors in ImageManagerErrorDomain or errors in NSURLErrorDomain (which are not wrapped).
- */
-public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
-
-/// The image manager error codes.
-public enum ImageManagerErrorCode: Int {
-    /// Returned when the image manager encountered an error that it cannot interpret.
-    case unknown = -15001
-
-    /// Returned when the image task gets cancelled.
-    case cancelled = -15002
-    
-    /// Returned when the image manager fails decode image data.
-    case decodingFailed = -15003
-    
-    /// Returned when the image manager fails to process image data.
-    case processingFailed = -15004
-}
-
 // MARK: - ImageManager
 
 /**
@@ -107,10 +85,13 @@ public class ImageManager {
                     self?.updateProgress(progress, for: task)
                 },
                 completion: { [weak self] result in
-                    self?.complete(task, result: result)
+                    switch result {
+                    case let .ok(image): self?.complete(task, result: .ok(image))
+                    case let .error(err): self?.complete(task, result: .error(.loadingFailed(err)))
+                    }
             })
         case .cancelled:
-            task.result = .error(errorWithCode(.cancelled))
+            task.result = .error(.cancelled)
             fallthrough
         case .completed:
             executingTasks.remove(task)
@@ -302,10 +283,17 @@ public extension ImageManager {
     
     /// Respresents image task.
     public class Task: Hashable {
-        public typealias ResultType = Result<Image, NSError>
+        public enum Error: ErrorProtocol {
+            case cancelled
+            
+            /// Some underlying error returned by class conforming to ImageLoading protocol
+            case loadingFailed(Nuke.Error)
+        }
+        
+        public typealias ResultType = Result<Image, Error>
         
         /// ImageTask completion block, gets called when task is either completed or cancelled.
-        public typealias Completion = (task: Task, result: Result<Image, NSError>) -> Void
+        public typealias Completion = (task: Task, result: ResultType) -> Void
         /**
          The state of the task. Allowed transitions include:
          - suspended -> [running, cancelled]

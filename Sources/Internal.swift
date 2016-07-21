@@ -12,22 +12,6 @@
     public typealias Image = UIImage
 #endif
 
-
-// MARK: Error Handling
-
-func errorWithCode(_ code: ImageManagerErrorCode) -> NSError {
-    func reason() -> String {
-        switch code {
-        case .unknown: return "The image manager encountered an error that it cannot interpret."
-        case .cancelled: return "The image task was cancelled."
-        case .decodingFailed: return "The image manager failed to decode image data."
-        case .processingFailed: return "The image manager failed to process image data."
-        }
-    }
-    return NSError(domain: ImageManagerErrorDomain, code: code.rawValue, userInfo: [NSLocalizedFailureReasonErrorKey: reason()])
-}
-
-
 // MARK: Foundation.OperationQueue Extensions
 
 extension OperationQueue {
@@ -36,7 +20,6 @@ extension OperationQueue {
         self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
 }
-
 
 // MARK: Operation
 

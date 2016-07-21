@@ -18,7 +18,7 @@ class MockDataLoader: DataLoading {
     var createdTaskCount = 0
     private let queue = OperationQueue()
 
-    func loadData(for request: ImageRequest, progress: (completed: Int64, total: Int64) -> Void, completion: (result: Result<(Data, URLResponse), NSError>) -> Void) -> URLSessionTask {
+    func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
         self.queue.addOperation {
             progress(completed: 50, total: 100)
             progress(completed: 100, total: 100)

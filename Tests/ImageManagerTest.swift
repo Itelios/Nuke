@@ -71,11 +71,9 @@ class ImageManagerTest: XCTestCase {
 
         let task = self.expected { fulfill in
             return self.manager.task(with: defaultURL) { task, result in
-                switch result {
-                case .ok(_): XCTFail()
-                case let .error(error):
-                    XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
-                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
+                switch result.error! {
+                    case .cancelled: break
+                    default: XCTFail()
                 }
                 XCTAssertTrue(task.state == .cancelled)
                 fulfill()
@@ -94,11 +92,9 @@ class ImageManagerTest: XCTestCase {
     func testThatSuspendedTaskIsCancelled() {
         let task = self.expected { fulfill in
             return self.manager.task(with: defaultURL) { task, result in
-                switch result {
-                case .ok(_): XCTFail()
-                case let .error(error):
-                    XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
-                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
+                switch result.error! {
+                case .cancelled: break
+                default: XCTFail()
                 }
                 XCTAssertTrue(task.state == .cancelled)
                 fulfill()

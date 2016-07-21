@@ -115,32 +115,42 @@ public protocol Cancellable {
 }
 
 
+// MARK: Error
+
+/// Allows us to use ErrorProtocol in Nuke.Result without
+/// resorting to generics. Dynamic typing makes much more
+/// sense at this point, because generics are under-developed
+/// and type-safety in error handling in Nuke isn't crucial.
+public struct Error: ErrorProtocol {
+    public var error: ErrorProtocol
+    public init(_ error: ErrorProtocol) {
+        self.error = error
+    }
+}
+
 // MARK: - Result
 
 /// Result is the type that represent either success (.ok) or a failure (.error).
-public enum Result<Value, Error: ErrorProtocol> {
-    case ok(Value)
-    case error(Error)
+public enum Result<V, E: ErrorProtocol> {
+    case ok(V)
+    case error(E)
     
-    // FIXME: Remove if not necessary
-    public init(value: Value) {
-        self = .ok(value)
-    }
-    
-    // FIXME: Remove if not necessary
-    public init(error: Error) {
-        self = .error(error)
-    }
-    
-    public init(value: Value?, error: @autoclosure () -> Error) {
+    public init(value: V?, error: @autoclosure () -> E) {
         self = value.map(Result.ok) ?? .error(error())
     }
 }
 
 public extension Result {
-    public var value: Value? {
+    public var value: V? {
         switch self {
         case let .ok(val): return val
+        default: return nil
+        }
+    }
+    
+    public var error: E? {
+        switch self {
+        case let .error(err): return err
         default: return nil
         }
     }

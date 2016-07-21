@@ -6,8 +6,9 @@ import Foundation
 
 // MARK: - ImageLoading
 
+public typealias ImageLoadingResult = Result<Image, Error>
 public typealias ImageLoadingProgress = (progress: Progress) -> Void
-public typealias ImageLoadingCompletion = (result: Result<Image, NSError>) -> Void
+public typealias ImageLoadingCompletion = (result: ImageLoadingResult) -> Void
 
 /// Performs loading of images.
 public protocol ImageLoading: class {
@@ -38,6 +39,12 @@ public class ImageLoader: ImageLoading {
 
         /// Image processing queue. Default queue has a maximum concurrent operation count 2.
         public var processing = OperationQueue(maxConcurrentOperationCount: 2)
+    }
+    
+    public enum Error: ErrorProtocol {
+        case loadingFailed(NSError)
+        case decodingFailed
+        case processingFailed
     }
 
     public let dataCache: DataCaching?
@@ -92,9 +99,9 @@ public class ImageLoader: ImageLoading {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request,
-                progress: { [weak self] progress in
+                progress: { [weak self] completed, total in
                     self?.queue.async {
-                        task.progress(progress: progress)
+                        task.progress(progress: Progress(completed: completed, total: total))
                     }
                 },
                 completion: { [weak self] in                    fulfill()
@@ -122,7 +129,7 @@ public class ImageLoader: ImageLoading {
     
     private func decode(data: Data, response: URLResponse? = nil, task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
-            let result = Result(value: self.dataDecoder.decode(data: data, response: response), error: errorWithCode(.decodingFailed))
+            let result = Result(value: self.dataDecoder.decode(data: data, response: response), error: Error.decodingFailed)
             self.then(for: task, result: result) { image in
                 self.process(image, task: task)
             }
@@ -139,14 +146,14 @@ public class ImageLoader: ImageLoading {
 
     private func process(_ image: Image, task: Task, processor: ImageProcessing) {
         enterState(task, state: .processing(BlockOperation() {
-            let result = Result(value: processor.process(image), error: errorWithCode(.processingFailed))
+            let result = Result(value: processor.process(image), error: Error.processingFailed)
             self.then(for: task, result: result) { image in
                 self.complete(task, result: .ok(image))
             }
         }))
     }
 
-    private func complete(_ task: Task, result: Result<Image, NSError>) {
+    private func complete(_ task: Task, result: ImageLoadingResult) {
         task.completion(result: result)
     }
 
@@ -182,11 +189,11 @@ public class ImageLoader: ImageLoading {
         }
     }
     
-    private func then<Value, Error: NSError>(for task: Task, result: Result<Value, Error>, block: ((Value) -> Void)) {
+    private func then<V, E: ErrorProtocol>(for task: Task, result: Result<V, E>, block: ((V) -> Void)) {
         then(for: task) {
             switch result {
             case let .ok(val): block(val)
-            case let .error(err): self.complete(task, result: .error(err))
+            case let .error(err): self.complete(task, result: .error(Nuke.Error(err)))
             }
         }
     }

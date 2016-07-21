@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - DataLoading
 
-public typealias DataLoadingProgress = (progress: Progress) -> Void
+public typealias DataLoadingProgress = (completed: Int64, total: Int64) -> Void
 public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NSError>) -> Void
 
 /// Performs loading of image data.
@@ -59,7 +59,7 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
         lock.lock()
         if let handler = handlers[dataTask] {
             handler.data.append(data)
-            handler.progress(progress: Progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive))
+            handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
         }
         lock.unlock()
     }
