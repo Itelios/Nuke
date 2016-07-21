@@ -51,90 +51,88 @@ public class ImageManager {
     public func task(with request: ImageRequest, completion: Task.Completion? = nil) -> Task {
         let task = Task(request: request, identifier: nextTaskIdentifier, completion: completion)
         task.onResume = { [weak self] task in
-            self?.perform { self?.setState(.running, for: task) }
+            self?.perform { self?.run(task) }
         }
         task.onCancel = { [weak self] task in
-            self?.perform { self?.setState(.cancelled, for: task) }
+            self?.perform { self?.cancel(task) }
         }
         return task
     }
     
-    // MARK: FSM (ImageTask.State)
-    
-    private func setState(_ state: Task.State, for task: Task)  {
-        if task.isValid(nextState: state) {
-            transitionStateAction(from: task.state, to: state, task: task)
-            task.state = state
-            enterStateAction(to: state, task: task)
-        }
-    }
-    
-    private func transitionStateAction(from: Task.State, to: Task.State, task: Task) {
-        if from == .running && to == .cancelled {
-            task.cancellable?.cancel()
-        }
-    }
-    
-    private func enterStateAction(to state: Task.State, task: Task) {
-        switch state {
-        case .running:
-            if task.request.memoryCachePolicy == .returnCachedImageElseLoad {
-                if let image = image(for: task.request) {
-                    task.result = .ok(image)
-                    setState(.completed, for: task)
-                    return
-                }
+    // MARK: Task Execution
+
+    private func run(_ task: Task) {
+        if task.state == .suspended {
+            task.state = .running
+
+            didStartExecuting(task)
+
+            if task.request.memoryCachePolicy == .returnCachedImageElseLoad, let image = image(for: task.request) {
+                complete(task, result: .ok(image))
+            } else {
+                loadImage(for: task)
             }
-            executingTasks.insert(task) // Register task until it's completed or cancelled.
-            task.cancellable = loader.loadImage(
-                for: task.request,
-                progress: { [weak self] progress in
-                    self?.updateProgress(progress, for: task)
-                },
-                completion: { [weak self] result in
-                    switch result {
-                    case let .ok(image): self?.complete(task, result: .ok(image))
-                    case let .error(err): self?.complete(task, result: .error(.loadingFailed(err)))
-                    }
-            })
-        case .cancelled:
-            task.result = .error(.cancelled)
-            fallthrough
-        case .completed:
-            executingTasks.remove(task)
-            setNeedsExecutePreheatingTasks()
-            
-            assert(task.result != nil)
-            let result = task.result!
-            if let completion = task.completion {
-                DispatchQueue.main.async {
-                    completion(task: task, result: result)
-                }
-            }
-        default: break
         }
     }
 
-    private func updateProgress(_ progress: Progress, for task: Task) {
-        DispatchQueue.main.async {
-            task.progress = progress
-            task.progressHandler?(progress: progress)
+    private func loadImage(for task: Task) {
+        task.cancellable = loader.loadImage(
+            for: task.request,
+            progress: { progress in
+                DispatchQueue.main.async {
+                    task.progress = progress
+                    task.progressHandler?(progress: progress)
+                }
+            },
+            completion: { [weak self] result in
+                switch result {
+                case let .ok(image):
+                    if task.request.memoryCacheStorageAllowed {
+                        self?.setImage(image, for: task.request)
+                    }
+                    self?.complete(task, result: .ok(image))
+                case let .error(err):
+                    self?.complete(task, result: .error(.loadingFailed(err)))
+                }
+            })
+    }
+
+    private func cancel(_ task: Task) {
+        if task.state == .suspended || task.state == .running {
+            if task.state == .running {
+                task.cancellable?.cancel()
+                didStopExecuting(task)
+            }
+            task.state = .cancelled
+            dispatch(result: .error(.cancelled), for: task)
         }
     }
 
     private func complete(_ task: Task, result: Task.ResultType) {
-        perform {
-            if let image = result.value, task.request.memoryCacheStorageAllowed {
-                setImage(image, for: task.request)
-            }
+        if task.state == .running {
+            task.state = .completed
+            didStopExecuting(task)
+            dispatch(result: result, for: task)
+        }
+    }
 
-            if task.state == .running {
-                task.result = result
-                setState(.completed, for: task)
+    private func dispatch(result: Task.ResultType, for task: Task) {
+        if let completion = task.completion {
+            DispatchQueue.main.async {
+                completion(task: task, result: result)
             }
         }
     }
-    
+
+    private func didStartExecuting(_ task: Task) {
+        executingTasks.insert(task)
+    }
+
+    private func didStopExecuting(_ task: Task) {
+        executingTasks.remove(task)
+        setNeedsExecutePreheatingTasks()
+    }
+
     // MARK: Preheating
     
     /**
@@ -194,7 +192,7 @@ public class ImageManager {
                 break
             }
             if task.state == .suspended {
-                setState(.running, for: task)
+                run(task)
                 executingTaskCount += 1
             }
         }
@@ -255,7 +253,7 @@ public class ImageManager {
 
 
     // MARK: Private
-    
+
     private func perform(_ closure: @noescape (Void) -> Void) {
         lock.lock()
         if !invalidated { closure() }
@@ -270,7 +268,7 @@ public class ImageManager {
     }
     
     private func cancel<T: Sequence where T.Iterator.Element == Task>(_ tasks: T) {
-        tasks.forEach { setState(.cancelled, for: $0) }
+        tasks.forEach { cancel($0) }
     }
 }
 
@@ -306,10 +304,7 @@ public extension ImageManager {
         
         /// The request that task was created with.
         public let request: ImageRequest
-        
-        /// The response which is set when task is either completed or cancelled.
-        public private(set) var result: ResultType?
-        
+
         /// Return hash value for the receiver.
         public var hashValue: Int { return identifier }
         
@@ -352,14 +347,6 @@ public extension ImageManager {
             self.request = request
             self.identifier = identifier
             self.completion = completion
-        }
-        
-        private func isValid(nextState: State) -> Bool {
-            switch (self.state) {
-            case .suspended: return (nextState == .running || nextState == .cancelled)
-            case .running: return (nextState == .completed || nextState == .cancelled)
-            default: return false
-            }
         }
     }
 }
