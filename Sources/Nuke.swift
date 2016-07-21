@@ -30,35 +30,16 @@ public extension ImageManager {
 
 // MARK: - ImageManager (Shared)
 
-/// Manages shared ImageManager instance.
+/// Shared ImageManager instance.
 public extension ImageManager {
-    private static var manager = ImageManager.makeDefaultManager()
-    
-    public static func makeDefaultManager() -> ImageManager {
+    public static var shared: ImageManager = {
         let dataLoader = DataLoader()
         let dataDecoder = DataDecoder()
         let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
-
+        
         let cache = ImageCache()
         return ImageManager(loader: loader, cache: cache)
-    }
-    
-    private static let lock = RecursiveLock()
-    
-    /// The shared image manager. This property and all other `ImageManager` APIs are thread safe.
-    public class var shared: ImageManager {
-        set {
-            lock.lock()
-            manager = newValue
-            lock.unlock()
-        }
-        get {
-            lock.lock()
-            let result = manager
-            lock.unlock()
-            return result
-        }
-    }
+    }()
 }
 
 
