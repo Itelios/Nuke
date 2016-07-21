@@ -84,35 +84,32 @@ public struct Error: ErrorProtocol {
 
 // MARK: - Result
 
-/// Result is the type that represent either success (.ok) or a failure (.error).
+/// Result is the type that represent either success (.success) or a failure (.error).
 public enum Result<V, E: ErrorProtocol> {
-    case ok(V)
-    case error(E)
+    case success(V)
+    case failure(E)
     
     public init(value: V?, error: @autoclosure () -> E) {
-        self = value.map(Result.ok) ?? .error(error())
+        self = value.map(Result.success) ?? .failure(error())
     }
 }
 
 public extension Result {
     public var value: V? {
         switch self {
-        case let .ok(val): return val
+        case let .success(val): return val
         default: return nil
         }
     }
     
     public var error: E? {
         switch self {
-        case let .error(err): return err
+        case let .failure(err): return err
         default: return nil
         }
     }
     
-    public var isOk: Bool {
-        switch self {
-        case .ok(_): return true
-        default: return false
-        }
+    public var isSuccess: Bool {
+        return value != nil
     }
 }

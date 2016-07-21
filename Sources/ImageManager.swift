@@ -66,7 +66,7 @@ public class ImageManager {
             didStartExecuting(task)
 
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad, let image = image(for: task.request) {
-                complete(task, result: .ok(image))
+                complete(task, result: .success(image))
             } else {
                 loadImage(for: task)
             }
@@ -84,13 +84,13 @@ public class ImageManager {
             },
             completion: { [weak self] result in
                 switch result {
-                case let .ok(image):
+                case let .success(image):
                     if task.request.memoryCacheStorageAllowed {
                         self?.setImage(image, for: task.request)
                     }
-                    self?.complete(task, result: .ok(image))
-                case let .error(err):
-                    self?.complete(task, result: .error(.loadingFailed(err)))
+                    self?.complete(task, result: .success(image))
+                case let .failure(err):
+                    self?.complete(task, result: .failure(.loadingFailed(err)))
                 }
             })
     }
@@ -102,7 +102,7 @@ public class ImageManager {
                 didStopExecuting(task)
             }
             task.state = .cancelled
-            dispatch(result: .error(.cancelled), for: task)
+            dispatch(result: .failure(.cancelled), for: task)
         }
     }
 

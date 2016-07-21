@@ -69,9 +69,9 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
         if let handler = handlers[task] {
             if let response = task.response {
                 let val = (handler.data, response)
-                handler.completion(result: .ok(val))
+                handler.completion(result: .success(val))
             } else {
-                handler.completion(result: .error(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+                handler.completion(result: .failure(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
             }
             handlers[task] = nil
         }

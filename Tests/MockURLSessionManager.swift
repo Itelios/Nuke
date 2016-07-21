@@ -26,7 +26,7 @@ class MockDataLoader: DataLoading {
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try! Data(contentsOf: URL!)
             DispatchQueue.main.async {
-                completion(result: .ok((data, URLResponse())))
+                completion(result: .success((data, URLResponse())))
             }
         }
         self.createdTaskCount += 1

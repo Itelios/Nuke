@@ -139,7 +139,7 @@ public class ImageLoader: ImageLoading {
         if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
-            complete(task, result: .ok(image))
+            complete(task, result: .success(image))
         }
     }
 
@@ -147,7 +147,7 @@ public class ImageLoader: ImageLoading {
         enterState(task, state: .processing(BlockOperation() {
             let result = Result(value: processor.process(image), error: Error.processingFailed)
             self.then(for: task, result: result) { image in
-                self.complete(task, result: .ok(image))
+                self.complete(task, result: .success(image))
             }
         }))
     }
@@ -191,8 +191,8 @@ public class ImageLoader: ImageLoading {
     private func then<V, E: ErrorProtocol>(for task: Task, result: Result<V, E>, block: ((V) -> Void)) {
         then(for: task) {
             switch result {
-            case let .ok(val): block(val)
-            case let .error(err): self.complete(task, result: .error(Nuke.Error(err)))
+            case let .success(val): block(val)
+            case let .failure(err): self.complete(task, result: .failure(Nuke.Error(err)))
             }
         }
     }

@@ -35,7 +35,7 @@ class ImageMockCacheTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.task(with: request) { _, result in
-                XCTAssertTrue(result.isOk)
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }.resume()
         }
@@ -48,7 +48,7 @@ class ImageMockCacheTest: XCTestCase {
         
         self.expect { fulfill in
             self.manager.task(with: request) { _, result in
-                XCTAssertTrue(result.isOk)
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }.resume()
         }
@@ -95,7 +95,7 @@ class ImageMockCacheTest: XCTestCase {
         
         self.expect { fulfill in
             self.manager.task(with: request) { _, result in
-                XCTAssertTrue(result.isOk)
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }.resume()
         }
@@ -127,7 +127,7 @@ class ImageCacheTest: XCTestCase {
         
         self.expect { fulfill in
             self.manager.task(with: request) { _, result in
-                XCTAssertTrue(result.isOk)
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
                 }.resume()
         }
@@ -139,7 +139,7 @@ class ImageCacheTest: XCTestCase {
         
         self.expect { fulfill in
             self.manager.task(with: request) { _, result in
-                XCTAssertTrue(result.isOk)
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
                 }.resume()
         }

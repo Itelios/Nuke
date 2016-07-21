@@ -115,7 +115,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
             return
         }
         switch result {
-        case let .ok(image):
+        case let .success(image):
             nk_display(image)
             if options.animated && !isFromMemoryCache {
                 if let animations = options.animations {
@@ -192,7 +192,7 @@ public class ImageViewLoadingController {
         
         if request.memoryCachePolicy != .reloadIgnoringCachedImage {
             if let image = manager.image(for: request) {
-                self.handler(result: .ok(image), options: options, isFromMemoryCache: true)
+                self.handler(result: .success(image), options: options, isFromMemoryCache: true)
                 return nil
             }
         }
