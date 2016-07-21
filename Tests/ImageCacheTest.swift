@@ -34,8 +34,8 @@ class ImageMockCacheTest: XCTestCase {
         XCTAssertNil(self.manager.image(for: request))
 
         self.expect { fulfill in
-            self.manager.task(with: request) { _, response in
-                XCTAssertTrue(response.isSuccess)
+            self.manager.task(with: request) { _, result in
+                XCTAssertTrue(result.isOk)
                 fulfill()
             }.resume()
         }
@@ -47,8 +47,8 @@ class ImageMockCacheTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         self.expect { fulfill in
-            self.manager.task(with: request) { _, response in
-                XCTAssertTrue(response.isSuccess)
+            self.manager.task(with: request) { _, result in
+                XCTAssertTrue(result.isOk)
                 fulfill()
             }.resume()
         }
@@ -94,8 +94,8 @@ class ImageMockCacheTest: XCTestCase {
         XCTAssertNil(self.manager.image(for: request))
         
         self.expect { fulfill in
-            self.manager.task(with: request) { _, response in
-                XCTAssertTrue(response.isSuccess)
+            self.manager.task(with: request) { _, result in
+                XCTAssertTrue(result.isOk)
                 fulfill()
             }.resume()
         }
@@ -138,8 +138,8 @@ class ImageCacheTest: XCTestCase {
         XCTAssertNil(self.manager.image(for: request))
         
         self.expect { fulfill in
-            self.manager.task(with: request) { _, response in
-                XCTAssertTrue(response.isSuccess)
+            self.manager.task(with: request) { _, result in
+                XCTAssertTrue(result.isOk)
                 fulfill()
                 }.resume()
         }
@@ -150,8 +150,8 @@ class ImageCacheTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         self.expect { fulfill in
-            self.manager.task(with: request) { _, response in
-                XCTAssertTrue(response.isSuccess)
+            self.manager.task(with: request) { _, result in
+                XCTAssertTrue(result.isOk)
                 fulfill()
                 }.resume()
         }

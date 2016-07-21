@@ -21,7 +21,7 @@ public struct ImageViewLoadingOptions {
     public var animated = true
     
     /// Custom handler to run when the task completes. Overrides the default completion handler. Default value is nil.
-    public var handler: ((view: ImageLoadingView, response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
+    public var handler: ((view: ImageLoadingView, result: ImageTask.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
     
     /// Default value is nil.
     public var userInfo: Any? = nil
@@ -42,7 +42,7 @@ public protocol ImageLoadingView: class {
     func nk_setImage(with request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask?
     
     /// Gets called when the task that is currently associated with the view completes.
-    func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
+    func nk_handle(result: ImageTask.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
 }
 
 public extension ImageLoadingView {
@@ -94,7 +94,7 @@ public extension ImageLoadingView {
             return loader
         }
         let loader = ImageViewLoadingController { [weak self] in
-            self?.nk_handle(response: $0, options: $1, isFromMemoryCache: $2)
+            self?.nk_handle(result: $0, options: $1, isFromMemoryCache: $2)
         }
         objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, loader, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return loader
@@ -109,13 +109,13 @@ private struct AssociatedKeys {
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     
     /// Default implementation that displays the image and runs animations if necessary.
-    public func nk_handle(response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
+    public func nk_handle(result: ImageTask.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
         if let handler = options.handler {
-            handler(view: self, response: response, options: options, isFromMemoryCache: isFromMemoryCache)
+            handler(view: self, result: result, options: options, isFromMemoryCache: isFromMemoryCache)
             return
         }
-        switch response {
-        case let .success(image):
+        switch result {
+        case let .ok(image):
             nk_display(image)
             if options.animated && !isFromMemoryCache {
                 if let animations = options.animations {
@@ -158,7 +158,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 
 // MARK: - ImageViewLoadingController
 
-public typealias ImageViewLoadingHandler = (response: ImageResponse, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void
+public typealias ImageViewLoadingHandler = (result: ImageTask.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void
 
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {
@@ -192,14 +192,14 @@ public class ImageViewLoadingController {
         
         if request.memoryCachePolicy != .reloadIgnoringCachedImage {
             if let image = manager.image(for: request) {
-                self.handler(response: ImageResponse.success(image), options: options, isFromMemoryCache: true)
+                self.handler(result: .ok(image), options: options, isFromMemoryCache: true)
                 return nil
             }
         }
         
-        let task = manager.task(with: request) { [weak self] task, response in
+        let task = manager.task(with: request) { [weak self] task, result in
             if task == self?.imageTask {
-                self?.handler(response: response, options: options, isFromMemoryCache: false)
+                self?.handler(result: result, options: options, isFromMemoryCache: false)
             }
         }
         imageTask = task

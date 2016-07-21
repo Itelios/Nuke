@@ -6,6 +6,8 @@ import Foundation
 
 /// Abstract class for image tasks. Tasks are always part of the image manager, you create a task by calling one of the methods on ImageManager.
 public class ImageTask: Hashable {
+    public typealias ResultType = Result<Image, NSError>
+    
     /**
      The state of the task. Allowed transitions include:
      - suspended -> [running, cancelled]
@@ -23,7 +25,7 @@ public class ImageTask: Hashable {
     public let request: ImageRequest
 
     /// The response which is set when task is either completed or cancelled.
-    public internal(set) var response: ImageResponse?
+    public internal(set) var result: ResultType?
 
     /// Return hash value for the receiver.
     public var hashValue: Int { return identifier }

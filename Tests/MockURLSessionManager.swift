@@ -9,7 +9,7 @@
 import Foundation
 import Nuke
 
-class MockDataLoader: DataLoader {
+class MockDataLoader: DataLoading {
     var enabled = true {
         didSet {
             self.queue.isSuspended = !enabled
@@ -18,15 +18,15 @@ class MockDataLoader: DataLoader {
     var createdTaskCount = 0
     private let queue = OperationQueue()
 
-    override func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
+    func loadData(for request: ImageRequest, progress: (completed: Int64, total: Int64) -> Void, completion: (result: Result<(Data, URLResponse), NSError>) -> Void) -> URLSessionTask {
         self.queue.addOperation {
             progress(completed: 50, total: 100)
             progress(completed: 100, total: 100)
             let bundle = Bundle(for: MockDataLoader.self)
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
-            let data = try? Data(contentsOf: URL!)
+            let data = try! Data(contentsOf: URL!)
             DispatchQueue.main.async {
-                completion(data: data, response: nil, error: nil)
+                completion(result: Result(value: (data, URLResponse())))
             }
         }
         self.createdTaskCount += 1

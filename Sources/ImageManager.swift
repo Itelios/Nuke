@@ -5,7 +5,7 @@
 import Foundation
 
 /// ImageTask completion block, gets called when task is either completed or cancelled.
-public typealias ImageTaskCompletion = (ImageTask, ImageResponse) -> Void
+public typealias ImageTaskCompletion = (task: ImageTask, result: Result<Image, NSError>) -> Void
 
 /**
 The domain used for creating all ImageManager errors.
@@ -98,7 +98,7 @@ public class ImageManager {
         case .running:
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad {
                 if let image = image(for: task.request) {
-                    task.response = ImageResponse.success(image)
+                    task.result = .ok(image)
                     setState(.completed, for: task)
                     return
                 }
@@ -109,21 +109,21 @@ public class ImageManager {
                 progress: { [weak self] completed, total in
                     self?.updateProgress(Progress(completed: completed, total: total), for: task)
                 },
-                completion: { [weak self] image, error in
-                    self?.complete(task, image: image, error: error)
+                completion: { [weak self] result in
+                    self?.complete(task, result: result)
             })
         case .cancelled:
-            task.response = ImageResponse.failure(errorWithCode(.cancelled))
+            task.result = .error(errorWithCode(.cancelled))
             fallthrough
         case .completed:
             executingTasks.remove(task)
             setNeedsExecutePreheatingTasks()
             
-            assert(task.response != nil)
-            let response = task.response!
+            assert(task.result != nil)
+            let result = task.result!
             if let completion = task.completion {
                 DispatchQueue.main.async {
-                    completion(task, response)
+                    completion(task: task, result: result)
                 }
             }
         default: break
@@ -137,19 +137,15 @@ public class ImageManager {
         }
     }
 
-    private func complete(_ task: ImageTask, image: Image?, error: ErrorProtocol?) {
+    private func complete(_ task: ImageTask, result: ImageTask.ResultType) {
         perform {
-            if let image = image, task.request.memoryCacheStorageAllowed {
+            if let image = result.value, task.request.memoryCacheStorageAllowed {
                 setImage(image, for: task.request)
             }
 
             let task = task as! Task
             if task.state == .running {
-                if let image = image {
-                    task.response = ImageResponse.success(image)
-                } else {
-                    task.response = ImageResponse.failure(error ?? errorWithCode(.unknown))
-                }
+                task.result = result
                 setState(.completed, for: task)
             }
         }

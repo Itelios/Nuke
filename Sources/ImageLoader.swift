@@ -7,7 +7,7 @@ import Foundation
 // MARK: - ImageLoading
 
 public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias ImageLoadingCompletion = (Image?, ErrorProtocol?) -> Void
+public typealias ImageLoadingCompletion = (result: Result<Image, NSError>) -> Void
 
 /// Performs loading of images.
 public protocol ImageLoading: class {
@@ -77,7 +77,8 @@ public class ImageLoader: ImageLoading {
 
     private func loadData(for task: Task, dataCache: DataCaching) {
         enterState(task, state: .dataCacheLookup(BlockOperation() {
-            self.then(for: task, result: dataCache.data(for: task.request)) { data in
+            let data = dataCache.data(for: task.request)
+            self.then(for: task) {
                 if let data = data {
                     self.decode(data: data, task: task)
                 } else {
@@ -96,16 +97,10 @@ public class ImageLoader: ImageLoading {
                         task.progress(completed: completed, total: total)
                     }
                 },
-                completion: { [weak self] data, response, error in
-                    fulfill()
-                    let result = (data, response, error)
-                    self?.store(response: result, for: task.request)
-                    self?.then(for: task, result: result) { _ in
-                        if let data = data, error == nil {
-                            self?.decode(data: data, response: response, task: task)
-                        } else {
-                            self?.complete(task, error: error)
-                        }
+                completion: { [weak self] in                    fulfill()
+                    self?.then(for: task, result: $0) { data, response in
+                        self?.store(data: data, response: response, for: task.request)
+                        self?.decode(data: data, response: response, task: task)
                     }
                 })
             #if !os(OSX)
@@ -116,25 +111,20 @@ public class ImageLoader: ImageLoading {
             return dataTask
         }))
     }
-
-    private func store(response: (Data?, URLResponse?, ErrorProtocol?), for request: ImageRequest) {
-        if let data = response.0, response.2 == nil {
-            if let response = response.1, let cache = dataCache {
-                queues.dataCaching.addOperation(BlockOperation() {
-                    cache.setData(data, response: response, for: request)
-                })
-            }
+    
+    private func store(data: Data, response: URLResponse, for request: ImageRequest) {
+        if let cache = dataCache {
+            queues.dataCaching.addOperation(BlockOperation() {
+                cache.setData(data, response: response, for: request)
+            })
         }
     }
     
     private func decode(data: Data, response: URLResponse? = nil, task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
-            self.then(for: task, result: self.dataDecoder.decode(data: data, response: response)) { image in
-                if let image = image {
-                    self.process(image, task: task)
-                } else {
-                    self.complete(task, error: errorWithCode(.decodingFailed))
-                }
+            let result = Result(value: self.dataDecoder.decode(data: data, response: response), error: errorWithCode(.decodingFailed))
+            self.then(for: task, result: result) { image in
+                self.process(image, task: task)
             }
         }))
     }
@@ -143,24 +133,21 @@ public class ImageLoader: ImageLoading {
         if let processor = task.request.processor {
             process(image, task: task, processor: processor)
         } else {
-            complete(task, image: image)
+            complete(task, result: .ok(image))
         }
     }
 
     private func process(_ image: Image, task: Task, processor: ImageProcessing) {
         enterState(task, state: .processing(BlockOperation() {
-            self.then(for: task, result: processor.process(image)) { image in
-                if let image = image {
-                    self.complete(task, image: image)
-                } else {
-                    self.complete(task, error: errorWithCode(.processingFailed))
-                }
+            let result = Result(value: processor.process(image), error: errorWithCode(.processingFailed))
+            self.then(for: task, result: result) { image in
+                self.complete(task, result: .ok(image))
             }
         }))
     }
 
-    private func complete(_ task: Task, image: Image? = nil, error: ErrorProtocol? = nil) {
-        task.completion(image, error)
+    private func complete(_ task: Task, result: Result<Image, NSError>) {
+        task.completion(result: result)
     }
 
     private func enterState(_ task: Task, state: Task.State) {
@@ -187,10 +174,19 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func then<T>(for task: Task, result: T, block: ((T) -> Void)) {
+    private func then(for task: Task, block: ((Void) -> Void)) {
         queue.async {
             if !task.cancelled {
-                block(result) // execute only if task is still registered
+                block() // execute only if task is still registered
+            }
+        }
+    }
+    
+    private func then<Value, Error: NSError>(for task: Task, result: Result<Value, Error>, block: ((Value) -> Void)) {
+        then(for: task) {
+            switch result {
+            case let .ok(val): block(val)
+            case let .error(err): self.complete(task, result: .error(err))
             }
         }
     }

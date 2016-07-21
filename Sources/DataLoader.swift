@@ -6,11 +6,8 @@ import Foundation
 
 // MARK: - DataLoading
 
-/// Data loading progress closure.
 public typealias DataLoadingProgress = (completed: Int64, total: Int64) -> Void
-
-/// Data loading completion closure.
-public typealias DataLoadingCompletion = (data: Data?, response: URLResponse?, error: ErrorProtocol?) -> Void
+public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NSError>) -> Void
 
 /// Performs loading of image data.
 public protocol DataLoading {
@@ -70,7 +67,12 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
         lock.lock()
         if let handler = handlers[task] {
-            handler.completion(data: handler.data, response: task.response, error: error)
+            if let response = task.response {
+                let val = (handler.data, response)
+                handler.completion(result: .ok(val))
+            } else {
+                handler.completion(result: .error(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+            }
             handlers[task] = nil
         }
         lock.unlock()

@@ -89,7 +89,7 @@ public extension ImageManager {
 }
 
 
-// MARK - Progress
+// MARK: - Progress
 
 /// Represents image task progress.
 public struct Progress {
@@ -108,8 +108,47 @@ public extension Progress {
 }
 
 
-// MARK - Cancellable
+// MARK: - Cancellable
 
 public protocol Cancellable {
     func cancel()
+}
+
+
+// MARK: - Result
+
+/// Result is the type that represent either success (.ok) or a failure (.error).
+public enum Result<Value, Error: ErrorProtocol> {
+    case ok(Value)
+    case error(Error)
+    
+    // FIXME: Remove if not necessary
+    public init(value: Value) {
+        self = .ok(value)
+    }
+    
+    // FIXME: Remove if not necessary
+    public init(error: Error) {
+        self = .error(error)
+    }
+    
+    public init(value: Value?, error: @autoclosure () -> Error) {
+        self = value.map(Result.ok) ?? .error(error())
+    }
+}
+
+public extension Result {
+    public var value: Value? {
+        switch self {
+        case let .ok(val): return val
+        default: return nil
+        }
+    }
+    
+    public var isOk: Bool {
+        switch self {
+        case .ok(_): return true
+        default: return false
+        }
+    }
 }

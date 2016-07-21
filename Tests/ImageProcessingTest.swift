@@ -37,7 +37,7 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.task(with: request) {
-                XCTAssertEqual($0.1.image!.nk_test_processorIDs, ["processor1"])
+                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }.resume()
         }
@@ -50,7 +50,7 @@ class ImageProcessingTest: XCTestCase {
             request.processors = [MockImageProcessor(ID: "processor1")]
 
             self.manager.task(with: request) {
-                XCTAssertNotNil($0.1.image)
+                XCTAssertNotNil($0.1.value)
                 fulfill()
             }.resume()
         }
@@ -74,14 +74,14 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.task(with: request1) {
-                XCTAssertEqual($0.1.image!.nk_test_processorIDs, ["processor1"])
+                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }.resume()
         }
 
         self.expect { fulfill in
             self.manager.task(with: request2) {
-                XCTAssertEqual($0.1.image!.nk_test_processorIDs, ["processor2"])
+                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor2"])
                 fulfill()
             }.resume()
         }
@@ -99,7 +99,7 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.task(with: request) {
-                XCTAssertEqual($0.1.image!.nk_test_processorIDs, ["processor1", "processor2"])
+                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
                 }.resume()
         }
@@ -111,7 +111,7 @@ class ImageProcessingTest: XCTestCase {
             var request = ImageRequest(url: defaultURL)
             request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
             self.manager.task(with: request) {
-                XCTAssertNotNil($0.1.image)
+                XCTAssertNotNil($0.1.value)
                 fulfill()
             }.resume()
         }

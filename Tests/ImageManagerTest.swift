@@ -30,7 +30,7 @@ class ImageManagerTest: XCTestCase {
     func testThatRequestIsCompelted() {
         self.expect { fulfill in
             self.manager.task(with: ImageRequest(url: defaultURL)) {
-                XCTAssertNotNil($0.1.image, "")
+                XCTAssertNotNil($0.1.value, "")
                 fulfill()
             }.resume()
         }
@@ -70,10 +70,10 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
 
         let task = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) { task, response in
-                switch response {
-                case .success(_): XCTFail()
-                case let .failure(error):
+            return self.manager.task(with: defaultURL) { task, result in
+                switch result {
+                case .ok(_): XCTFail()
+                case let .error(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
                 }
@@ -93,10 +93,10 @@ class ImageManagerTest: XCTestCase {
 
     func testThatSuspendedTaskIsCancelled() {
         let task = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) { task, response in
-                switch response {
-                case .success(_): XCTFail()
-                case let .failure(error):
+            return self.manager.task(with: defaultURL) { task, result in
+                switch result {
+                case .ok(_): XCTFail()
+                case let .error(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
                     XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.cancelled.rawValue, "")
                 }
@@ -173,7 +173,7 @@ class ImageManagerTest: XCTestCase {
         let task1 = self.expected { fulfill in
             return self.manager.task(with: defaultURL) {
                 XCTAssertTrue($0.state == .cancelled)
-                XCTAssertNil($1.image)
+                XCTAssertNil($1.value)
                 fulfill()
             }
         }
@@ -181,7 +181,7 @@ class ImageManagerTest: XCTestCase {
         let task2 = self.expected { fulfill in
             return self.manager.task(with: defaultURL) {
                 XCTAssertTrue($0.state == .completed)
-                XCTAssertNotNil($1.image)
+                XCTAssertNotNil($1.value)
                 fulfill()
             }
         }
