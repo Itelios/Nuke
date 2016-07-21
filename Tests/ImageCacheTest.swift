@@ -104,18 +104,6 @@ class ImageMockCacheTest: XCTestCase {
         XCTAssertEqual(self.mocCache.images.count, 0)
         XCTAssertNil(self.manager.image(for: request))
     }
-
-    func testThatAllCachedImageAreRemoved() {
-        let request = ImageRequest(url: defaultURL)
-        self.manager.setImage(Image(), for: request)
-
-        XCTAssertEqual(self.mocCache.images.count, 1)
-
-        self.manager.removeAllCachedImages()
-
-        XCTAssertEqual(self.mocCache.images.count, 0)
-        XCTAssertNil(self.manager.image(for: request))
-    }
 }
 
 class ImageCacheTest: XCTestCase {

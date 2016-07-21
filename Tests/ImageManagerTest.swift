@@ -273,23 +273,6 @@ class ImageManagerTest: XCTestCase {
         preheat.stopPreheating()
         self.wait(2)
     }
-
-    // MARK: Invalidation
-
-    func testThatInvalidateAndCancelMethodCancelsOutstandingRequests() {
-        self.mockSessionManager.enabled = false
-
-        // More than 1 image task!
-        self.manager.task(with: defaultURL, completion: nil).resume()
-        self.manager.task(with: URL(string: "http://test2.com")!, completion: nil).resume()
-        var callbackCount = 0
-        _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification) { _ in
-            callbackCount += 1
-            return callbackCount == 2
-        }
-        self.manager.invalidateAndCancel()
-        self.wait()
-    }
     
     // MARK: Misc
     

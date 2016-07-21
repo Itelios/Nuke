@@ -7,17 +7,16 @@ import Foundation
 // MARK: - ImageManager
 
 /**
-The `ImageManager` class and related classes provide methods for loading, processing, caching and preheating images.
+The `ImageManager` class and related classes provide methods for loading, processing, caching.
 
 `ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
     private var executingTasks = Set<Task>()
     private let lock = RecursiveLock()
-    private var invalidated = false
     private var taskIdentifier: Int = 0
     private var nextTaskIdentifier: Int {
-        return performed {
+        return synced {
             taskIdentifier += 1
             return taskIdentifier
         }
@@ -25,14 +24,14 @@ public class ImageManager {
     private var loader: ImageLoading
     private var cache: ImageCaching?
     
-    public var onInvalidateAndCancel: ((Void) -> Void)?
-    public var onRemoveAllCachedImages: ((Void) -> Void)?
     public var onDidUpdateTasks: ((Set<Task>) -> Void)?
+    
+    /// Returns all executing tasks.
+    public var tasks: Set<Task> {
+        return synced { executingTasks }
+    }
 
     // MARK: Configuring Manager
-
-    /// Default value is 2.
-    public var maxConcurrentPreheatingTaskCount = 2
 
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
     public init(loader: ImageLoading, cache: ImageCaching?) {
@@ -50,10 +49,10 @@ public class ImageManager {
     public func task(with request: ImageRequest, completion: Task.Completion? = nil) -> Task {
         let task = Task(request: request, identifier: nextTaskIdentifier, completion: completion)
         task.onResume = { [weak self] task in
-            self?.perform { self?.run(task) }
+            self?.sync { self?.run(task) }
         }
         task.onCancel = { [weak self] task in
-            self?.perform { self?.cancel(task) }
+            self?.sync { self?.cancel(task) }
         }
         return task
     }
@@ -165,40 +164,14 @@ public class ImageManager {
     public func isCacheEquivalent(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         return lhs.urlRequest.url == rhs.urlRequest.url && isEquivalent(lhs.processor, rhs: rhs.processor)
     }
-    
-    // MARK: Misc
-    
-    /// Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
-    public func invalidateAndCancel() {
-        perform {
-            executingTasks.forEach { cancel($0) }
-            invalidated = true
-            onInvalidateAndCancel?()
-        }
-    }
-    
-    /// Calls onRemoveAllCachedImages closure, default implementation does nothing.
-    public func removeAllCachedImages() {
-        perform {
-            onRemoveAllCachedImages?()
-        }
-    }
-    
-    /// Returns all executing tasks.
-    public var tasks: Set<Task> {
-        return performed { self.executingTasks }
-    }
-
 
     // MARK: Private
 
-    private func perform(_ closure: @noescape (Void) -> Void) {
-        lock.lock()
-        if !invalidated { closure() }
-        lock.unlock()
+    private func sync(_ closure: @noescape (Void) -> Void) {
+        _ = synced(closure)
     }
     
-    private func performed<T>(_ closure: @noescape (Void) -> T) -> T {
+    private func synced<T>(_ closure: @noescape (Void) -> T) -> T {
         lock.lock()
         let result = closure()
         lock.unlock()

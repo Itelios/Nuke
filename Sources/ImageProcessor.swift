@@ -176,7 +176,7 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo = isOpaque(imageRef) ? CGImageAlphaInfo.noneSkipLast : CGImageAlphaInfo.premultipliedLast
+        let alphaInfo: CGImageAlphaInfo = isOpaque(imageRef) ? .noneSkipLast : .premultipliedLast
         let bitmapInfo = CGBitmapInfo(rawValue: alphaInfo.rawValue)
 
         guard let contextRef = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: bitmapInfo.rawValue) else {

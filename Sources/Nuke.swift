@@ -40,15 +40,7 @@ public extension ImageManager {
         let loader = ImageLoader(dataLoader: dataLoader, dataDecoder: dataDecoder)
 
         let cache = ImageCache()
-        let manager = ImageManager(loader: loader, cache: cache)
-        manager.onInvalidateAndCancel = {
-            dataLoader.session.invalidateAndCancel()
-        }
-        manager.onRemoveAllCachedImages = {
-            cache.removeAllImages()
-            dataLoader.session.configuration.urlCache?.removeAllCachedResponses()
-        }
-        return manager
+        return ImageManager(loader: loader, cache: cache)
     }
     
     private static let lock = RecursiveLock()
