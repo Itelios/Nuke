@@ -18,7 +18,7 @@ class MockDataLoader: DataLoading {
     var createdTaskCount = 0
     private let queue = OperationQueue()
 
-    func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
+    func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
         self.queue.addOperation {
             progress(completed: 50, total: 100)
             progress(completed: 100, total: 100)
@@ -26,7 +26,7 @@ class MockDataLoader: DataLoading {
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try! Data(contentsOf: URL!)
             DispatchQueue.main.async {
-                completion(result: Result(value: (data, URLResponse())))
+                completion(result: .ok((data, URLResponse())))
             }
         }
         self.createdTaskCount += 1

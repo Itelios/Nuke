@@ -98,7 +98,7 @@ public class ImageLoader: ImageLoading {
     private func loadData(for task: Task) {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
-                for: task.request,
+                for: task.request.urlRequest,
                 progress: { [weak self] completed, total in
                     self?.queue.async {
                         task.progress(progress: Progress(completed: completed, total: total))

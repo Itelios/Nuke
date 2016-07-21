@@ -49,7 +49,14 @@ public class ImageManager {
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
     public func task(with request: ImageRequest, completion: Task.Completion? = nil) -> Task {
-        return Task(manager: self, request: request, identifier: nextTaskIdentifier, completion: completion)
+        let task = Task(request: request, identifier: nextTaskIdentifier, completion: completion)
+        task.onResume = { [weak self] task in
+            self?.perform { self?.setState(.running, for: task) }
+        }
+        task.onCancel = { [weak self] task in
+            self?.perform { self?.setState(.cancelled, for: task) }
+        }
+        return task
     }
     
     // MARK: FSM (ImageTask.State)
@@ -268,18 +275,8 @@ public class ImageManager {
 }
 
 public extension ImageManager {
-    
-    // MARK: Task Management
-    
-    private func resume(_ task: Task) {
-        perform { setState(.running, for: task) }
-    }
-    
-    private func cancel(_ task: Task) {
-        perform { setState(.cancelled, for: task) }
-    }
-    
-    // MARK: Task
+
+    // MARK: - Task
     
     /// Respresents image task.
     public class Task: Hashable {
@@ -336,22 +333,22 @@ public extension ImageManager {
         
         /// Resumes the task if suspended. Resume methods are nestable.
         public func resume() {
-            manager?.resume(self)
+            onResume?(task: self)
         }
+        private var onResume: ((task: Task) -> Void)?
         
         /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
         public func cancel() {
-            manager?.cancel(self)
+            onCancel?(task: self)
         }
+        private var onCancel: ((task: Task) -> Void)?
         
         // MARK: Private
-        
-        private weak var manager: ImageManager?
+
         private let completion: Completion?
         private var cancellable: Cancellable?
         
-        private init(manager: ImageManager, request: ImageRequest, identifier: Int, completion: Completion?) {
-            self.manager = manager
+        private init(request: ImageRequest, identifier: Int, completion: Completion?) {
             self.request = request
             self.identifier = identifier
             self.completion = completion

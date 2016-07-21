@@ -12,7 +12,7 @@ public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NS
 /// Performs loading of image data.
 public protocol DataLoading {
     /// Creates task with a given request. Task is resumed by the object calling the method.
-    func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask
+    func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask
 }
 
 
@@ -40,8 +40,8 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     // MARK: DataLoading
 
     /// Creates task for the given request.
-    public func loadData(for request: ImageRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
-        let task = self.task(with: request)
+    public func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
+        let task = self.task(with: urlRequest)
         lock.lock()
         handlers[task] = Handler(progress: progress, completion: completion)
         lock.unlock()
@@ -49,8 +49,8 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     }
     
     /// Factory method for creating session tasks for given image requests.
-    public func task(with request: ImageRequest) -> URLSessionTask {
-        return session.dataTask(with: request.urlRequest)
+    public func task(with urlRequest: URLRequest) -> URLSessionTask {
+        return session.dataTask(with: urlRequest)
     }
     
     // MARK: NSURLSessionDataDelegate
