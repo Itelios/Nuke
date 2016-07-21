@@ -103,8 +103,8 @@ public class ImageManager {
             executingTasks.insert(task) // Register task until it's completed or cancelled.
             task.cancellable = loader.loadImage(
                 for: task.request,
-                progress: { [weak self] completed, total in
-                    self?.updateProgress(Progress(completed: completed, total: total), for: task)
+                progress: { [weak self] progress in
+                    self?.updateProgress(progress, for: task)
                 },
                 completion: { [weak self] result in
                     self?.complete(task, result: result)

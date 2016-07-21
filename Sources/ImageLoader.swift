@@ -6,7 +6,7 @@ import Foundation
 
 // MARK: - ImageLoading
 
-public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias ImageLoadingProgress = (progress: Progress) -> Void
 public typealias ImageLoadingCompletion = (result: Result<Image, NSError>) -> Void
 
 /// Performs loading of images.
@@ -92,9 +92,9 @@ public class ImageLoader: ImageLoading {
         enterState(task, state: .dataLoading(DataOperation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request,
-                progress: { [weak self] completed, total in
+                progress: { [weak self] progress in
                     self?.queue.async {
-                        task.progress(completed: completed, total: total)
+                        task.progress(progress: progress)
                     }
                 },
                 completion: { [weak self] in                    fulfill()
