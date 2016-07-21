@@ -7,12 +7,12 @@ import Foundation
 // MARK: - Convenience
 
 /// Creates a task with a given URL. After you create a task, start it using resume method.
-public func task(with url: URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+public func task(with url: URL, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
     return ImageManager.shared.task(with: url, completion: completion)
 }
 
 /// Creates a task with a given request. After you create a task, start it using resume method.
-public func task(with request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+public func task(with request: ImageRequest, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
     return ImageManager.shared.task(with: request, completion: completion)
 }
 
@@ -41,7 +41,7 @@ public func stopPreheating() {
 /// Convenience methods for ImageManager.
 public extension ImageManager {
     /// Creates a task with a given request. For more info see `task(with: _)` methpd.
-    func task(with url: URL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    func task(with url: URL, completion: ImageManager.Task.Completion? = nil) -> ImageManager.Task {
         return self.task(with: ImageRequest(url: url), completion: completion)
     }
 }

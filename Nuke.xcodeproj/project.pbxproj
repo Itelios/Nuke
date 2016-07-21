@@ -46,10 +46,6 @@
 		0C0FD6091CA47FE1002A78FB /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */; };
 		0C0FD60A1CA47FE1002A78FB /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */; };
 		0C0FD60B1CA47FE1002A78FB /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */; };
-		0C0FD6101CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
-		0C0FD6111CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
-		0C0FD6121CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
-		0C0FD6131CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
 		0C0FD6181CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
 		0C0FD6191CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
 		0C0FD61A1CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
@@ -133,7 +129,6 @@
 		0C0FD5D81CA47FE1002A78FB /* ImageProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
 		0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequest.swift; sourceTree = "<group>"; };
 		0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
-		0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
 		0C0FD5DE1CA47FE1002A78FB /* Internal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -236,7 +231,6 @@
 				0C0FD5D81CA47FE1002A78FB /* ImageProcessor.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */,
-				0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */,
 				0C0FD5DE1CA47FE1002A78FB /* Internal.swift */,
 			);
 			path = Sources;
@@ -598,7 +592,6 @@
 				0C0FD5EE1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E21CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6121CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD6061CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD61A1CA47FE1002A78FB /* Internal.swift in Sources */,
 				0C0FD60A1CA47FE1002A78FB /* ImageRequestKey.swift in Sources */,
@@ -617,7 +610,6 @@
 				0C0FD5ED1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E11CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6111CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F11CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
 				0C0FD6051CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD6191CA47FE1002A78FB /* Internal.swift in Sources */,
@@ -669,7 +661,6 @@
 				0C0FD5EC1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6101CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F01CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD6181CA47FE1002A78FB /* Internal.swift in Sources */,
@@ -689,7 +680,6 @@
 				0C0FD5EF1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E31CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6131CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F31CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
 				0C0FD6071CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD61B1CA47FE1002A78FB /* Internal.swift in Sources */,

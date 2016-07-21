@@ -4,9 +4,6 @@
 
 import Foundation
 
-/// ImageTask completion block, gets called when task is either completed or cancelled.
-public typealias ImageTaskCompletion = (task: ImageTask, result: Result<Image, NSError>) -> Void
-
 /**
 The domain used for creating all ImageManager errors.
 
@@ -73,13 +70,13 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func task(with request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    public func task(with request: ImageRequest, completion: Task.Completion? = nil) -> Task {
         return Task(manager: self, request: request, identifier: nextTaskIdentifier, completion: completion)
     }
     
     // MARK: FSM (ImageTask.State)
     
-    private func setState(_ state: ImageTask.State, for task: Task)  {
+    private func setState(_ state: Task.State, for task: Task)  {
         if task.isValid(nextState: state) {
             transitionStateAction(from: task.state, to: state, task: task)
             task.state = state
@@ -87,13 +84,13 @@ public class ImageManager {
         }
     }
     
-    private func transitionStateAction(from: ImageTask.State, to: ImageTask.State, task: Task) {
+    private func transitionStateAction(from: Task.State, to: Task.State, task: Task) {
         if from == .running && to == .cancelled {
             task.cancellable?.cancel()
         }
     }
     
-    private func enterStateAction(to state: ImageTask.State, task: Task) {
+    private func enterStateAction(to state: Task.State, task: Task) {
         switch state {
         case .running:
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad {
@@ -130,20 +127,19 @@ public class ImageManager {
         }
     }
 
-    private func updateProgress(_ progress: Progress, for task: ImageTask) {
+    private func updateProgress(_ progress: Progress, for task: Task) {
         DispatchQueue.main.async {
             task.progress = progress
             task.progressHandler?(progress: progress)
         }
     }
 
-    private func complete(_ task: ImageTask, result: ImageTask.ResultType) {
+    private func complete(_ task: Task, result: Task.ResultType) {
         perform {
             if let image = result.value, task.request.memoryCacheStorageAllowed {
                 setImage(image, for: task.request)
             }
 
-            let task = task as! Task
             if task.state == .running {
                 task.result = result
                 setState(.completed, for: task)
@@ -163,7 +159,7 @@ public class ImageManager {
             requests.forEach {
                 let key = makePreheatKey($0)
                 if preheatingTasks[key] == nil { // Don't create more than one task for the equivalent requests.
-                    preheatingTasks[key] = Task(manager: self, request: $0, identifier: nextTaskIdentifier) { [weak self] _ in
+                    preheatingTasks[key] = task(with: $0) { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
                 }
@@ -263,7 +259,7 @@ public class ImageManager {
     }
     
     /// Returns all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
-    public var tasks: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) {
+    public var tasks: (executingTasks: Set<Task>, preheatingTasks: Set<Task>) {
         return performed {
             return (self.executingTasks, Set(self.preheatingTasks.values))
         }
@@ -288,8 +284,11 @@ public class ImageManager {
     private func cancel<T: Sequence where T.Iterator.Element == Task>(_ tasks: T) {
         tasks.forEach { setState(.cancelled, for: $0) }
     }
+}
+
+public extension ImageManager {
     
-    // MARK: - Task
+    // MARK: Task Management
     
     private func resume(_ task: Task) {
         perform { setState(.running, for: task) }
@@ -299,26 +298,78 @@ public class ImageManager {
         perform { setState(.cancelled, for: task) }
     }
     
-    private class Task: ImageTask {
-        weak var manager: ImageManager?
-        let completion: ImageTaskCompletion?
-        var cancellable: Cancellable?
+    // MARK: Task
+    
+    /// Respresents image task.
+    public class Task: Hashable {
+        public typealias ResultType = Result<Image, NSError>
         
-        init(manager: ImageManager, request: ImageRequest, identifier: Int, completion: ImageTaskCompletion?) {
-            self.manager = manager
-            self.completion = completion
-            super.init(request: request, identifier: identifier)
+        /// ImageTask completion block, gets called when task is either completed or cancelled.
+        public typealias Completion = (task: Task, result: Result<Image, NSError>) -> Void
+        /**
+         The state of the task. Allowed transitions include:
+         - suspended -> [running, cancelled]
+         - running -> [cancelled, completed]
+         - cancelled -> []
+         - completed -> []
+         */
+        public enum State {
+            case suspended, running, cancelled, completed
         }
         
-        override func resume() {
+        // MARK: Obtainig General Task Information
+        
+        /// The request that task was created with.
+        public let request: ImageRequest
+        
+        /// The response which is set when task is either completed or cancelled.
+        public private(set) var result: ResultType?
+        
+        /// Return hash value for the receiver.
+        public var hashValue: Int { return identifier }
+        
+        /// Uniquely identifies the task within an image manager.
+        public let identifier: Int
+        
+        
+        // MARK: Obraining Task Progress
+        
+        /// Return current task progress. Initial value is (0, 0).
+        public private(set) var progress = Progress()
+        
+        /// A progress closure that gets periodically during the lifecycle of the task.
+        public var progressHandler: ((progress: Progress) -> Void)?
+        
+        
+        // MARK: Controlling Task State
+        
+        /// The current state of the task.
+        public private(set) var state: State = .suspended
+        
+        /// Resumes the task if suspended. Resume methods are nestable.
+        public func resume() {
             manager?.resume(self)
         }
         
-        override func cancel() {
+        /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
+        public func cancel() {
             manager?.cancel(self)
         }
         
-        func isValid(nextState: State) -> Bool {
+        // MARK: Private
+        
+        private weak var manager: ImageManager?
+        private let completion: Completion?
+        private var cancellable: Cancellable?
+        
+        private init(manager: ImageManager, request: ImageRequest, identifier: Int, completion: Completion?) {
+            self.manager = manager
+            self.request = request
+            self.identifier = identifier
+            self.completion = completion
+        }
+        
+        private func isValid(nextState: State) -> Bool {
             switch (self.state) {
             case .suspended: return (nextState == .running || nextState == .cancelled)
             case .running: return (nextState == .completed || nextState == .cancelled)
@@ -326,4 +377,9 @@ public class ImageManager {
             }
         }
     }
+}
+
+/// Compares two image tasks by reference.
+public func ==(lhs: ImageManager.Task, rhs: ImageManager.Task) -> Bool {
+    return lhs === rhs
 }

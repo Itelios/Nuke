@@ -15,7 +15,7 @@ Nuke's goal is to solve those complex tasks in a most efficient and user-friendl
 Create and resume `ImageTask` with `NSURL`.
 */
 Nuke.task(with: NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { _, response in
-    let image = response.image
+    let image = response.value
 }.resume()
 
 /*:
