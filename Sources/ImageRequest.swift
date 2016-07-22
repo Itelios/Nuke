@@ -37,9 +37,6 @@ public struct ImageRequest {
         public var processors: [ImageProcessing] = [ImageDecompressor()]
     #endif
 
-    /// The relative priority at which you’d like a host to handle the task. The priority is used when creating an underlying NSURLSessionTask.
-    public var priority: Float?
-    
     /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?
     

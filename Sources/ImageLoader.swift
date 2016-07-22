@@ -110,10 +110,7 @@ public class ImageLoader: ImageLoading {
                         self.store(data: data, response: response, for: task.request)
                         self.decode(data: data, response: response, task: task)
                     }
-                })
-            if let priority = task.request.priority {
-                dataTask.priority = priority
-            }
+            })
             dataTask.resume()
             return {
                 dataTask.cancel()
