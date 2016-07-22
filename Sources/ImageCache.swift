@@ -53,7 +53,7 @@ public class ImageCache: ImageCaching {
     }
     
     /// Returns recommended cost limit in bytes.
-    public class func recommendedCostLimit() -> Int {
+    private class func recommendedCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
         let limit = physicalMemory / UInt64(1 / ratio)
@@ -64,17 +64,17 @@ public class ImageCache: ImageCaching {
 
     /// Returns an image for the specified key.
     public func image(for key: ImageRequestKey) -> Image? {
-        return cache.object(forKey: key) as? Image
+        return cache.object(forKey: WrappedKey(val: key)) as? Image
     }
 
     /// Stores the image for the specified key.
     public func setImage(_ image: Image, for key: ImageRequestKey) {
-        cache.setObject(image, forKey: key, cost: cost(for: image))
+        cache.setObject(image, forKey: WrappedKey(val: key), cost: cost(for: image))
     }
 
     /// Removes the cached image for the specified key.
     public func removeImage(for key: ImageRequestKey) {
-        cache.removeObject(forKey: key)
+        cache.removeObject(forKey: WrappedKey(val: key))
     }
     
     /// Removes all cached images.
@@ -89,14 +89,27 @@ public class ImageCache: ImageCaching {
         #if os(OSX)
             return 1
         #else
-            guard let cgImage = image.cgImage else {
-                return 1
-            }
+            guard let cgImage = image.cgImage else { return 1 }
             return cgImage.bytesPerRow * cgImage.height
         #endif
     }
     
     dynamic private func didReceiveMemoryWarning(_ notification: Notification) {
         cache.removeAllObjects()
+    }
+}
+
+private class WrappedKey<T: Hashable>: NSObject {
+    let val: T
+    init(val: T) {
+        self.val = val
+    }
+
+    override var hash: Int {
+        return val.hashValue
+    }
+
+    override func isEqual(_ other: AnyObject?) -> Bool {
+        return val == (other as? WrappedKey)?.val
     }
 }

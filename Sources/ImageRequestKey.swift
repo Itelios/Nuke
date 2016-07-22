@@ -4,29 +4,40 @@
 
 import Foundation
 
-/// Makes it possible to use ImageRequest as a key in dictionaries.
-public final class ImageRequestKey: NSObject {
-    /// Request that the receiver was initailized with.
-    public let request: ImageRequest
+/// Makes it possible to use ImageRequest as a key.
+public final class ImageRequestKey: Hashable {
+    private let request: ImageRequest
+    private weak var equator: ImageRequestEquating?
     
-    private let isEqual: (ImageRequestKey, to: ImageRequestKey) -> Bool
-    
-    /// Initializes the receiver with a given request and the closure that compares two keys for equivalence.
-    public init(request: ImageRequest, isEqual: (ImageRequestKey, to: ImageRequestKey) -> Bool) {
+    init(request: ImageRequest, equator: ImageRequestEquating?) {
         self.request = request
-        self.isEqual = isEqual
+        self.equator = equator
     }
 
-    /// Returns hash from the NSURL from image request.
-    public override var hash: Int {
+    /// Returns hash from the request's URL.
+    public var hashValue: Int {
         return request.urlRequest.url?.hashValue ?? 0
     }
+}
 
-    /// Compares two keys for equivalence if the belong to the same owner.
-    public override func isEqual(_ other: AnyObject?) -> Bool {
-        guard let other = other as? ImageRequestKey else {
-            return false
-        }
-        return self.isEqual(self, to: other)
+/// Compares two keys for equivalence.
+public func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+    if let equator = lhs.equator, lhs.equator === rhs.equator {
+        return equator.isEqual(lhs.request, to: rhs.request)
+    }
+    return false
+}
+
+protocol ImageRequestEquating: class {
+    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+}
+
+class ImageRequestEquator: ImageRequestEquating {
+    private var closure: (ImageRequest, to: ImageRequest) -> Bool
+    init(closure: (ImageRequest, to: ImageRequest) -> Bool) {
+        self.closure = closure
+    }
+    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        return closure(lhs, to: rhs)
     }
 }

@@ -4,7 +4,7 @@
 
 import Foundation
 
-public class ImagePreheatController {
+public class ImagePreheatController: ImageRequestEquating {
     public let manager: ImageManager
 
     /// Default value is 2.
@@ -41,11 +41,9 @@ public class ImagePreheatController {
     }
 
     private func makePreheatKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request) { [weak self] in
-            return self?.manager.isLoadEquivalent($0.request, to: $1.request) ?? false
-        }
+        return ImageRequestKey(request: request, equator: self)
     }
-
+    
     /// Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
     public func stopPreheating(for requests: [ImageRequest]) {
         queue.async {
@@ -83,5 +81,11 @@ public class ImagePreheatController {
             }
         }
         needsToResumeTasks = false
+    }
+    
+    // MARK: ImageRequestEquating
+    
+    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        return manager.isLoadEquivalent(lhs, to: rhs) ?? false
     }
 }

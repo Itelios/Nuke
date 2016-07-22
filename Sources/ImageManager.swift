@@ -12,8 +12,15 @@ The `ImageManager` class and related classes provide methods for loading, proces
 `ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
+    public var loader: ImageLoading
+    public var cache: ImageCaching?
+    
+    public var onDidUpdateTasks: ((Set<ImageTask>) -> Void)?
+    
     private var executingTasks = Set<ImageTask>()
     private let lock = RecursiveLock()
+    private var loadEquator: ImageRequestEquator?
+    private var cacheEquator: ImageRequestEquator?
     private var taskIdentifier: Int = 0
     private var nextTaskIdentifier: Int {
         return lock.synced {
@@ -21,10 +28,6 @@ public class ImageManager {
             return taskIdentifier
         }
     }
-    public var loader: ImageLoading
-    public var cache: ImageCaching?
-    
-    public var onDidUpdateTasks: ((Set<ImageTask>) -> Void)?
     
     /// Returns all executing tasks.
     public var tasks: Set<ImageTask> {
@@ -37,6 +40,12 @@ public class ImageManager {
     public init(loader: ImageLoading, cache: ImageCaching?) {
         self.loader = loader
         self.cache = cache
+        self.loadEquator = ImageRequestEquator { [unowned self] in
+            return self.isLoadEquivalent($0, to: $1)
+        }
+        self.cacheEquator = ImageRequestEquator { [unowned self] in
+            return self.isLoadEquivalent($0, to: $1)
+        }
     }
     
     // MARK: Adding Tasks
@@ -151,9 +160,7 @@ public class ImageManager {
     }
     
     private func makeCacheKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request) { [weak self] in
-            return self?.isCacheEquivalent($0.request, to: $1.request) ?? false
-        }
+        return ImageRequestKey(request: request, equator: self.cacheEquator)
     }
 
     // MARK: Request Equivalence
