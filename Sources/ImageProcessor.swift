@@ -66,36 +66,6 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
 }
 
 
-/// The `ImageProcessorWithClosure` is used for creating anonymous image filters.
-public class ImageProcessorWithClosure: ImageProcessing, Equatable {
-    /// The identifier of the filter. Filters with equivalent closures should have the same identifiers.
-    public let identifier: String
-
-    /// A closure that performs image processing.
-    public let closure: (Image) -> Image?
-
-    /**
-     Initializes the `ImageProcessorWithClosure` with the given identifier and closure.
-
-     - parameter identifier: The identifier of the filter. Filters with equivalent closures should have the same identifiers.
-     */
-    public init(identifier: String, closure: (Image) -> Image?) {
-        self.identifier = identifier
-        self.closure = closure
-    }
-
-    /// Processors images using a closure that the receiver was initialized with.
-    public func process(_ image: Image) -> Image? {
-        return closure(image)
-    }
-}
-
-/// Compares two processors using their identifiers.
-public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -> Bool {
-    return lhs.identifier == rhs.identifier
-}
-
-
 func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
     switch (lhs, rhs) {
     case let (l?, r?): return l.isEquivalent(r)
