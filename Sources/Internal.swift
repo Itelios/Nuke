@@ -2,17 +2,7 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
-#if os(OSX)
-    import Cocoa
-    /// Alias for NSImage
-    public typealias Image = NSImage
-#else
-    import UIKit
-    /// Alias for UIImage
-    public typealias Image = UIImage
-#endif
-
-// MARK: Foundation.OperationQueue Extensions
+// MARK: OperationQueue Extension
 
 extension OperationQueue {
     convenience init(maxConcurrentOperationCount: Int) {
@@ -23,6 +13,7 @@ extension OperationQueue {
 
 // MARK: Operation
 
+/// Concurrent operation with closures.
 class Operation: Foundation.Operation {
     override var isExecuting : Bool {
         get { return _isExecuting }
@@ -43,35 +34,49 @@ class Operation: Foundation.Operation {
         }
     }
     private var _isFinished = false
-}
-
-/// Wraps data task in a concurrent Foundation.Operation subclass
-class DataOperation: Operation {
-    var task: URLSessionTask?
-    let starter: ((Void) -> Void) -> URLSessionTask
+    
+    typealias Cancellation = (Void) -> Void
+    typealias Fulfill = (Void) -> Void
+    
+    let starter: (fulfill: Fulfill) -> Cancellation?
+    private var cancellation: Cancellation?
     private let lock = RecursiveLock()
-
-    init(starter: (fulfill: (Void) -> Void) -> URLSessionTask) {
+    
+    init(starter: (fulfill: Fulfill) -> Cancellation?) {
         self.starter = starter
     }
-
+    
     override func start() {
-        lock.lock()
-        isExecuting = true
-        task = starter() {
-            self.isExecuting = false
-            self.isFinished = true
+        lock.sync {
+            isExecuting = true
+            cancellation = starter() {
+                self.isExecuting = false
+                self.isFinished = true
+            }
         }
-        task?.resume()
-        lock.unlock()
     }
-
+    
     override func cancel() {
-        lock.lock()
-        if !self.isCancelled {
-            super.cancel()
-            task?.cancel()
+        lock.sync {
+            if !self.isCancelled && !self.isFinished {
+                super.cancel()
+                cancellation?()
+            }
         }
-        lock.unlock()
+    }
+}
+
+// MARK: Locking
+
+extension Locking {
+    func sync(_ closure: @noescape (Void) -> Void) {
+        _ = synced(closure)
+    }
+    
+    func synced<T>(_ closure: @noescape (Void) -> T) -> T {
+        lock()
+        let result = closure()
+        unlock()
+        return result
     }
 }

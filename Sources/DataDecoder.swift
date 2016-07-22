@@ -28,21 +28,16 @@ public class DataDecoder: DataDecoding {
 
     /// Decodes data into an image object using native methods.
     public func decode(data: Data, response: URLResponse?) -> Image? {
-        var image: Image?
-        /* Image initializers are not considered thread safe:
-        - https://github.com/AFNetworking/AFNetworking/issues/2572
-        - https://github.com/Alamofire/AlamofireImage/issues/75
-
-        ImageLoader ensures thread safety of decoders by running them on NSOperationQueue with maxConcurrentOperationCount=1. However, users might either change this value, or user multiple ImageLoaders concurrently, which would break thread safety.
-         */
-        lock.lock()
-        #if os(OSX)
-            image = NSImage(data: data)
-        #else
-            image = UIImage(data: data, scale: imageScale)
-        #endif
-        lock.unlock()
-        return image
+        // Image initializers are not considered thread safe:
+        // - https://github.com/AFNetworking/AFNetworking/issues/2572
+        // - https://github.com/Alamofire/AlamofireImage/issues/75
+        return lock.synced {
+            #if os(OSX)
+                return NSImage(data: data)
+            #else
+                return UIImage(data: data, scale: imageScale)
+            #endif
+        }
     }
 
     #if !os(OSX)

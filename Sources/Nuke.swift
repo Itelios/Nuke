@@ -4,6 +4,16 @@
 
 import Foundation
 
+#if os(OSX)
+    import Cocoa
+    /// Alias for NSImage
+    public typealias Image = NSImage
+#else
+    import UIKit
+    /// Alias for UIImage
+    public typealias Image = UIImage
+#endif
+
 // MARK: - Convenience
 
 /// Creates a task with a given URL using shared ImageManager. 

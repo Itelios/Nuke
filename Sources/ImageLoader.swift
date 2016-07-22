@@ -96,7 +96,7 @@ public class ImageLoader: ImageLoading {
     }
 
     private func loadData(for task: Task) {
-        enterState(task, state: .dataLoading(DataOperation() { fulfill in
+        enterState(task, state: .dataLoading(Operation() { fulfill in
             let dataTask = self.dataLoader.loadData(
                 for: task.request.urlRequest,
                 progress: { completed, total in
@@ -114,7 +114,10 @@ public class ImageLoader: ImageLoading {
             if let priority = task.request.priority {
                 dataTask.priority = priority
             }
-            return dataTask
+            dataTask.resume()
+            return {
+                dataTask.cancel()
+            }
         }))
     }
     

@@ -16,7 +16,7 @@ public class ImageManager {
     private let lock = RecursiveLock()
     private var taskIdentifier: Int = 0
     private var nextTaskIdentifier: Int {
-        return synced {
+        return lock.synced {
             taskIdentifier += 1
             return taskIdentifier
         }
@@ -28,7 +28,7 @@ public class ImageManager {
     
     /// Returns all executing tasks.
     public var tasks: Set<ImageTask> {
-        return synced { executingTasks }
+        return lock.synced { executingTasks }
     }
 
     // MARK: Configuring Manager
@@ -49,10 +49,10 @@ public class ImageManager {
     public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = ImageTask(request: request, identifier: nextTaskIdentifier, completion: completion)
         task.resumeHandler = { [weak self] task in
-            self?.sync { self?.run(task) }
+            self?.lock.sync { self?.run(task) }
         }
         task.cancellationHandler = { [weak self] task in
-            self?.sync { self?.cancel(task) }
+            self?.lock.sync { self?.cancel(task) }
         }
         return task
     }
@@ -174,19 +174,6 @@ public class ImageManager {
     public func isCacheEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
         return a.urlRequest.url == b.urlRequest.url &&
             isEquivalent(a.processor, rhs: b.processor)
-    }
-
-    // MARK: Private
-
-    private func sync(_ closure: @noescape (Void) -> Void) {
-        _ = synced(closure)
-    }
-    
-    private func synced<T>(_ closure: @noescape (Void) -> T) -> T {
-        lock.lock()
-        let result = closure()
-        lock.unlock()
-        return result
     }
 }
 

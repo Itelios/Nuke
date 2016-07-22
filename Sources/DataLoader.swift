@@ -44,9 +44,9 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     /// Creates task for the given request.
     public func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
         let task = self.task(with: urlRequest)
-        lock.lock()
-        handlers[task] = Handler(progress: progress, completion: completion)
-        lock.unlock()
+        lock.sync {
+            handlers[task] = Handler(progress: progress, completion: completion)
+        }
         return task
     }
     
@@ -58,27 +58,27 @@ public class DataLoader: NSObject, URLSessionDataDelegate, DataLoading {
     // MARK: NSURLSessionDataDelegate
     
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        lock.lock()
-        if let handler = handlers[dataTask] {
-            handler.data.append(data)
-            handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
+        lock.sync {
+            if let handler = handlers[dataTask] {
+                handler.data.append(data)
+                handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
+            }
         }
-        lock.unlock()
     }
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
-        lock.lock()
-        if let handler = handlers[task] {
-            if let response = task.response {
-                let val = (handler.data, response)
-                handler.completion(result: .success(val))
-            } else {
-                let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
-                handler.completion(result: .failure(error))
+        lock.sync {
+            if let handler = handlers[task] {
+                if let response = task.response {
+                    let val = (handler.data, response)
+                    handler.completion(result: .success(val))
+                } else {
+                    let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
+                    handler.completion(result: .failure(error))
+                }
+                handlers[task] = nil
             }
-            handlers[task] = nil
         }
-        lock.unlock()
     }
     
     // MARK: Handler
