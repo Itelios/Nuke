@@ -15,7 +15,7 @@
 /// Decodes data into images.
 public protocol DataDecoding {
     /// Decodes data into an image object.
-    func decode(data: Data, response: URLResponse?) -> Image?
+    func decode(data: Data, response: URLResponse) -> Image?
 }
 
 
@@ -27,8 +27,8 @@ public class DataDecoder: DataDecoding {
     public init() {}
 
     /// Decodes data into an image object using native methods.
-    public func decode(data: Data, response: URLResponse?) -> Image? {
-        // Image initializers are not considered thread safe:
+    public func decode(data: Data, response: URLResponse) -> Image? {
+        // Image initializers are not thread safe:
         // - https://github.com/AFNetworking/AFNetworking/issues/2572
         // - https://github.com/Alamofire/AlamofireImage/issues/75
         return lock.synced {
@@ -63,7 +63,7 @@ public class DataDecoderComposition: DataDecoding {
     }
 
     /// Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
-    public func decode(data: Data, response: URLResponse?) -> Image? {
+    public func decode(data: Data, response: URLResponse) -> Image? {
         for decoder in decoders {
             if let image = decoder.decode(data: data, response: response) {
                 return image

@@ -84,10 +84,10 @@ public class ImageLoader: ImageLoading {
 
     private func loadData(for task: Task, dataCache: DataCaching) {
         enterState(task, state: .dataCacheLookup(BlockOperation() {
-            let data = dataCache.data(for: task.request)
+            let response = dataCache.response(for: task.request.urlRequest)
             self.then(for: task) {
-                if let data = data {
-                    self.decode(data: data, task: task)
+                if let response = response {
+                    self.decode(data: response.data, response: response.response, task: task)
                 } else {
                     self.loadData(for: task)
                 }
@@ -107,7 +107,7 @@ public class ImageLoader: ImageLoading {
                 completion: {
                     fulfill()
                     self.then(for: task, result: $0) { data, response in
-                        self.store(data: data, response: response, for: task.request)
+                        self.store(data: data, response: response, for: task.request.urlRequest)
                         self.decode(data: data, response: response, task: task)
                     }
             })
@@ -118,15 +118,15 @@ public class ImageLoader: ImageLoading {
         }))
     }
     
-    private func store(data: Data, response: URLResponse, for request: ImageRequest) {
+    private func store(data: Data, response: URLResponse, for request: URLRequest) {
         if let cache = dataCache {
             queues.dataCaching.addOperation(BlockOperation() {
-                cache.setData(data, response: response, for: request)
+                cache.setResponse(CachedURLResponse(response: response, data: data), for: request)
             })
         }
     }
     
-    private func decode(data: Data, response: URLResponse? = nil, task: Task) {
+    private func decode(data: Data, response: URLResponse, task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
             let image = self.dataDecoder.decode(data: data, response: response)
             let result = Result(value: image, error: Error.decodingFailed)
