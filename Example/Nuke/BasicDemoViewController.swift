@@ -11,65 +11,64 @@ import Nuke
 private let cellReuseID = "reuseID"
 
 class BasicDemoViewController: UICollectionViewController {
-    var photos: [NSURL]!
+    var photos: [URL]!
+    
+    var imageManager = ImageManager.shared
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.photos = demoPhotosURLs
+        photos = demoPhotosURLs
         
-        self.collectionView?.backgroundColor = UIColor.whiteColor()
-        self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
+        collectionView?.backgroundColor = UIColor.white()
+        collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.updateItemSize()
+        updateItemSize()
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        self.updateItemSize()
+        updateItemSize()
     }
     
     func updateItemSize() {
-        let layout = self.collectionViewLayout as! UICollectionViewFlowLayout
+        let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
         layout.minimumInteritemSpacing = 2.0
         let itemsPerRow = 4
-        let side = (Double(self.view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
+        let side = (Double(view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
         layout.itemSize = CGSize(width: side, height: side)
     }
     
     // MARK: UICollectionView
     
-    override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return self.photos.count
+    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return photos.count
     }
     
-    override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
+    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellReuseID, for: indexPath)
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
-        let imageView = self.imageViewForCell(cell)
+        let imageView = imageViewForCell(cell)
         imageView.image = nil
-        let imageURL = self.photos[indexPath.row]
-        imageView.nk_setImageWith(imageURL)
+        let imageURL = photos[indexPath.row]
+        imageView.nk_imageLoadingController.manager = imageManager
+        imageView.nk_setImage(with: imageURL)
         
         return cell
     }
-    
-    override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).nk_cancelLoading()
-    }
-    
-    func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {
+
+    func imageViewForCell(_ cell: UICollectionViewCell) -> UIImageView {
         var imageView: UIImageView! = cell.viewWithTag(15) as? UIImageView
         if imageView == nil {
             imageView = UIImageView(frame: cell.bounds)
-            imageView.autoresizingMask =  [.FlexibleWidth, .FlexibleHeight]
+            imageView.autoresizingMask =  [.flexibleWidth, .flexibleHeight]
             imageView.tag = 15
-            imageView.contentMode = .ScaleAspectFill
+            imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             cell.addSubview(imageView!)
         }

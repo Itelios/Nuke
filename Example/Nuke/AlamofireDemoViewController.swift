@@ -10,19 +10,11 @@ import Foundation
 import Nuke
 import NukeAlamofirePlugin
 
-class AlamofireDemoViewController: BasicDemoViewController {
-    var previousManager: ImageManager!
-    
-    deinit {
-        ImageManager.shared = self.previousManager
-    }
-    
+class AlamofireDemoViewController: BasicDemoViewController {    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.previousManager = ImageManager.shared
-        
-        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: AlamofireImageDataLoader()))
-        ImageManager.shared = (ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: ImageMemoryCache())))
+        let loader = ImageLoader(dataLoader: AlamofireImageDataLoader())
+        imageManager = ImageManager(loader: loader, cache: ImageCache())
     }
 }

@@ -161,7 +161,7 @@ public class ImageLoader: ImageLoading {
         switch state {
         case .dataCacheLookup(let op): queues.dataCaching.addOperation(op)
         case .dataLoading(let op): queues.dataLoading.addOperation(op)
-        case .dataDecoding(let op): queues.dataLoading.addOperation(op)
+        case .dataDecoding(let op): queues.dataDecoding.addOperation(op)
         case .processing(let op): queues.processing.addOperation(op)
         }
         task.state = state
