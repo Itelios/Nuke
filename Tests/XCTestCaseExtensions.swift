@@ -10,17 +10,17 @@ import XCTest
 import Foundation
 
 extension XCTestCase {
-    public func expect(_ block: (fulfill: (Void) -> Void) -> Void) {
-        let expectation = self.expectation()
+    public func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
+        let expectation = expected()
         block(fulfill: { expectation.fulfill() })
     }
 
-    public func expected<T>(_ block: (fulfill: (Void) -> Void) -> T) -> T {
-        let expectation = self.expectation()
+    public func expected<T>(_ block: @noescape (fulfill: (Void) -> Void) -> T) -> T {
+        let expectation = expected()
         return block(fulfill: { expectation.fulfill() })
     }
 
-    public func expectation() -> XCTestExpectation {
+    public func expected() -> XCTestExpectation {
         return self.expectation(description: "GenericExpectation")
     }
 

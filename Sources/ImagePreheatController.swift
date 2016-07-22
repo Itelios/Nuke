@@ -65,8 +65,8 @@ public class ImagePreheatController {
     public func setNeedsResumeTasks() {
         if !needsToResumeTasks {
             needsToResumeTasks = true
-            queue.after(when: .now() + 0.2) { [weak self] in
-                self?.resumeTasks()
+            queue.after(when: .now() + 0.2) {
+                self.resumeTasks()
             }
         }
     }

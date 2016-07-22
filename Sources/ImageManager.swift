@@ -65,7 +65,8 @@ public class ImageManager {
 
             didStartExecuting(task)
 
-            if task.request.memoryCachePolicy == .returnCachedImageElseLoad, let image = image(for: task.request) {
+            if task.request.memoryCachePolicy == .returnCachedImageElseLoad,
+                let image = image(for: task.request) {
                 complete(task, result: .success(image))
             } else {
                 loadImage(for: task)
@@ -157,12 +158,22 @@ public class ImageManager {
 
     // MARK: Request Equivalence
 
-    public func isLoadEquivalent(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return isCacheEquivalent(lhs, to: rhs)
+    public func isLoadEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return isLoadEquivalent(a.urlRequest, to: b.urlRequest) &&
+            isCacheEquivalent(a, to: b)
+    }
+    
+    public func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
+        return a.url == b.url &&
+            a.cachePolicy == b.cachePolicy &&
+            a.timeoutInterval == b.timeoutInterval &&
+            a.networkServiceType == b.networkServiceType &&
+            a.allowsCellularAccess == b.allowsCellularAccess
     }
 
-    public func isCacheEquivalent(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return lhs.urlRequest.url == rhs.urlRequest.url && isEquivalent(lhs.processor, rhs: rhs.processor)
+    public func isCacheEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return a.urlRequest.url == b.urlRequest.url &&
+            isEquivalent(a.processor, rhs: b.processor)
     }
 
     // MARK: Private

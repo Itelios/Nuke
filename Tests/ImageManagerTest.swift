@@ -16,9 +16,9 @@ class ImageManagerTest: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        self.mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: self.mockSessionManager)
-        self.manager = ImageManager(loader: loader, cache: nil)
+        mockSessionManager = MockDataLoader()
+        let loader = ImageLoader(dataLoader: mockSessionManager)
+        manager = ImageManager(loader: loader, cache: nil)
     }
 
     override func tearDown() {
@@ -28,18 +28,18 @@ class ImageManagerTest: XCTestCase {
     // MARK: Basics
 
     func testThatRequestIsCompelted() {
-        self.expect { fulfill in
-            self.manager.task(with: ImageRequest(url: defaultURL)) {
+        expect { fulfill in
+            manager.task(with: ImageRequest(url: defaultURL)) {
                 XCTAssertNotNil($0.1.value, "")
                 fulfill()
             }.resume()
         }
-        self.wait()
+        wait()
     }
 
     func testThatTaskChangesStateWhenCompleted() {
-        let task = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) { task, _ in
+        let task = expected { fulfill in
+            return manager.task(with: defaultURL) { task, _ in
                 XCTAssertTrue(task.state == .completed)
                 fulfill()
             }
@@ -47,11 +47,11 @@ class ImageManagerTest: XCTestCase {
         XCTAssertTrue(task.state == .suspended)
         task.resume()
         XCTAssertTrue(task.state == .running)
-        self.wait()
+        wait()
     }
 
     func testThatTaskChangesStateOnCallersThreadWhenCompleted() {
-        let expectation = self.expectation()
+        let expectation = expected()
         DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
             let task = self.manager.task(with: defaultURL) { task, _ in
                 XCTAssertTrue(task.state == .completed)
@@ -61,16 +61,16 @@ class ImageManagerTest: XCTestCase {
             task.resume()
             XCTAssertTrue(task.state == .running)
         }
-        self.wait()
+        wait()
     }
 
     // MARK: Cancellation
 
     func testThatResumedTaskIsCancelled() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        let task = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) { task, result in
+        let task = expected { fulfill in
+            return manager.task(with: defaultURL) { task, result in
                 switch result.error! {
                     case .cancelled: break
                     default: XCTFail()
@@ -86,12 +86,12 @@ class ImageManagerTest: XCTestCase {
         task.cancel()
         XCTAssertTrue(task.state == .cancelled)
 
-        self.wait()
+        wait()
     }
 
     func testThatSuspendedTaskIsCancelled() {
-        let task = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) { task, result in
+        let task = expected { fulfill in
+            return manager.task(with: defaultURL) { task, result in
                 switch result.error! {
                 case .cancelled: break
                 default: XCTFail()
@@ -103,20 +103,20 @@ class ImageManagerTest: XCTestCase {
         XCTAssertTrue(task.state == .suspended)
         task.cancel()
         XCTAssertTrue(task.state == .cancelled)
-        self.wait()
+        wait()
     }
 
     func testThatSessionDataTaskIsCancelled() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        let task = self.manager.task(with: defaultURL)
+        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        let task = manager.task(with: defaultURL)
         task.resume()
-        self.wait()
+        wait()
 
-        _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
         task.cancel()
-        self.wait()
+        wait()
     }
 
     // MARK: Data Tasks Reusing
@@ -125,19 +125,19 @@ class ImageManagerTest: XCTestCase {
         let request1 = ImageRequest(url: defaultURL)
         let request2 = ImageRequest(url: defaultURL)
 
-        self.expect { fulfill in
-            self.manager.task(with: request1) { _ in
+        expect { fulfill in
+            manager.task(with: request1) { _ in
                 fulfill()
             }.resume()
         }
 
-        self.expect { fulfill in
-            self.manager.task(with: request2) { _ in
+        expect { fulfill in
+            manager.task(with: request2) { _ in
                 fulfill()
             }.resume()
         }
 
-        self.wait { _ in
+        wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
         }
     }
@@ -146,36 +146,36 @@ class ImageManagerTest: XCTestCase {
         let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
         
-        self.expect { fulfill in
-            self.manager.task(with: request1) { _ in
+        expect { fulfill in
+            manager.task(with: request1) { _ in
                 fulfill()
             }.resume()
         }
         
-        self.expect { fulfill in
-            self.manager.task(with: request2) { _ in
+        expect { fulfill in
+            manager.task(with: request2) { _ in
                 fulfill()
             }.resume()
         }
         
-        self.wait { _ in
+        wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 2)
         }
     }
     
     func testThatDataTaskWithRemainingTasksDoesntGetCancelled() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        let task1 = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) {
+        let task1 = expected { fulfill in
+            return manager.task(with: defaultURL) {
                 XCTAssertTrue($0.state == .cancelled)
                 XCTAssertNil($1.value)
                 fulfill()
             }
         }
         
-        let task2 = self.expected { fulfill in
-            return self.manager.task(with: defaultURL) {
+        let task2 = expected { fulfill in
+            return manager.task(with: defaultURL) {
                 XCTAssertTrue($0.state == .completed)
                 XCTAssertNotNil($1.value)
                 fulfill()
@@ -189,8 +189,8 @@ class ImageManagerTest: XCTestCase {
             task1.cancel()
         }
 
-        self.mockSessionManager.enabled = true
-        self.wait { _ in
+        mockSessionManager.enabled = true
+        wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
         }
     }
@@ -198,12 +198,12 @@ class ImageManagerTest: XCTestCase {
     // MARK: Progress
 
     func testThatProgressClosureIsCalled() {
-        let task = self.manager.task(with: defaultURL)
+        let task = manager.task(with: defaultURL)
         XCTAssertEqual(task.progress.total, 0)
         XCTAssertEqual(task.progress.completed, 0)
         XCTAssertEqual(task.progress.fractionCompleted, 0.0)
         
-        self.expect { fulfill in
+        expect { fulfill in
             var fractionCompleted = 0.0
             var completedUnitCount: Int64 = 0
             task.progressHandler = { progress in
@@ -220,74 +220,74 @@ class ImageManagerTest: XCTestCase {
             }
         }
         task.resume()
-        self.wait()
+        wait()
     }
 
     // MARK: Preheating
 
     func testThatPreheatingRequestsAreStopped() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: self.manager)
+        let preheat = ImagePreheatController(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
         preheat.startPreheating(for: [request])
-        self.wait()
+        wait()
 
-        _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
         preheat.stopPreheating(for: [request])
-        self.wait()
+        wait()
     }
 
     func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: self.manager)
+        let preheat = ImagePreheatController(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
         preheat.startPreheating(for: [request, request])
         preheat.startPreheating(for: [request])
-        self.wait()
+        wait()
 
-        _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
         preheat.stopPreheating(for: [request])
 
-        self.wait { _ in
+        wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
         }
     }
 
     func testThatAllPreheatingRequestsAreStopped() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: self.manager)
+        let preheat = ImagePreheatController(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
         preheat.startPreheating(for: [request])
-        self.wait(2)
+        wait(2)
 
-        _ = self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
         preheat.stopPreheating()
-        self.wait(2)
+        wait(2)
     }
     
     // MARK: Misc
     
     func testThatGetImageTasksMethodReturnsCorrectTasks() {
-        self.mockSessionManager.enabled = false
+        mockSessionManager.enabled = false
         
-        let task1 = self.manager.task(with: URL(string: "http://test1.com")!, completion: nil)
-        let task2 = self.manager.task(with: URL(string: "http://test2.com")!, completion: nil)
+        let task1 = manager.task(with: URL(string: "http://test1.com")!, completion: nil)
+        let task2 = manager.task(with: URL(string: "http://test2.com")!, completion: nil)
         
         task1.resume()
         
         // task3 is not getting resumed
         
-        self.expect { fulfill in
-            let executingTasks = self.manager.tasks
+        expect { fulfill in
+            let executingTasks = manager.tasks
             XCTAssertEqual(executingTasks.count, 1)
             XCTAssertTrue(executingTasks.contains(task1))
             XCTAssertTrue(task1.state == .running)
@@ -295,6 +295,6 @@ class ImageManagerTest: XCTestCase {
             XCTAssertTrue(task2.state == .suspended)
             fulfill()
         }
-        self.wait()
+        wait()
     }
 }

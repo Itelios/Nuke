@@ -15,22 +15,22 @@ class MockImageCache: ImageCaching {
     init() {}
 
     func image(for key: ImageRequestKey) -> Image? {
-        return self.enabled ? self.images[key] : nil
+        return enabled ? images[key] : nil
     }
     
     func setImage(_ image: Image, for key: ImageRequestKey) {
-        if self.enabled {
-            self.images[key] = image
+        if enabled {
+            images[key] = image
         }
     }
     
     func removeImage(for key: ImageRequestKey) {
-        if self.enabled {
-            self.images[key] = nil
+        if enabled {
+            images[key] = nil
         }
     }
     
     func clear() {
-        self.images.removeAll()
+        images.removeAll()
     }
 }
