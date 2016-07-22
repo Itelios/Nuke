@@ -76,48 +76,48 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
 
 #if !os(OSX)
 
-    /// An option for how to resize the image to the target size.
-    public enum ImageContentMode {
-        /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
-        case aspectFill
-
-        /// Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
-        case aspectFit
-    }
-
-    /// Size to pass when requesting the original image available for a request (image won't be resized).
-    public let ImageMaximumSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-
     // MARK: - ImageDecompressor
 
     /**
     Decompresses and scales input images.
 
-    If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ImageContentMode enum for more info). Image is scaled maintaining aspect ratio.
+    If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ContentMode enum for more info). Image is scaled maintaining aspect ratio.
 
     Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
     */
     public class ImageDecompressor: ImageProcessing, Equatable {
-        /// Target size in pixels. Default value is ImageMaximumSize.
+        /// An option for how to resize the image to the target size.
+        public enum ContentMode {
+            /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
+            case aspectFill
+            
+            /// Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
+            case aspectFit
+        }
+        
+        /// Size to pass when requesting the original image available for a request (image won't be resized).
+        public static let MaximumSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        
+        /// Target size in pixels. Default value is MaximumSize.
         public let targetSize: CGSize
 
-        /// An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
-        public let contentMode: ImageContentMode
+        /// An option for how to resize the image to the target size. Default value is .AspectFill. See ContentMode enum for more info.
+        public let contentMode: ContentMode
 
         /**
          Initializes the receiver with target size and content mode.
 
-         - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize.
-         - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
+         - parameter targetSize: Target size in pixels. Default value is MaximumSize.
+         - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ContentMode enum for more info.
          */
-        public init(targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .aspectFill) {
+        public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill) {
             self.targetSize = targetSize
             self.contentMode = contentMode
         }
 
         /// Decompressed the input image.
         public func process(_ image: Image) -> Image? {
-            return decompress(image, targetSize: targetSize, contentMode: contentMode)
+            return decompressed(image, targetSize: targetSize, contentMode: contentMode)
         }
     }
 
@@ -126,37 +126,33 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
 
-    private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
-        guard let cgImage = image.cgImage else {
-            return image
-        }
+    private func decompressed(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
+        guard let cgImage = image.cgImage else { return image }
         let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
         let scaleHor = targetSize.width / bitmapSize.width
         let scaleVert = targetSize.height / bitmapSize.height
         let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-        return decompress(image, scale: CGFloat(min(scale, 1)))
+        return decompressed(image, scale: CGFloat(min(scale, 1)))
     }
 
-    private func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
-        guard let imageRef = image.cgImage else { return image }
+    private func decompressed(_ image: UIImage, scale: CGFloat) -> UIImage {
+        guard let cgImage = image.cgImage else { return image }
         
-        let size = CGSize(width: round(scale * CGFloat(imageRef.width)), height: round(scale * CGFloat(imageRef.height)))
+        let size = CGSize(width: round(scale * CGFloat(cgImage.width)),
+                          height: round(scale * CGFloat(cgImage.height)))
 
         // For more info see:
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = isOpaque(imageRef) ? .noneSkipLast : .premultipliedLast
-        let bitmapInfo = CGBitmapInfo(rawValue: alphaInfo.rawValue)
-
-        guard let contextRef = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: bitmapInfo.rawValue) else {
+        let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
+    
+        guard let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: alphaInfo.rawValue) else {
             return image
         }
-        contextRef.draw(in: CGRect(origin: CGPoint.zero, size: size), image: imageRef)
-        guard let decompressedImageRef = contextRef.makeImage() else {
-            return image
-        }
-        return UIImage(cgImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
+        ctx.draw(in: CGRect(origin: CGPoint.zero, size: size), image: cgImage)
+        guard let decompressed = ctx.makeImage() else { return image }
+        return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
     }
 
     private func isOpaque(_ image: CGImage) -> Bool {
