@@ -4,12 +4,13 @@
 
 import Foundation
 
-public class ImagePreheater: ImageRequestEquating {
+public class ImagePreheater {
     
     /// Default value is 3.
     public var maxConcurrentTaskCount = 3
 
     private let manager: ImageManager
+    private let equator: ImageRequestEquating
     private var map = [ImageRequestKey: ImageTask]()
     private var tasks = [ImageTask]() // we need ordered tasks, map's not enough
     private var needsToResumeTasks = false
@@ -19,8 +20,9 @@ public class ImagePreheater: ImageRequestEquating {
         NotificationCenter.default.removeObserver(self)
     }
     
-    public init(manager: ImageManager) {
+    public init(manager: ImageManager, equator: ImageRequestEquating = ImageRequestLoadingEquator()) {
         self.manager = manager
+        self.equator = equator
         NotificationCenter.default.addObserver(self, selector: #selector(setNeedsResumeTasks), name: ImageTask.DidUpdateState, object: nil)
     }
 
@@ -39,7 +41,7 @@ public class ImagePreheater: ImageRequestEquating {
     }
     
     private func startPreheating(for request: ImageRequest) {
-        let key = ImageRequestKey(request: request, equator: self)
+        let key = ImageRequestKey(request: request, equator: equator)
         if map[key] == nil { // Create just one task per request
             let task = manager.task(with: request) { [weak self] task, _ in
                 self?.map[key] = nil
@@ -56,7 +58,7 @@ public class ImagePreheater: ImageRequestEquating {
     public func stopPreheating(for requests: [ImageRequest]) {
         queue.async {
             requests.forEach {
-                self.map[ImageRequestKey(request: $0, equator: self)]?.cancel()
+                self.map[ImageRequestKey(request: $0, equator: self.equator)]?.cancel()
             }
         }
     }
@@ -89,11 +91,5 @@ public class ImagePreheater: ImageRequestEquating {
             }
         }
         needsToResumeTasks = false
-    }
-    
-    // MARK: ImageRequestEquating
-    
-    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return manager.isLoadEquivalent(a, to: b)
     }
 }

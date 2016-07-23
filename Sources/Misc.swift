@@ -9,9 +9,9 @@ import Foundation
 /// Makes it possible to use ImageRequest as a key.
 final class ImageRequestKey: Hashable {
     private let request: ImageRequest
-    private weak var equator: ImageRequestEquating?
+    private let equator: ImageRequestEquating
     
-    init(request: ImageRequest, equator: ImageRequestEquating?) {
+    init(request: ImageRequest, equator: ImageRequestEquating) {
         self.request = request
         self.equator = equator
     }
@@ -24,16 +24,8 @@ final class ImageRequestKey: Hashable {
 
 /// Compares two keys for equivalence.
 func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
-    if let equator = lhs.equator, lhs.equator === rhs.equator {
-        return equator.isEqual(lhs.request, to: rhs.request)
-    }
-    return false
+    return lhs.equator.isEqual(lhs.request, to: rhs.request)
 }
-
-protocol ImageRequestEquating: class {
-    func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool
-}
-
 
 // MARK: OperationQueue Extension
 
@@ -43,7 +35,6 @@ extension OperationQueue {
         self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
 }
-
 
 // MARK: Operation
 
@@ -109,7 +100,6 @@ final class Operation: Foundation.Operation {
         }
     }
 }
-
 
 // MARK: Locking
 

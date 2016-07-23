@@ -10,63 +10,61 @@ import XCTest
 import Nuke
 
 class ImagePreheaterTests: XCTestCase {
-
     var manager: ImageManager!
-    var mockSessionManager: MockDataLoader!
+    var loader: MockImageLoader!
 
     override func setUp() {
         super.setUp()
 
-        mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: mockSessionManager)
+        loader = MockImageLoader()
         manager = ImageManager(loader: loader, cache: nil)
     }
 
-        func testThatPreheatingRequestsAreStopped() {
-        mockSessionManager.enabled = false
+    func testThatPreheatingRequestsAreStopped() {
+        loader.queue.isSuspended = true
 
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockDataLoader.DidStartDataTask)
+        _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request])
         wait()
 
-        _ = expectNotification(MockDataLoader.DidCancelDataTask)
+        _ = expectNotification(MockImageLoader.DidCancelTask)
         preheater.stopPreheating(for: [request])
         wait()
     }
 
     func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
-        mockSessionManager.enabled = false
+        loader.queue.isSuspended = true
 
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockDataLoader.DidStartDataTask)
+        _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request, request])
         preheater.startPreheating(for: [request])
         wait()
 
-        _ = expectNotification(MockDataLoader.DidCancelDataTask)
+        _ = expectNotification(MockImageLoader.DidCancelTask)
         preheater.stopPreheating(for: [request])
 
         wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
+            XCTAssertEqual(self.loader.createdTaskCount, 1, "")
         }
     }
 
     func testThatAllPreheatingRequestsAreStopped() {
-        mockSessionManager.enabled = false
+        loader.queue.isSuspended = true
 
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockDataLoader.DidStartDataTask)
+        _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request])
         wait(2)
 
-        _ = expectNotification(MockDataLoader.DidCancelDataTask)
+        _ = expectNotification(MockImageLoader.DidCancelTask)
         preheater.stopPreheating()
         wait(2)
     }

@@ -11,13 +11,12 @@ import Nuke
 
 class ImageManagerTests: XCTestCase {
     var manager: ImageManager!
-    var mockSessionManager: MockDataLoader!
+    var loader: MockImageLoader!
 
     override func setUp() {
         super.setUp()
 
-        mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: mockSessionManager)
+        loader = MockImageLoader()
         manager = ImageManager(loader: loader, cache: nil)
     }
 
@@ -33,6 +32,8 @@ class ImageManagerTests: XCTestCase {
         wait()
     }
 
+    // MARK: Tasks State
+    
     func testThatTaskChangesStateWhenCompleted() {
         let task = expected { fulfill in
             return manager.task(with: defaultURL) { task, _ in
@@ -63,7 +64,7 @@ class ImageManagerTests: XCTestCase {
     // MARK: Cancellation
 
     func testThatResumedTaskIsCancelled() {
-        mockSessionManager.enabled = false
+        loader.queue.isSuspended = true
 
         let task = expected { fulfill in
             return manager.task(with: defaultURL) { task, result in
@@ -103,94 +104,18 @@ class ImageManagerTests: XCTestCase {
     }
 
     func testThatDataTaskIsCancelled() {
-        mockSessionManager.enabled = false
+        loader.queue.isSuspended = true
 
-        _ = expectNotification(MockDataLoader.DidStartDataTask)
+        _ = expectNotification(MockImageLoader.DidStartTask)
         let task = manager.task(with: defaultURL)
         task.resume()
         wait()
 
-        _ = expectNotification(MockDataLoader.DidCancelDataTask)
+        _ = expectNotification(MockImageLoader.DidCancelTask)
         task.cancel()
         wait()
     }
-
-    // MARK: Data Tasks Reusing
-
-    func testThatDataTasksAreReused() {
-        let request1 = ImageRequest(url: defaultURL)
-        let request2 = ImageRequest(url: defaultURL)
-
-        expect { fulfill in
-            manager.task(with: request1) { _ in
-                fulfill()
-            }.resume()
-        }
-
-        expect { fulfill in
-            manager.task(with: request2) { _ in
-                fulfill()
-            }.resume()
-        }
-
-        wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
-        }
-    }
     
-    func testThatDataTasksWithDifferentCachePolicyAreNotReused() {
-        let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-        
-        expect { fulfill in
-            manager.task(with: request1) { _ in
-                fulfill()
-            }.resume()
-        }
-        
-        expect { fulfill in
-            manager.task(with: request2) { _ in
-                fulfill()
-            }.resume()
-        }
-        
-        wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 2)
-        }
-    }
-    
-    func testThatDataTaskWithRemainingTasksDoesntGetCancelled() {
-        mockSessionManager.enabled = false
-
-        let task1 = expected { fulfill in
-            return manager.task(with: defaultURL) {
-                XCTAssertTrue($0.state == .cancelled)
-                XCTAssertNil($1.value)
-                fulfill()
-            }
-        }
-        
-        let task2 = expected { fulfill in
-            return manager.task(with: defaultURL) {
-                XCTAssertTrue($0.state == .completed)
-                XCTAssertNotNil($1.value)
-                fulfill()
-            }
-        }
-
-        task1.resume()
-        task2.resume()
-
-        NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartDataTask, object: nil, queue: nil) { _ in
-            task1.cancel()
-        }
-
-        mockSessionManager.enabled = true
-        wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
-        }
-    }
-
     // MARK: Progress
 
     func testThatProgressClosureIsCalled() {
@@ -222,7 +147,7 @@ class ImageManagerTests: XCTestCase {
     // MARK: Misc
     
     func testThatGetImageTasksMethodReturnsCorrectTasks() {
-        mockSessionManager.enabled = false
+        loader.queue.isSuspended = true
         
         let task1 = manager.task(with: URL(string: "http://test1.com")!, completion: nil)
         let task2 = manager.task(with: URL(string: "http://test2.com")!, completion: nil)

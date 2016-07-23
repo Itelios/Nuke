@@ -12,7 +12,7 @@ public typealias ImageLoadingCompletion = (result: Result<Image, Error>) -> Void
 /// Performs loading of images.
 public protocol ImageLoading: class {
     /// Loads image for the given request.
-    func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable
+    func loadImage(for request: ImageRequest, progress: ImageLoadingProgress?, completion: ImageLoadingCompletion) -> Cancellable
 }
 
 // MARK: - ImageLoader
@@ -67,7 +67,7 @@ public class ImageLoader: ImageLoading {
     }
 
     /// Resumes loading for the image task.
-    public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion) -> Cancellable {
+    public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress? = nil, completion: ImageLoadingCompletion) -> Cancellable {
         let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
             self?.cancel($0)
         })
@@ -100,7 +100,7 @@ public class ImageLoader: ImageLoading {
                 for: task.request.urlRequest,
                 progress: { completed, total in
                     self.queue.async {
-                        task.progress(completed: completed, total: total)
+                        task.progress?(completed: completed, total: total)
                     }
                 },
                 completion: {
@@ -207,21 +207,21 @@ public class ImageLoader: ImageLoading {
         }
         
         var request: ImageRequest
-        let progress: ImageLoadingProgress
+        let progress: ImageLoadingProgress?
         let completion: ImageLoadingCompletion
-        var cancellationHandler: (Task) -> Void
+        var cancellation: (Task) -> Void
         var cancelled = false
         var state: State?
         
-        init(request: ImageRequest, progress: ImageLoadingProgress, completion: ImageLoadingCompletion, cancellation: (Task) -> Void) {
+        init(request: ImageRequest, progress: ImageLoadingProgress?, completion: ImageLoadingCompletion, cancellation: (Task) -> Void) {
             self.request = request
             self.progress = progress
             self.completion = completion
-            self.cancellationHandler = cancellation
+            self.cancellation = cancellation
         }
         
         func cancel() {
-            cancellationHandler(self)
+            cancellation(self)
         }
     }
 }

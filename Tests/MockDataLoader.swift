@@ -10,8 +10,8 @@ import Foundation
 import Nuke
 
 class MockDataLoader: DataLoading {
-    static let DidStartDataTask = Notification.Name("com.github.kean.Nuke.Tests.DidStartDataTask")
-    static let DidCancelDataTask = Notification.Name("com.github.kean.Nuke.Tests.DidCancelDataTask")
+    static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
+    static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
     
     var enabled = true {
         didSet {
@@ -21,16 +21,16 @@ class MockDataLoader: DataLoading {
     var createdTaskCount = 0
     private let queue = OperationQueue()
 
-    func loadData(for request: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> Cancellable {
+    func loadData(for request: URLRequest, progress: DataLoadingProgress? = nil, completion: DataLoadingCompletion) -> Cancellable {
         let task = MockDataTask()
-        NotificationCenter.default.post(name: MockDataLoader.DidStartDataTask, object: self)
+        NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
         task.cancellation = { _ in
-            NotificationCenter.default.post(name: MockDataLoader.DidCancelDataTask, object: self)
+            NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
         }
         
         queue.addOperation {
-            progress(completed: 50, total: 100)
-            progress(completed: 100, total: 100)
+            progress?(completed: 50, total: 100)
+            progress?(completed: 100, total: 100)
             let bundle = Bundle(for: MockDataLoader.self)
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try! Data(contentsOf: URL!)

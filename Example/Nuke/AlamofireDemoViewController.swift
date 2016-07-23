@@ -14,7 +14,7 @@ class AlamofireDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let loader = ImageLoader(dataLoader: AlamofireImageDataLoader())
+        let loader = ImageLoader(dataLoader: NukeAlamofirePlugin.DataLoader())
         imageManager = ImageManager(loader: loader, cache: ImageCache())
     }
 }

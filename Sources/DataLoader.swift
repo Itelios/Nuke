@@ -15,7 +15,7 @@ public protocol DataLoading {
     /// Task is resumed by the user that called the method.
     ///
     /// Completion block should always get called, even if the task gets cancelled.
-    func loadData(for request: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> Cancellable
+    func loadData(for request: URLRequest, progress: DataLoadingProgress?, completion: DataLoadingCompletion) -> Cancellable
 }
 
 
@@ -40,7 +40,7 @@ public final class DataLoader: DataLoading {
     // MARK: DataLoading
 
     /// Creates task for the given request.
-    public func loadData(for request: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> Cancellable {
+    public func loadData(for request: URLRequest, progress: DataLoadingProgress? = nil, completion: DataLoadingCompletion) -> Cancellable {
         let task = session.dataTask(with: request)
         sessionDelegate.register(task: task, progress: progress, completion: completion)
         task.resume()
@@ -53,7 +53,7 @@ public final class DataLoader: DataLoading {
         var handlers = [URLSessionTask: Handler]()
         var lock = RecursiveLock()
         
-        func register(task: URLSessionTask, progress: DataLoadingProgress, completion: DataLoadingCompletion) {
+        func register(task: URLSessionTask, progress: DataLoadingProgress?, completion: DataLoadingCompletion) {
             lock.sync {
                 handlers[task] = Handler(progress: progress, completion: completion)
             }
@@ -63,7 +63,7 @@ public final class DataLoader: DataLoading {
             lock.sync {
                 if let handler = handlers[dataTask] {
                     handler.data.append(data)
-                    handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
+                    handler.progress?(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
                 }
             }
         }
@@ -85,10 +85,10 @@ public final class DataLoader: DataLoading {
         
         final class Handler {
             var data = Data()
-            let progress: DataLoadingProgress
+            let progress: DataLoadingProgress?
             let completion: DataLoadingCompletion
             
-            init(progress: DataLoadingProgress, completion: DataLoadingCompletion) {
+            init(progress: DataLoadingProgress?, completion: DataLoadingCompletion) {
                 self.progress = progress
                 self.completion = completion
             }

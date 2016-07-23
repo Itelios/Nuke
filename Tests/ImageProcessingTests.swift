@@ -65,32 +65,6 @@ class ImageProcessingTests: XCTestCase {
         XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
     }
 
-    func testThatCorrectFiltersAreAppiedWhenDataTaskIsReusedForMultipleRequests() {
-        var request1 = ImageRequest(url: defaultURL)
-        request1.processors = [MockImageProcessor(ID: "processor1")]
-
-        var request2 = ImageRequest(url: defaultURL)
-        request2.processors = [MockImageProcessor(ID: "processor2")]
-
-        expect { fulfill in
-            manager.task(with: request1) {
-                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor1"])
-                fulfill()
-            }.resume()
-        }
-
-        expect { fulfill in
-            manager.task(with: request2) {
-                XCTAssertEqual($0.1.value!.nk_test_processorIDs, ["processor2"])
-                fulfill()
-            }.resume()
-        }
-
-        wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
-        }
-    }
-
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {

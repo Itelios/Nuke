@@ -22,7 +22,7 @@ public protocol ImageCaching {
 }
 
 /// Auto purging memory cache that uses NSCache as its internal storage.
-public class ImageCache: ImageCaching, ImageRequestEquating {
+public class ImageCache: ImageCaching {
     deinit {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.removeObserver(self)
@@ -33,10 +33,13 @@ public class ImageCache: ImageCaching, ImageRequestEquating {
     
     /// The internal memory cache.
     public let cache: Cache<AnyObject, AnyObject>
+    
+    private let equator: ImageRequestEquating
 
     /// Initializes the receiver with a given memory cache.
-    public init(cache: Cache<AnyObject, AnyObject> = ImageCache.makeDefaultCache()) {
+    public init(cache: Cache<AnyObject, AnyObject> = ImageCache.makeDefaultCache(), equator: ImageRequestEquating = ImageRequestCachingEquator()) {
         self.cache = cache
+        self.equator = equator
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
@@ -72,16 +75,9 @@ public class ImageCache: ImageCaching, ImageRequestEquating {
     }
 
     private func makeKey(for request: ImageRequest) -> Wrapped<ImageRequestKey> {
-        return Wrapped(val: ImageRequestKey(request: request, equator: self))
+        return Wrapped(val: ImageRequestKey(request: request, equator: equator))
     }
-    
-    // MARK: ImageRequestEquating
-    
-    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return a.urlRequest.url == b.urlRequest.url &&
-            isEquivalent(a.processor, rhs: b.processor)
-    }
-    
+
     // MARK: Subclassing Hooks
     
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.

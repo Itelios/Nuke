@@ -76,14 +76,16 @@ public class ImageManager {
                 }
             },
             completion: { [weak self] result in
-                switch result {
-                case let .success(image):
-                    if task.request.memoryCacheStorageAllowed {
-                        self?.cache?.setImage(image, for: task.request)
+                self?.lock.sync {
+                    switch result {
+                    case let .success(image):
+                        if task.request.memoryCacheStorageAllowed {
+                            self?.cache?.setImage(image, for: task.request)
+                        }
+                        self?.complete(task, result: .success(image))
+                    case let .failure(err):
+                        self?.complete(task, result: .failure(.loadingFailed(err)))
                     }
-                    self?.complete(task, result: .success(image))
-                case let .failure(err):
-                    self?.complete(task, result: .failure(.loadingFailed(err)))
                 }
             })
     }
@@ -113,21 +115,6 @@ public class ImageManager {
                 completion(task: task, result: result)
             }
         }
-    }
-    
-    // MARK: Request Equivalence
-
-    public func isLoadEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return isLoadEquivalent(a.urlRequest, to: b.urlRequest) &&
-            isEquivalent(a.processor, rhs: b.processor)
-    }
-    
-    private func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
-        return a.url == b.url &&
-            a.cachePolicy == b.cachePolicy &&
-            a.timeoutInterval == b.timeoutInterval &&
-            a.networkServiceType == b.networkServiceType &&
-            a.allowsCellularAccess == b.allowsCellularAccess
     }
 }
 

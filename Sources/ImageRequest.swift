@@ -9,6 +9,8 @@ import Foundation
     import UIKit
 #endif
 
+// MARK: - ImageRequest
+
 /// Encapsulates image request parameters.
 public struct ImageRequest {
     /// Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
@@ -54,5 +56,36 @@ public struct ImageRequest {
 extension ImageRequest {
     var processor: ImageProcessing? {
         return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
+    }
+}
+
+// MARK: - ImageRequestEquating
+
+public protocol ImageRequestEquating {
+    func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool
+}
+
+public struct ImageRequestLoadingEquator: ImageRequestEquating {
+    public init() {}
+    
+    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return isLoadEquivalent(a.urlRequest, to: b.urlRequest) && isEquivalent(a.processor, rhs: b.processor)
+    }
+    
+    private func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
+        return a.url == b.url &&
+            a.cachePolicy == b.cachePolicy &&
+            a.timeoutInterval == b.timeoutInterval &&
+            a.networkServiceType == b.networkServiceType &&
+            a.allowsCellularAccess == b.allowsCellularAccess
+    }
+}
+
+public struct ImageRequestCachingEquator: ImageRequestEquating {
+    public init() {}
+    
+    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return a.urlRequest.url == b.urlRequest.url &&
+            isEquivalent(a.processor, rhs: b.processor)
     }
 }
