@@ -23,9 +23,6 @@ public struct ImageViewLoadingOptions {
     /// Custom handler to run when the task completes. Overrides the default completion handler. Default value is nil.
     public var handler: ((view: ImageLoadingView, result: ImageTask.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
     
-    /// Default value is nil.
-    public var userInfo: Any? = nil
-
     /// Initializes the receiver.
     public init() {}
 }
@@ -163,10 +160,10 @@ public typealias ImageViewLoadingHandler = (result: ImageTask.ResultType, option
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {
     /// Current task.
-    public var imageTask: ImageTask?
+    public private(set) var imageTask: ImageTask?
     
     /// Handler that gets called each time current task completes.
-    public var handler: ImageViewLoadingHandler
+    private var handler: ImageViewLoadingHandler
     
     /// The image manager used for creating tasks. The shared manager is used by default.
     public var manager: ImageManager = ImageManager.shared

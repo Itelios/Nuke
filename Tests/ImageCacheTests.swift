@@ -9,7 +9,7 @@
 import XCTest
 import Nuke
 
-class ImageMockCacheTest: XCTestCase {
+class MockImageCacheTests: XCTestCase {
     var manager: ImageManager!
     var mocCache: MockImageCache!
     var mockSessionManager: MockDataLoader!
@@ -31,7 +31,7 @@ class ImageMockCacheTest: XCTestCase {
         let request = ImageRequest(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
 
         expect { fulfill in
             manager.task(with: request) { _, result in
@@ -42,7 +42,7 @@ class ImageMockCacheTest: XCTestCase {
         wait()
         
         XCTAssertEqual(mocCache.images.count, 1)
-        XCTAssertNotNil(manager.image(for: request))
+        XCTAssertNotNil(mocCache.image(for: request))
         
         mockSessionManager.enabled = false
         
@@ -59,30 +59,30 @@ class ImageMockCacheTest: XCTestCase {
         let request = ImageRequest(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
         
-        manager.setImage(Image(), for: request)
+        mocCache.setImage(Image(), for: request)
         
         XCTAssertEqual(mocCache.images.count, 1)
-        let response = manager.image(for: request)
-        XCTAssertNotNil(response)
+        let image = mocCache.image(for: request)
+        XCTAssertNotNil(image)
     }
     
     func testThatRemoveResponseMethodWorks() {
         let request = ImageRequest(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
         
-        manager.setImage(Image(), for: request)
+        mocCache.setImage(Image(), for: request)
         
         XCTAssertEqual(mocCache.images.count, 1)
-        let response = manager.image(for: request)
+        let response = mocCache.image(for: request)
         XCTAssertNotNil(response)
         
-        manager.removeImage(for: request)
+        mocCache.removeImage(for: request)
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
     }
     
     func testThatCacheStorageCanBeDisabled() {
@@ -91,7 +91,7 @@ class ImageMockCacheTest: XCTestCase {
         request.memoryCacheStorageAllowed = false // Test default value
         
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
         
         expect { fulfill in
             manager.task(with: request) { _, result in
@@ -102,11 +102,11 @@ class ImageMockCacheTest: XCTestCase {
         wait()
         
         XCTAssertEqual(mocCache.images.count, 0)
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(mocCache.image(for: request))
     }
 }
 
-class ImageCacheTest: XCTestCase {
+class ImageCacheTests: XCTestCase {
     var cache: ImageCache!
     var manager: ImageManager!
     var mockSessionManager: MockDataLoader!
@@ -123,7 +123,7 @@ class ImageCacheTest: XCTestCase {
     func testThatImagesAreStoredInCache() {
         let request = ImageRequest(url: defaultURL)
         
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(cache.image(for: request))
         
         expect { fulfill in
             manager.task(with: request) { _, result in
@@ -133,7 +133,7 @@ class ImageCacheTest: XCTestCase {
         }
         wait()
         
-        XCTAssertNotNil(manager.image(for: request))
+        XCTAssertNotNil(cache.image(for: request))
         
         mockSessionManager.enabled = false
         
@@ -149,12 +149,12 @@ class ImageCacheTest: XCTestCase {
     #if os(iOS) || os(tvOS)
     func testThatImageAreRemovedOnMemoryWarnings() {
         let request = ImageRequest(url: defaultURL)
-        manager.setImage(Image(), for: request)
-        XCTAssertNotNil(manager.image(for: request))
+        cache.setImage(Image(), for: request)
+        XCTAssertNotNil(cache.image(for: request))
         
         NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
         
-        XCTAssertNil(manager.image(for: request))
+        XCTAssertNil(cache.image(for: request))
     }
     #endif
 }

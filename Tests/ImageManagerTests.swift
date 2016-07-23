@@ -9,7 +9,7 @@
 import XCTest
 import Nuke
 
-class ImageManagerTest: XCTestCase {
+class ImageManagerTests: XCTestCase {
     var manager: ImageManager!
     var mockSessionManager: MockDataLoader!
 

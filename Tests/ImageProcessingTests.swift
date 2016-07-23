@@ -9,7 +9,7 @@
 import XCTest
 import Nuke
 
-class ImageProcessingTest: XCTestCase {
+class ImageProcessingTests: XCTestCase {
     var manager: ImageManager!
     var mockMemoryCache: MockImageCache!
     var mockSessionManager: MockDataLoader!
@@ -58,7 +58,7 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(url: defaultURL)
         request.processors = [MockImageProcessor(ID: "processor1")]
-        guard let image = manager.image(for: request) else {
+        guard let image = manager.cache?.image(for: request) else {
             XCTFail()
             return
         }
@@ -119,7 +119,7 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(url: defaultURL)
         request.processors = [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")]
-        guard let image = manager.image(for: request) else {
+        guard let image = manager.cache?.image(for: request) else {
             XCTFail()
             return
         }

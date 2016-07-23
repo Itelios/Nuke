@@ -11,22 +11,22 @@ import Nuke
 
 class MockImageCache: ImageCaching {
     var enabled = true
-    var images = [ImageRequestKey: Image]()
+    var images = [URL: Image]()
     init() {}
 
-    func image(for key: ImageRequestKey) -> Image? {
-        return enabled ? images[key] : nil
+    func image(for request: ImageRequest) -> Image? {
+        return enabled ? images[request.urlRequest.url!] : nil
     }
     
-    func setImage(_ image: Image, for key: ImageRequestKey) {
+    func setImage(_ image: Image, for request: ImageRequest) {
         if enabled {
-            images[key] = image
+            images[request.urlRequest.url!] = image
         }
     }
     
-    func removeImage(for key: ImageRequestKey) {
+    func removeImage(for request: ImageRequest) {
         if enabled {
-            images[key] = nil
+            images[request.urlRequest.url!] = nil
         }
     }
     

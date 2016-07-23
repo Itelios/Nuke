@@ -2,6 +2,8 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
+import Foundation
+
 // MARK: ImageRequestKey
 
 /// Makes it possible to use ImageRequest as a key.
