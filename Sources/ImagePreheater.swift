@@ -5,15 +5,15 @@
 import Foundation
 
 public class ImagePreheater: ImageRequestEquating {
-    private let manager: ImageManager
-
+    
     /// Default value is 3.
     public var maxConcurrentTaskCount = 3
 
-    private var map: [ImageRequestKey: ImageTask] = [:]
+    private let manager: ImageManager
+    private var map = [ImageRequestKey: ImageTask]()
     private var tasks = [ImageTask]() // we need ordered tasks, map's not enough
     private var needsToResumeTasks = false
-    private let queue = DispatchQueue(label: "ImagePreheater.Queue", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePreheater.Queue", attributes: DispatchQueueAttributes.serial)
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -39,7 +39,7 @@ public class ImagePreheater: ImageRequestEquating {
     }
     
     private func startPreheating(for request: ImageRequest) {
-        let key = makePreheatKey(request)
+        let key = ImageRequestKey(request: request, equator: self)
         if map[key] == nil { // Create just one task per request
             let task = manager.task(with: request) { [weak self] task, _ in
                 self?.map[key] = nil
@@ -51,16 +51,12 @@ public class ImagePreheater: ImageRequestEquating {
             tasks.append(task)
         }
     }
-
-    private func makePreheatKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request, equator: self)
-    }
     
     /// Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
     public func stopPreheating(for requests: [ImageRequest]) {
         queue.async {
             requests.forEach {
-                self.map[self.makePreheatKey($0)]?.cancel()
+                self.map[ImageRequestKey(request: $0, equator: self)]?.cancel()
             }
         }
     }
@@ -73,10 +69,12 @@ public class ImagePreheater: ImageRequestEquating {
     }
 
     dynamic private func setNeedsResumeTasks() {
-        if !needsToResumeTasks {
-            needsToResumeTasks = true
-            queue.after(when: .now() + 0.2) { // after 200 ms
-                self.resumeTasks()
+        queue.async {
+            if !self.needsToResumeTasks {
+                self.needsToResumeTasks = true
+                self.queue.after(when: .now() + 0.2) { // after 200 ms
+                    self.resumeTasks()
+                }
             }
         }
     }
@@ -84,9 +82,7 @@ public class ImagePreheater: ImageRequestEquating {
     private func resumeTasks() {
         var executingTaskCount = manager.tasks.count
         for task in tasks {
-            if executingTaskCount >= maxConcurrentTaskCount {
-                break
-            }
+            if executingTaskCount >= maxConcurrentTaskCount { break }
             if task.state == .suspended {
                 task.resume()
                 executingTaskCount += 1
@@ -98,6 +94,6 @@ public class ImagePreheater: ImageRequestEquating {
     // MARK: ImageRequestEquating
     
     func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return manager.isLoadEquivalent(lhs, to: rhs) ?? false
+        return manager.isLoadEquivalent(lhs, to: rhs)
     }
 }

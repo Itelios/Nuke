@@ -209,7 +209,7 @@ public class ImageTask: Hashable {
     
     // MARK: Controlling Task State
     
-    public static let DidUpdateState = Notification.Name("ImageTask.DidUpdateState")
+    public static let DidUpdateState = Notification.Name("com.github.kean.Nuke.ImageTask.DidUpdateState")
     
     /// The current state of the task.
     public private(set) var state: State = .suspended {

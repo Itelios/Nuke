@@ -52,7 +52,7 @@ public class ImageLoader: ImageLoading {
     public let dataDecoder: DataDecoding
     public let queues: ImageLoader.Queues
 
-    private let queue = DispatchQueue(label: "ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
     
     /// Initializes image loader with a configuration.
     public init(
