@@ -13,7 +13,6 @@ extension OperationQueue {
 
 // MARK: Operation
 
-/// Concurrent operation with closures.
 class Operation: Foundation.Operation {
     override var isExecuting : Bool {
         get { return _isExecuting }

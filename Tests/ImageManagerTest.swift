@@ -21,10 +21,6 @@ class ImageManagerTest: XCTestCase {
         manager = ImageManager(loader: loader, cache: nil)
     }
 
-    override func tearDown() {
-        super.tearDown()
-    }
-
     // MARK: Basics
 
     func testThatRequestIsCompelted() {
@@ -221,57 +217,6 @@ class ImageManagerTest: XCTestCase {
         }
         task.resume()
         wait()
-    }
-
-    // MARK: Preheating
-
-    func testThatPreheatingRequestsAreStopped() {
-        mockSessionManager.enabled = false
-
-        let preheater = ImagePreheater(manager: manager)
-
-        let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheater.startPreheating(for: [request])
-        wait()
-
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheater.stopPreheating(for: [request])
-        wait()
-    }
-
-    func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
-        mockSessionManager.enabled = false
-
-        let preheater = ImagePreheater(manager: manager)
-
-        let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheater.startPreheating(for: [request, request])
-        preheater.startPreheating(for: [request])
-        wait()
-
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheater.stopPreheating(for: [request])
-
-        wait { _ in
-            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
-        }
-    }
-
-    func testThatAllPreheatingRequestsAreStopped() {
-        mockSessionManager.enabled = false
-
-        let preheater = ImagePreheater(manager: manager)
-
-        let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheater.startPreheating(for: [request])
-        wait(2)
-
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheater.stopPreheating()
-        wait(2)
     }
     
     // MARK: Misc

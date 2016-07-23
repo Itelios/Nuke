@@ -5,14 +5,15 @@
 import Foundation
 
 public class ImagePreheater: ImageRequestEquating {
-    public let manager: ImageManager
+    private let manager: ImageManager
 
     /// Default value is 2.
     public var maxConcurrentTaskCount = 2
 
-    private var tasks: [ImageRequestKey: ImageTask] = [:]
+    private var map: [ImageRequestKey: ImageTask] = [:]
+    private var tasks = [ImageTask]() // we need ordered tasks, map's not enough
     private var needsToResumeTasks = false
-    private let queue = DispatchQueue(label: "ImagePreheatController.Queue", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "ImagePreheater.Queue", attributes: DispatchQueueAttributes.serial)
 
     public init(manager: ImageManager) {
         self.manager = manager
@@ -29,14 +30,23 @@ public class ImagePreheater: ImageRequestEquating {
     public func startPreheating(for requests: [ImageRequest]) {
         queue.async {
             requests.forEach {
-                let key = self.makePreheatKey($0)
-                if self.tasks[key] == nil { // Don't create more than one for the equivalent requests.
-                    self.tasks[key] = self.manager.task(with: $0) { [weak self] _ in
-                        self?.tasks[key] = nil
-                    }
-                }
+                self.startPreheating(for: $0)
             }
             self.setNeedsResumeTasks()
+        }
+    }
+    
+    private func startPreheating(for request: ImageRequest) {
+        let key = makePreheatKey(request)
+        if map[key] == nil { // Create just one task per request
+            let task = manager.task(with: request) { [weak self] task, _ in
+                self?.map[key] = nil
+                if let idx = self?.tasks.index(of: task) {
+                    self?.tasks.remove(at: idx) // FIXME: use OrderedSet(Map)
+                }
+            }
+            map[key] = task
+            tasks.append(task)
         }
     }
 
@@ -48,7 +58,7 @@ public class ImagePreheater: ImageRequestEquating {
     public func stopPreheating(for requests: [ImageRequest]) {
         queue.async {
             requests.forEach {
-                self.tasks[self.makePreheatKey($0)]?.cancel()
+                self.map[self.makePreheatKey($0)]?.cancel()
             }
         }
     }
@@ -56,14 +66,14 @@ public class ImagePreheater: ImageRequestEquating {
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.values.forEach { $0.cancel() }
+            self.map.values.forEach { $0.cancel() }
         }
     }
 
     private func setNeedsResumeTasks() {
         if !needsToResumeTasks {
             needsToResumeTasks = true
-            queue.after(when: .now() + 0.2) {
+            queue.after(when: .now() + 0.2) { // after 200 ms
                 self.resumeTasks()
             }
         }
@@ -71,8 +81,8 @@ public class ImagePreheater: ImageRequestEquating {
 
     private func resumeTasks() {
         var executingTaskCount = manager.tasks.count
-        for task in (tasks.values.sorted { $0.identifier < $1.identifier }) {
-            if executingTaskCount > maxConcurrentTaskCount {
+        for task in tasks {
+            if executingTaskCount >= maxConcurrentTaskCount {
                 break
             }
             if task.state == .suspended {

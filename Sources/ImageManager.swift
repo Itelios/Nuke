@@ -21,13 +21,6 @@ public class ImageManager {
     private let lock = RecursiveLock()
     private var loadEquator: ImageRequestEquator?
     private var cacheEquator: ImageRequestEquator?
-    private var taskIdentifier: Int = 0
-    private var nextTaskIdentifier: Int {
-        return lock.synced {
-            taskIdentifier += 1
-            return taskIdentifier
-        }
-    }
     
     /// Returns all executing tasks.
     public var tasks: Set<ImageTask> {
@@ -56,7 +49,7 @@ public class ImageManager {
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
     public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = ImageTask(request: request, identifier: nextTaskIdentifier, completion: completion)
+        let task = ImageTask(request: request, completion: completion)
         task.resumeHandler = { [weak self] task in
             self?.lock.sync { self?.run(task) }
         }
@@ -214,10 +207,7 @@ public class ImageTask: Hashable {
     public let request: ImageRequest
     
     /// Return hash value for the receiver.
-    public var hashValue: Int { return identifier }
-    
-    /// Uniquely identifies the task within an image manager.
-    public let identifier: Int
+    public var hashValue: Int { return unsafeAddress(of: self).hashValue }
     
     
     // MARK: Obraining Task Progress
@@ -247,9 +237,8 @@ public class ImageTask: Hashable {
     private let completion: Completion?
     private var loadTask: Cancellable?
     
-    private init(request: ImageRequest, identifier: Int, completion: Completion?) {
+    private init(request: ImageRequest, completion: Completion?) {
         self.request = request
-        self.identifier = identifier
         self.completion = completion
     }
 }
