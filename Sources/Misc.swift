@@ -5,7 +5,7 @@
 // MARK: ImageRequestKey
 
 /// Makes it possible to use ImageRequest as a key.
-public final class ImageRequestKey: Hashable {
+final class ImageRequestKey: Hashable {
     private let request: ImageRequest
     private weak var equator: ImageRequestEquating?
     
@@ -15,13 +15,13 @@ public final class ImageRequestKey: Hashable {
     }
     
     /// Returns hash from the request's URL.
-    public var hashValue: Int {
+    var hashValue: Int {
         return request.urlRequest.url?.hashValue ?? 0
     }
 }
 
 /// Compares two keys for equivalence.
-public func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
     if let equator = lhs.equator, lhs.equator === rhs.equator {
         return equator.isEqual(lhs.request, to: rhs.request)
     }
@@ -29,17 +29,7 @@ public func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
 }
 
 protocol ImageRequestEquating: class {
-    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-}
-
-final class ImageRequestEquator: ImageRequestEquating {
-    private var closure: (ImageRequest, to: ImageRequest) -> Bool
-    init(closure: (ImageRequest, to: ImageRequest) -> Bool) {
-        self.closure = closure
-    }
-    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return closure(lhs, to: rhs)
-    }
+    func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool
 }
 
 

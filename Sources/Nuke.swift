@@ -92,7 +92,7 @@ public enum Result<V, E: ErrorProtocol> {
     case success(V)
     case failure(E)
     
-    public init(value: V?, error: @autoclosure () -> E) {
+    init(value: V?, error: @autoclosure () -> E) {
         self = value.map(Result.success) ?? .failure(error())
     }
 }

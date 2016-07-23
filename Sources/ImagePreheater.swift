@@ -93,7 +93,7 @@ public class ImagePreheater: ImageRequestEquating {
     
     // MARK: ImageRequestEquating
     
-    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return manager.isLoadEquivalent(lhs, to: rhs)
+    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return manager.isLoadEquivalent(a, to: b)
     }
 }

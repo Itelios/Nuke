@@ -191,7 +191,7 @@ public class ImageViewLoadingController {
         cancelLoading()
         
         if request.memoryCachePolicy != .reloadIgnoringCachedImage {
-            if let image = manager.image(for: request) {
+            if let image = manager.cache?.image(for: request) {
                 self.handler(result: .success(image), options: options, isFromMemoryCache: true)
                 return
             }

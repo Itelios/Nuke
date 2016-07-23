@@ -17,8 +17,6 @@ public class ImageManager {
     
     private var executingTasks = Set<ImageTask>()
     private let lock = RecursiveLock()
-    private var loadEquator: ImageRequestEquator?
-    private var cacheEquator: ImageRequestEquator?
     
     /// Returns all executing tasks.
     public var tasks: Set<ImageTask> {
@@ -31,12 +29,6 @@ public class ImageManager {
     public init(loader: ImageLoading, cache: ImageCaching?) {
         self.loader = loader
         self.cache = cache
-        self.loadEquator = ImageRequestEquator { [unowned self] in
-            return self.isLoadEquivalent($0, to: $1)
-        }
-        self.cacheEquator = ImageRequestEquator { [unowned self] in
-            return self.isLoadEquivalent($0, to: $1)
-        }
     }
     
     // MARK: Adding Tasks
@@ -66,7 +58,7 @@ public class ImageManager {
             executingTasks.insert(task)
 
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad,
-                let image = image(for: task.request) {
+                let image = cache?.image(for: task.request) {
                 complete(task, result: .success(image))
             } else {
                 loadImage(for: task)
@@ -87,7 +79,7 @@ public class ImageManager {
                 switch result {
                 case let .success(image):
                     if task.request.memoryCacheStorageAllowed {
-                        self?.setImage(image, for: task.request)
+                        self?.cache?.setImage(image, for: task.request)
                     }
                     self?.complete(task, result: .success(image))
                 case let .failure(err):
@@ -122,33 +114,12 @@ public class ImageManager {
             }
         }
     }
-
-    // MARK: Memory Caching
     
-    /// Returns image from the memory cache.
-    public func image(for request: ImageRequest) -> Image? {
-        return cache?.image(for: makeCacheKey(request))
-    }
-    
-    /// Stores image into the memory cache.
-    public func setImage(_ image: Image, for request: ImageRequest) {
-        cache?.setImage(image, for: makeCacheKey(request))
-    }
-    
-    /// Removes image from the memory cache.
-    public func removeImage(for request: ImageRequest) {
-        cache?.removeImage(for: makeCacheKey(request))
-    }
-    
-    private func makeCacheKey(_ request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request: request, equator: self.cacheEquator)
-    }
-
     // MARK: Request Equivalence
 
     public func isLoadEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
         return isLoadEquivalent(a.urlRequest, to: b.urlRequest) &&
-            isCacheEquivalent(a, to: b)
+            isEquivalent(a.processor, rhs: b.processor)
     }
     
     private func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
@@ -157,11 +128,6 @@ public class ImageManager {
             a.timeoutInterval == b.timeoutInterval &&
             a.networkServiceType == b.networkServiceType &&
             a.allowsCellularAccess == b.allowsCellularAccess
-    }
-
-    public func isCacheEquivalent(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return a.urlRequest.url == b.urlRequest.url &&
-            isEquivalent(a.processor, rhs: b.processor)
     }
 }
 

@@ -21,7 +21,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         let decoder = DataDecoderComposition(decoders: [AnimatedImageDecoder(), DataDecoder()])
         let loader = ImageLoader(dataLoader: DataLoader(), dataDecoder: decoder)
         // FIXME: Configure image manager to prevent animated image processing
-        return ImageManager(loader: loader, cache: AnimatedImageMemoryCache())
+        return ImageManager(loader: loader, cache: AnimatedImageCache())
     }
     
     override func viewDidLoad() {

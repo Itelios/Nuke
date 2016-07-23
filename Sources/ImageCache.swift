@@ -12,20 +12,20 @@ import Foundation
 /// Provides in-memory storage for image.
 public protocol ImageCaching {
     /// Returns an image for the specified key.
-    func image(for key: ImageRequestKey) -> Image?
+    func image(for request: ImageRequest) -> Image?
 
     /// Stores the image for the specified key.
-    func setImage(_ image: Image, for key: ImageRequestKey)
-
+    func setImage(_ image: Image, for request: ImageRequest)
+    
     /// Removes the cached image for the specified key.
-    func removeImage(for key: ImageRequestKey)
+    func removeImage(for request: ImageRequest)
 }
 
 /// Auto purging memory cache that uses NSCache as its internal storage.
-public class ImageCache: ImageCaching {
+public class ImageCache: ImageCaching, ImageRequestEquating {
     deinit {
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.removeObserver(self, name: .UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.removeObserver(self)
         #endif
     }
     
@@ -57,18 +57,29 @@ public class ImageCache: ImageCaching {
     // MARK: Managing Cached Images
 
     /// Returns an image for the specified key.
-    public func image(for key: ImageRequestKey) -> Image? {
-        return cache.object(forKey: WrappedKey(val: key)) as? Image
+    public func image(for request: ImageRequest) -> Image? {
+        return cache.object(forKey: makeKey(for: request)) as? Image
     }
 
     /// Stores the image for the specified key.
-    public func setImage(_ image: Image, for key: ImageRequestKey) {
-        cache.setObject(image, forKey: WrappedKey(val: key), cost: cost(for: image))
+    public func setImage(_ image: Image, for request: ImageRequest) {
+        cache.setObject(image, forKey: makeKey(for: request), cost: cost(for: image))
     }
 
     /// Removes the cached image for the specified key.
-    public func removeImage(for key: ImageRequestKey) {
-        cache.removeObject(forKey: WrappedKey(val: key))
+    public func removeImage(for request: ImageRequest) {
+        cache.removeObject(forKey: makeKey(for: request))
+    }
+
+    private func makeKey(for request: ImageRequest) -> Wrapped<ImageRequestKey> {
+        return Wrapped(val: ImageRequestKey(request: request, equator: self))
+    }
+    
+    // MARK: ImageRequestEquating
+    
+    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+        return a.urlRequest.url == b.urlRequest.url &&
+            isEquivalent(a.processor, rhs: b.processor)
     }
     
     // MARK: Subclassing Hooks
@@ -88,7 +99,8 @@ public class ImageCache: ImageCaching {
     }
 }
 
-private class WrappedKey<T: Hashable>: NSObject {
+/// Allows to use Swift Hashable objects with NSCache
+private class Wrapped<T: Hashable>: NSObject {
     let val: T
     init(val: T) {
         self.val = val
@@ -99,6 +111,6 @@ private class WrappedKey<T: Hashable>: NSObject {
     }
 
     override func isEqual(_ other: AnyObject?) -> Bool {
-        return val == (other as? WrappedKey)?.val
+        return val == (other as? Wrapped)?.val
     }
 }
