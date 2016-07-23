@@ -28,11 +28,11 @@ class ImagePreheaterTests: XCTestCase {
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockDataLoader.DidStartDataTask)
         preheater.startPreheating(for: [request])
         wait()
 
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockDataLoader.DidCancelDataTask)
         preheater.stopPreheating(for: [request])
         wait()
     }
@@ -43,12 +43,12 @@ class ImagePreheaterTests: XCTestCase {
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockDataLoader.DidStartDataTask)
         preheater.startPreheating(for: [request, request])
         preheater.startPreheating(for: [request])
         wait()
 
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockDataLoader.DidCancelDataTask)
         preheater.stopPreheating(for: [request])
 
         wait { _ in
@@ -62,11 +62,11 @@ class ImagePreheaterTests: XCTestCase {
         let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockDataLoader.DidStartDataTask)
         preheater.startPreheating(for: [request])
         wait(2)
 
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockDataLoader.DidCancelDataTask)
         preheater.stopPreheating()
         wait(2)
     }

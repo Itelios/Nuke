@@ -13,14 +13,16 @@ public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NS
 public protocol DataLoading {
     /// Creates a task with a given URL request.
     /// Task is resumed by the user that called the method.
-    func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask
+    ///
+    /// Completion block should always get called, even if the task gets cancelled.
+    func loadData(for request: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> Cancellable
 }
 
 
 // MARK: - DataLoader
 
 /// Provides basic networking using NSURLSession.
-public class DataLoader: DataLoading {
+public final class DataLoader: DataLoading {
     public private(set) var session: URLSession
     private let sessionDelegate = SessionDelegate()
 
@@ -38,15 +40,16 @@ public class DataLoader: DataLoading {
     // MARK: DataLoading
 
     /// Creates task for the given request.
-    public func loadData(for urlRequest: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> URLSessionTask {
-        let task = session.dataTask(with: urlRequest)
+    public func loadData(for request: URLRequest, progress: DataLoadingProgress, completion: DataLoadingCompletion) -> Cancellable {
+        let task = session.dataTask(with: request)
         sessionDelegate.register(task: task, progress: progress, completion: completion)
+        task.resume()
         return task
     }
 
     // MARK: SessionDelegate
     
-    private class SessionDelegate: NSObject, URLSessionDataDelegate {
+    private final class SessionDelegate: NSObject, URLSessionDataDelegate {
         var handlers = [URLSessionTask: Handler]()
         var lock = RecursiveLock()
         
@@ -80,7 +83,7 @@ public class DataLoader: DataLoading {
             }
         }
         
-        class Handler {
+        final class Handler {
             var data = Data()
             let progress: DataLoadingProgress
             let completion: DataLoadingCompletion
@@ -92,3 +95,5 @@ public class DataLoader: DataLoading {
         }
     }
 }
+
+extension URLSessionTask: Cancellable {}

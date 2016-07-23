@@ -10,25 +10,25 @@ import XCTest
 import Foundation
 
 extension XCTestCase {
-    public func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
+    func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
         let expectation = expected()
         block(fulfill: { expectation.fulfill() })
     }
 
-    public func expected<T>(_ block: @noescape (fulfill: (Void) -> Void) -> T) -> T {
+    func expected<T>(_ block: @noescape (fulfill: (Void) -> Void) -> T) -> T {
         let expectation = expected()
         return block(fulfill: { expectation.fulfill() })
     }
 
-    public func expected() -> XCTestExpectation {
+    func expected() -> XCTestExpectation {
         return self.expectation(description: "GenericExpectation")
     }
-
-    public func expectNotification(_ name: String, object: AnyObject? = nil, handler: XCNotificationExpectationHandler? = nil) -> XCTestExpectation {
-        return self.expectation(forNotification: name, object: object, handler: handler)
+    
+    func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCNotificationExpectationHandler? = nil) -> XCTestExpectation {
+        return self.expectation(forNotification: name.rawValue, object: object, handler: handler)
     }
 
-    public func wait(_ timeout: TimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
+    func wait(_ timeout: TimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
         self.waitForExpectations(timeout: timeout, handler: handler)
     }
 }

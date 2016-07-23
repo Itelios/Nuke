@@ -77,10 +77,10 @@ public class ImageManager {
     private func loadImage(for task: ImageTask) {
         task.loadTask = loader.loadImage(
             for: task.request,
-            progress: { progress in
+            progress: { completed, total in
                 DispatchQueue.main.async {
-                    task.progress = progress
-                    task.progressHandler?(progress: progress)
+                    task.progress = Progress(completed: completed, total: total)
+                    task.progressHandler?(progress: task.progress)
                 }
             },
             completion: { [weak self] result in

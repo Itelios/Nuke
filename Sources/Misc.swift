@@ -2,6 +2,47 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
+// MARK: ImageRequestKey
+
+/// Makes it possible to use ImageRequest as a key.
+public final class ImageRequestKey: Hashable {
+    private let request: ImageRequest
+    private weak var equator: ImageRequestEquating?
+    
+    init(request: ImageRequest, equator: ImageRequestEquating?) {
+        self.request = request
+        self.equator = equator
+    }
+    
+    /// Returns hash from the request's URL.
+    public var hashValue: Int {
+        return request.urlRequest.url?.hashValue ?? 0
+    }
+}
+
+/// Compares two keys for equivalence.
+public func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+    if let equator = lhs.equator, lhs.equator === rhs.equator {
+        return equator.isEqual(lhs.request, to: rhs.request)
+    }
+    return false
+}
+
+protocol ImageRequestEquating: class {
+    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+}
+
+final class ImageRequestEquator: ImageRequestEquating {
+    private var closure: (ImageRequest, to: ImageRequest) -> Bool
+    init(closure: (ImageRequest, to: ImageRequest) -> Bool) {
+        self.closure = closure
+    }
+    func isEqual(_ lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        return closure(lhs, to: rhs)
+    }
+}
+
+
 // MARK: OperationQueue Extension
 
 extension OperationQueue {
@@ -11,9 +52,10 @@ extension OperationQueue {
     }
 }
 
+
 // MARK: Operation
 
-class Operation: Foundation.Operation {
+final class Operation: Foundation.Operation {
     override var isExecuting : Bool {
         get { return _isExecuting }
         set {
@@ -48,22 +90,34 @@ class Operation: Foundation.Operation {
     override func start() {
         lock.sync {
             isExecuting = true
-            cancellation = starter() {
-                self.isExecuting = false
-                self.isFinished = true
+            if isCancelled {
+                finish()
+            } else {
+                cancellation = starter() { [weak self] in
+                    self?.finish()
+                }
             }
+        }
+    }
+    
+    private func finish() {
+        lock.sync {
+            isExecuting = false
+            isFinished = true
+            cancellation = nil
         }
     }
     
     override func cancel() {
         lock.sync {
-            if !self.isCancelled && !self.isFinished {
+            if !isCancelled {
                 super.cancel()
-                cancellation?()
+                cancellation?() // user should call fulfill
             }
         }
     }
 }
+
 
 // MARK: Locking
 

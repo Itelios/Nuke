@@ -102,15 +102,15 @@ class ImageManagerTest: XCTestCase {
         wait()
     }
 
-    func testThatSessionDataTaskIsCancelled() {
+    func testThatDataTaskIsCancelled() {
         mockSessionManager.enabled = false
 
-        _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        _ = expectNotification(MockDataLoader.DidStartDataTask)
         let task = manager.task(with: defaultURL)
         task.resume()
         wait()
 
-        _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
+        _ = expectNotification(MockDataLoader.DidCancelDataTask)
         task.cancel()
         wait()
     }
@@ -181,7 +181,7 @@ class ImageManagerTest: XCTestCase {
         task1.resume()
         task2.resume()
 
-        NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: MockURLSessionDataTaskDidResumeNotification), object: nil, queue: nil) { _ in
+        NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartDataTask, object: nil, queue: nil) { _ in
             task1.cancel()
         }
 

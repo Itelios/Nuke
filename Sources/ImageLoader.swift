@@ -6,9 +6,8 @@ import Foundation
 
 // MARK: - ImageLoading
 
-public typealias ImageLoadingResult = Result<Image, Error>
-public typealias ImageLoadingProgress = (progress: Progress) -> Void
-public typealias ImageLoadingCompletion = (result: ImageLoadingResult) -> Void
+public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias ImageLoadingCompletion = (result: Result<Image, Error>) -> Void
 
 /// Performs loading of images.
 public protocol ImageLoading: class {
@@ -101,7 +100,7 @@ public class ImageLoader: ImageLoading {
                 for: task.request.urlRequest,
                 progress: { completed, total in
                     self.queue.async {
-                        task.progress(progress: Progress(completed: completed, total: total))
+                        task.progress(completed: completed, total: total)
                     }
                 },
                 completion: {
@@ -111,7 +110,6 @@ public class ImageLoader: ImageLoading {
                         self.decode(data: data, response: response, task: task)
                     }
             })
-            dataTask.resume()
             return {
                 dataTask.cancel()
             }
@@ -153,7 +151,7 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func complete(_ task: Task, result: ImageLoadingResult) {
+    private func complete(_ task: Task, result: Result<Image, Nuke.Error>) {
         task.completion(result: result)
     }
 
