@@ -7,19 +7,21 @@ import Foundation
 public class ImagePreheater: ImageRequestEquating {
     private let manager: ImageManager
 
-    /// Default value is 2.
-    public var maxConcurrentTaskCount = 2
+    /// Default value is 3.
+    public var maxConcurrentTaskCount = 3
 
     private var map: [ImageRequestKey: ImageTask] = [:]
     private var tasks = [ImageTask]() // we need ordered tasks, map's not enough
     private var needsToResumeTasks = false
     private let queue = DispatchQueue(label: "ImagePreheater.Queue", attributes: DispatchQueueAttributes.serial)
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     public init(manager: ImageManager) {
         self.manager = manager
-        manager.onDidUpdateTasks = { [weak self] _ in
-            self?.setNeedsResumeTasks()
-        }
+        NotificationCenter.default.addObserver(self, selector: #selector(setNeedsResumeTasks), name: ImageTask.DidUpdateState, object: nil)
     }
 
     /**
@@ -70,7 +72,7 @@ public class ImagePreheater: ImageRequestEquating {
         }
     }
 
-    private func setNeedsResumeTasks() {
+    dynamic private func setNeedsResumeTasks() {
         if !needsToResumeTasks {
             needsToResumeTasks = true
             queue.after(when: .now() + 0.2) { // after 200 ms

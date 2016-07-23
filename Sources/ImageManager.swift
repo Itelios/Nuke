@@ -15,8 +15,6 @@ public class ImageManager {
     public var loader: ImageLoading
     public var cache: ImageCaching?
     
-    public var onDidUpdateTasks: ((Set<ImageTask>) -> Void)?
-    
     private var executingTasks = Set<ImageTask>()
     private let lock = RecursiveLock()
     private var loadEquator: ImageRequestEquator?
@@ -65,7 +63,7 @@ public class ImageManager {
         if task.state == .suspended {
             task.state = .running
 
-            didStartExecuting(task)
+            executingTasks.insert(task)
 
             if task.request.memoryCachePolicy == .returnCachedImageElseLoad,
                 let image = image(for: task.request) {
@@ -102,7 +100,7 @@ public class ImageManager {
         if task.state == .suspended || task.state == .running {
             if task.state == .running {
                 task.loadTask?.cancel()
-                didStopExecuting(task)
+                executingTasks.remove(task)
             }
             task.state = .cancelled
             dispatch(result: .failure(.cancelled), for: task)
@@ -112,7 +110,7 @@ public class ImageManager {
     private func complete(_ task: ImageTask, result: ImageTask.ResultType) {
         if task.state == .running {
             task.state = .completed
-            didStopExecuting(task)
+            executingTasks.remove(task)
             dispatch(result: result, for: task)
         }
     }
@@ -123,16 +121,6 @@ public class ImageManager {
                 completion(task: task, result: result)
             }
         }
-    }
-
-    private func didStartExecuting(_ task: ImageTask) {
-        executingTasks.insert(task)
-        onDidUpdateTasks?(executingTasks)
-    }
-
-    private func didStopExecuting(_ task: ImageTask) {
-        executingTasks.remove(task)
-        onDidUpdateTasks?(executingTasks)
     }
 
     // MARK: Memory Caching
@@ -221,8 +209,14 @@ public class ImageTask: Hashable {
     
     // MARK: Controlling Task State
     
+    public static let DidUpdateState = Notification.Name("ImageTask.DidUpdateState")
+    
     /// The current state of the task.
-    public private(set) var state: State = .suspended
+    public private(set) var state: State = .suspended {
+        didSet {
+            NotificationCenter.default.post(name: ImageTask.DidUpdateState, object: self)
+        }
+    }
     
     /// Resumes the task if suspended. Resume methods are nestable.
     public func resume() { resumeHandler?(task: self) }
