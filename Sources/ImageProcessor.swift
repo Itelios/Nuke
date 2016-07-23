@@ -99,10 +99,10 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         public static let MaximumSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         
         /// Target size in pixels. Default value is MaximumSize.
-        public let targetSize: CGSize
+        private let targetSize: CGSize
 
         /// An option for how to resize the image to the target size. Default value is .AspectFill. See ContentMode enum for more info.
-        public let contentMode: ContentMode
+        private let contentMode: ContentMode
 
         /**
          Initializes the receiver with target size and content mode.
@@ -115,9 +115,9 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
             self.contentMode = contentMode
         }
 
-        /// Decompressed the input image.
+        /// Decompresses the input image.
         public func process(_ image: Image) -> Image? {
-            return decompressed(image, targetSize: targetSize, contentMode: contentMode)
+            return decompress(image, targetSize: targetSize, contentMode: contentMode)
         }
     }
 
@@ -126,16 +126,16 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
 
-    private func decompressed(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
+    private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
         let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
         let scaleHor = targetSize.width / bitmapSize.width
         let scaleVert = targetSize.height / bitmapSize.height
         let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-        return decompressed(image, scale: CGFloat(min(scale, 1)))
+        return decompress(image, scale: CGFloat(min(scale, 1)))
     }
 
-    private func decompressed(_ image: UIImage, scale: CGFloat) -> UIImage {
+    private func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
         
         let size = CGSize(width: round(scale * CGFloat(cgImage.width)),

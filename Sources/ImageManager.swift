@@ -170,7 +170,7 @@ public class ImageManager {
             isCacheEquivalent(a, to: b)
     }
     
-    public func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
+    private func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
         return a.url == b.url &&
             a.cachePolicy == b.cachePolicy &&
             a.timeoutInterval == b.timeoutInterval &&

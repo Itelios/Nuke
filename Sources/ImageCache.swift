@@ -35,29 +35,23 @@ public class ImageCache: ImageCaching {
     public let cache: Cache<AnyObject, AnyObject>
 
     /// Initializes the receiver with a given memory cache.
-    public init(cache: Cache<AnyObject, AnyObject>) {
+    public init(cache: Cache<AnyObject, AnyObject> = ImageCache.makeDefaultCache()) {
         self.cache = cache
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
-
-    /// Initializes cache with the recommended cache total limit.
-    public convenience init() {
-        let cache = Cache<AnyObject, AnyObject>()
-        cache.totalCostLimit = ImageCache.recommendedCostLimit()
-        #if os(OSX)
-            cache.countLimit = 100
-        #endif
-        self.init(cache: cache)
-    }
     
-    /// Returns recommended cost limit in bytes.
-    private class func recommendedCostLimit() -> Int {
-        let physicalMemory = ProcessInfo.processInfo.physicalMemory
-        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
-        let limit = physicalMemory / UInt64(1 / ratio)
-        return limit > UInt64(Int.max) ? Int.max : Int(limit)
+    /// Initializes cache with the recommended cache total limit.
+    private static func makeDefaultCache() -> Cache<AnyObject, AnyObject> {
+        let cache = Cache<AnyObject, AnyObject>()
+        cache.totalCostLimit = {
+            let physicalMemory = ProcessInfo.processInfo.physicalMemory
+            let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
+            let limit = physicalMemory / UInt64(1 / ratio)
+            return limit > UInt64(Int.max) ? Int.max : Int(limit)
+        }()
+        return cache
     }
     
     // MARK: Managing Cached Images
@@ -77,11 +71,6 @@ public class ImageCache: ImageCaching {
         cache.removeObject(forKey: WrappedKey(val: key))
     }
     
-    /// Removes all cached images.
-    public func removeAllImages() {
-        cache.removeAllObjects()
-    }
-
     // MARK: Subclassing Hooks
     
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.

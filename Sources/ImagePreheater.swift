@@ -4,7 +4,7 @@
 
 import Foundation
 
-public class ImagePreheatController: ImageRequestEquating {
+public class ImagePreheater: ImageRequestEquating {
     public let manager: ImageManager
 
     /// Default value is 2.
@@ -60,7 +60,7 @@ public class ImagePreheatController: ImageRequestEquating {
         }
     }
 
-    public func setNeedsResumeTasks() {
+    private func setNeedsResumeTasks() {
         if !needsToResumeTasks {
             needsToResumeTasks = true
             queue.after(when: .now() + 0.2) {

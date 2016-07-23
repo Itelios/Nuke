@@ -91,10 +91,10 @@
 		0CC345C61BD96E1D005C2DD8 /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06861BCA888800089D7F /* ImageManagerTest.swift */; };
 		0CC345C71BD96E1D005C2DD8 /* ImageCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageCacheTest.swift */; };
 		0CC345C81BD96E1D005C2DD8 /* ImageProcessingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ImageProcessingTest.swift */; };
-		0CF4DE7D1D412A9E00170289 /* ImagePreheatController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */; };
-		0CF4DE7E1D412A9E00170289 /* ImagePreheatController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */; };
-		0CF4DE7F1D412A9E00170289 /* ImagePreheatController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */; };
-		0CF4DE801D412A9E00170289 /* ImagePreheatController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */; };
+		0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		0CF4DE7E1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		0CF4DE7F1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		0CF4DE801D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -154,7 +154,7 @@
 		0CAD12051D3FDCEB004CE84F /* Nuke.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke tvOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatController.swift; sourceTree = "<group>"; };
+		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -236,7 +236,7 @@
 				0C0FD5D81CA47FE1002A78FB /* ImageProcessor.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */,
-				0CF4DE7C1D412A9E00170289 /* ImagePreheatController.swift */,
+				0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */,
 				0C0FD5DE1CA47FE1002A78FB /* Internal.swift */,
 			);
 			path = Sources;
@@ -603,7 +603,7 @@
 				0C0FD5EE1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E21CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0CF4DE7F1D412A9E00170289 /* ImagePreheatController.swift in Sources */,
+				0CF4DE7F1D412A9E00170289 /* ImagePreheater.swift in Sources */,
 				0C0FD6061CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD61A1CA47FE1002A78FB /* Internal.swift in Sources */,
 				0C0FD60A1CA47FE1002A78FB /* ImageRequestKey.swift in Sources */,
@@ -626,7 +626,7 @@
 				0C0FD6051CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD6191CA47FE1002A78FB /* Internal.swift in Sources */,
 				0C0FD6091CA47FE1002A78FB /* ImageRequestKey.swift in Sources */,
-				0CF4DE7E1D412A9E00170289 /* ImagePreheatController.swift in Sources */,
+				0CF4DE7E1D412A9E00170289 /* ImagePreheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -678,7 +678,7 @@
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD6181CA47FE1002A78FB /* Internal.swift in Sources */,
 				0C0FD6081CA47FE1002A78FB /* ImageRequestKey.swift in Sources */,
-				0CF4DE7D1D412A9E00170289 /* ImagePreheatController.swift in Sources */,
+				0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -698,7 +698,7 @@
 				0C0FD6071CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C0FD61B1CA47FE1002A78FB /* Internal.swift in Sources */,
 				0C0FD60B1CA47FE1002A78FB /* ImageRequestKey.swift in Sources */,
-				0CF4DE801D412A9E00170289 /* ImagePreheatController.swift in Sources */,
+				0CF4DE801D412A9E00170289 /* ImagePreheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

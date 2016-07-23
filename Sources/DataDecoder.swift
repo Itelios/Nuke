@@ -35,21 +35,15 @@ public class DataDecoder: DataDecoding {
             #if os(OSX)
                 return NSImage(data: data)
             #else
-                return UIImage(data: data, scale: imageScale)
+                #if os(iOS) || os(tvOS)
+                    let scale = UIScreen.main().scale
+                #else
+                    let scale = WKInterfaceDevice.current().screenScale
+                #endif
+                return UIImage(data: data, scale: scale)
             #endif
         }
     }
-
-    #if !os(OSX)
-    /// The scale used when creating an image object. Return the scaleM of the main screen.
-    public var imageScale: CGFloat {
-        #if os(iOS) || os(tvOS)
-            return UIScreen.main().scale
-        #else
-            return WKInterfaceDevice.current().screenScale
-        #endif
-    }
-    #endif
 }
 
 /// Composes multiple image decoders.

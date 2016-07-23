@@ -228,31 +228,31 @@ class ImageManagerTest: XCTestCase {
     func testThatPreheatingRequestsAreStopped() {
         mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: manager)
+        let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheat.startPreheating(for: [request])
+        preheater.startPreheating(for: [request])
         wait()
 
         _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheat.stopPreheating(for: [request])
+        preheater.stopPreheating(for: [request])
         wait()
     }
 
     func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
         mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: manager)
+        let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheat.startPreheating(for: [request, request])
-        preheat.startPreheating(for: [request])
+        preheater.startPreheating(for: [request, request])
+        preheater.startPreheating(for: [request])
         wait()
 
         _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheat.stopPreheating(for: [request])
+        preheater.stopPreheating(for: [request])
 
         wait { _ in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
@@ -262,15 +262,15 @@ class ImageManagerTest: XCTestCase {
     func testThatAllPreheatingRequestsAreStopped() {
         mockSessionManager.enabled = false
 
-        let preheat = ImagePreheatController(manager: manager)
+        let preheater = ImagePreheater(manager: manager)
 
         let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        preheat.startPreheating(for: [request])
+        preheater.startPreheating(for: [request])
         wait(2)
 
         _ = expectNotification(MockURLSessionDataTaskDidCancelNotification)
-        preheat.stopPreheating()
+        preheater.stopPreheating()
         wait(2)
     }
     
