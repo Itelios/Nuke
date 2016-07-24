@@ -5,11 +5,11 @@
 import Foundation
 
 #if os(OSX)
-    import Cocoa
+    import AppKit.NSImage
     /// Alias for NSImage
     public typealias Image = NSImage
 #else
-    import UIKit
+    import UIKit.UIImage
     /// Alias for UIImage
     public typealias Image = UIImage
 #endif
@@ -24,8 +24,8 @@ public func task(with url: URL, completion: Manager.Completion? = nil) -> Task {
 
 /// Creates a task with a given request using shared Manager.
 /// After you create a task, start it using resume method.
-public func task(with request: Request, completion: Manager.Completion? = nil) -> Task {
-    return Manager.shared.task(with: request, completion: completion)
+public func task(with request: Request, options: Manager.Options = Manager.Options(), completion: Manager.Completion? = nil) -> Task {
+    return Manager.shared.task(with: request, options: options, completion: completion)
 }
 
 // MARK: - Manager (Convenience)

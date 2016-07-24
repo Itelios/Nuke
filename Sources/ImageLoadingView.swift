@@ -14,6 +14,8 @@
 
 /// Options for image loading.
 public struct ImageViewLoadingOptions {
+    public var options: Manager.Options = Manager.Options()
+    
     /// Custom animations to run when the image is displayed. Default value is nil.
     public var animations: ((ImageLoadingView) -> Void)? = nil
     
@@ -187,7 +189,7 @@ public class ImageViewLoadingController {
     public func setImage(with request: Request, options: ImageViewLoadingOptions) {
         cancelLoading()
         
-        if request.memoryCachePolicy != .reloadIgnoringCachedObject {
+        if options.options.memoryCachePolicy != .reloadIgnoringCachedObject {
             if let image = manager.cache?.image(for: request) {
                 self.handler(result: .success(image), options: options, isFromMemoryCache: true)
                 return

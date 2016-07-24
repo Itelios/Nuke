@@ -86,15 +86,16 @@ class MockCacheTests: XCTestCase {
     }
     
     func testThatCacheStorageCanBeDisabled() {
-        var request = Request(url: defaultURL)
-        XCTAssertTrue(request.memoryCacheStorageAllowed)
-        request.memoryCacheStorageAllowed = false // Test default value
+        let request = Request(url: defaultURL)
+        var options = Manager.Options()
+        XCTAssertTrue(options.memoryCacheStorageAllowed)
+        options.memoryCacheStorageAllowed = false // Test default value
         
         XCTAssertEqual(mocCache.images.count, 0)
         XCTAssertNil(mocCache.image(for: request))
         
         expect { fulfill in
-            manager.task(with: request) { _, result in
+            manager.task(with: request, options: options) { _, result in
                 XCTAssertTrue(result.isSuccess)
                 fulfill()
             }.resume()

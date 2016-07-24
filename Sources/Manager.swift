@@ -40,9 +40,9 @@ public class Manager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func task(with request: Request, completion: Completion? = nil) -> Task {
+    public func task(with request: Request, options: Options = Options(), completion: Completion? = nil) -> Task {
         let task = Task()
-        let ctx = Context(request: request, completion: completion)
+        let ctx = Context(request: request, options: options, completion: completion)
         task.resumeHandler = { [weak self] task in
             self?.lock.sync { self?.run(task, ctx: ctx) }
         }
@@ -60,7 +60,7 @@ public class Manager {
 
             executingTasks.insert(task)
 
-            if ctx.request.memoryCachePolicy == .returnCachedObjectElseLoad,
+            if ctx.options.memoryCachePolicy == .returnCachedObjectElseLoad,
                 let image = cache?.image(for: ctx.request) {
                 complete(task, result: .success(image), ctx: ctx)
             } else {
@@ -82,7 +82,7 @@ public class Manager {
                 self?.lock.sync {
                     switch result {
                     case let .success(image):
-                        if ctx.request.memoryCacheStorageAllowed {
+                        if ctx.options.memoryCacheStorageAllowed {
                             self?.cache?.setImage(image, for: ctx.request)
                         }
                         self?.complete(task, result: .success(image), ctx: ctx)
@@ -119,17 +119,43 @@ public class Manager {
             }
         }
     }
-}
-
-/// Task execution context.
-private class Context {
-    var request: Request
-    var completion: Manager.Completion?
-    var loadTask: Cancellable?
     
-    init(request: Request, completion: Manager.Completion?) {
-        self.request = request
-        self.completion = completion
+    // MARK: - Options
+    
+    /// Memory caching options
+    public struct Options {
+        /// Defines constants that can be used to modify the way Manager interacts with the memory cache.
+        public enum MemoryCachePolicy {
+            /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
+            case returnCachedObjectElseLoad
+            
+            /// Reload using ignoring memory cached objects. Doesn't affect on-disk caching.
+            case reloadIgnoringCachedObject
+        }
+        
+        /// Specifies whether loaded object should be stored into memory cache. Default value is true.
+        public var memoryCacheStorageAllowed = true
+        
+        /// The request memory cache policy. Default value is .returnCachedObjectElseLoad.
+        public var memoryCachePolicy = MemoryCachePolicy.returnCachedObjectElseLoad
+
+        public init() {}
+    }
+    
+    // MARK: - Execution Context
+    
+    /// Task execution context.
+    private class Context {
+        var request: Request
+        var options: Options
+        var completion: Completion?
+        var loadTask: Cancellable?
+        
+        init(request: Request, options: Options, completion: Completion?) {
+            self.request = request
+            self.options = options
+            self.completion = completion
+        }
     }
 }
 
