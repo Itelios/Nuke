@@ -31,44 +31,47 @@ public class Manager {
         self.cache = cache
     }
     
-    // MARK: Adding Tasks
+    // MARK: Making Tasks
+    
+    public typealias Completion = (task: Task, result: Result<Image, Task.Error>) -> Void
     
     /**
      Creates a task with a given request. After you create a task, you start it by calling its resume method.
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func task(with request: Request, completion: Task.Completion? = nil) -> Task {
-        let task = Task(request: request, completion: completion)
+    public func task(with request: Request, completion: Completion? = nil) -> Task {
+        let task = Task()
+        let ctx = Context(request: request, completion: completion)
         task.resumeHandler = { [weak self] task in
-            self?.lock.sync { self?.run(task) }
+            self?.lock.sync { self?.run(task, ctx: ctx) }
         }
         task.cancellationHandler = { [weak self] task in
-            self?.lock.sync { self?.cancel(task) }
+            self?.lock.sync { self?.cancel(task, ctx: ctx) }
         }
         return task
     }
     
     // MARK: Task Execution
 
-    private func run(_ task: Task) {
+    private func run(_ task: Task, ctx: Context) {
         if task.state == .suspended {
             task.state = .running
 
             executingTasks.insert(task)
 
-            if task.request.memoryCachePolicy == .returnCachedObjectElseLoad,
-                let image = cache?.image(for: task.request) {
-                complete(task, result: .success(image))
+            if ctx.request.memoryCachePolicy == .returnCachedObjectElseLoad,
+                let image = cache?.image(for: ctx.request) {
+                complete(task, result: .success(image), ctx: ctx)
             } else {
-                loadImage(for: task)
+                loadImage(for: task, ctx: ctx)
             }
         }
     }
 
-    private func loadImage(for task: Task) {
-        task.loadTask = loader.loadImage(
-            for: task.request,
+    private func loadImage(for task: Task, ctx: Context) {
+        ctx.loadTask = loader.loadImage(
+            for: ctx.request,
             progress: { completed, total in
                 DispatchQueue.main.async {
                     task.progress = Progress(completed: completed, total: total)
@@ -79,42 +82,54 @@ public class Manager {
                 self?.lock.sync {
                     switch result {
                     case let .success(image):
-                        if task.request.memoryCacheStorageAllowed {
-                            self?.cache?.setImage(image, for: task.request)
+                        if ctx.request.memoryCacheStorageAllowed {
+                            self?.cache?.setImage(image, for: ctx.request)
                         }
-                        self?.complete(task, result: .success(image))
+                        self?.complete(task, result: .success(image), ctx: ctx)
                     case let .failure(err):
-                        self?.complete(task, result: .failure(.loadingFailed(err)))
+                        self?.complete(task, result: .failure(.loadingFailed(err)), ctx: ctx)
                     }
                 }
             })
     }
 
-    private func cancel(_ task: Task) {
+    private func cancel(_ task: Task, ctx: Context) {
         if task.state == .suspended || task.state == .running {
             if task.state == .running {
-                task.loadTask?.cancel()
+                ctx.loadTask?.cancel()
                 executingTasks.remove(task)
             }
             task.state = .cancelled
-            dispatch(result: .failure(.cancelled), for: task)
+            dispatch(result: .failure(.cancelled), for: task, ctx: ctx)
         }
     }
 
-    private func complete(_ task: Task, result: Task.ResultType) {
+    private func complete(_ task: Task, result: Result<Image, Task.Error>, ctx: Context) {
         if task.state == .running {
             task.state = .completed
             executingTasks.remove(task)
-            dispatch(result: result, for: task)
+            dispatch(result: result, for: task, ctx: ctx)
         }
     }
 
-    private func dispatch(result: Task.ResultType, for task: Task) {
-        if let completion = task.completion {
+    private func dispatch(result: Result<Image, Task.Error>, for task: Task, ctx: Context) {
+        if let completion = ctx.completion {
             DispatchQueue.main.async {
                 completion(task: task, result: result)
             }
         }
+    }
+}
+
+/// Task execution context.
+private class Context {
+    var request: Request
+    var completion: Manager.Completion?
+    var loadTask: Cancellable?
+    
+    init(request: Request, completion: Manager.Completion?) {
+        self.request = request
+        self.completion = completion
     }
 }
 
@@ -127,10 +142,6 @@ public class Task: Hashable {
         case loadingFailed(AnyError)
     }
     
-    public typealias ResultType = Result<Image, Error>
-    
-    /// Task completion block, gets called when task is either completed or cancelled.
-    public typealias Completion = (task: Task, result: ResultType) -> Void
     /**
      The state of the task. Allowed transitions include:
      - suspended -> [running, cancelled]
@@ -143,9 +154,6 @@ public class Task: Hashable {
     }
     
     // MARK: Obtainig General Task Information
-    
-    /// The request that task was created with.
-    public let request: Request
     
     /// Return hash value for the receiver.
     public var hashValue: Int { return unsafeAddress(of: self).hashValue }
@@ -178,16 +186,6 @@ public class Task: Hashable {
     /// Cancels the task if it hasn't completed yet.
     public func cancel() { cancellationHandler?(task: self) }
     private var cancellationHandler: ((task: Task) -> Void)?
-    
-    // MARK: Private
-    
-    private let completion: Completion?
-    private var loadTask: Cancellable?
-    
-    private init(request: Request, completion: Completion?) {
-        self.request = request
-        self.completion = completion
-    }
 }
 
 /// Compares two image tasks by reference.

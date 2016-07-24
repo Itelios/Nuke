@@ -21,7 +21,7 @@ public struct ImageViewLoadingOptions {
     public var animated = true
     
     /// Custom handler to run when the task completes. Overrides the default completion handler. Default value is nil.
-    public var handler: ((view: ImageLoadingView, result: Task.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
+    public var handler: ((view: ImageLoadingView, result: Result<Image, Task.Error>, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void)? = nil
     
     /// Initializes the receiver.
     public init() {}
@@ -39,7 +39,7 @@ public protocol ImageLoadingView: class {
     func nk_setImage(with request: Request, options: ImageViewLoadingOptions)
     
     /// Gets called when the task that is currently associated with the view completes.
-    func nk_handle(result: Task.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
+    func nk_handle(result: Result<Image, Task.Error>, options: ImageViewLoadingOptions, isFromMemoryCache: Bool)
 }
 
 public extension ImageLoadingView {
@@ -106,7 +106,7 @@ private struct AssociatedKeys {
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     
     /// Default implementation that displays the image and runs animations if necessary.
-    public func nk_handle(result: Task.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
+    public func nk_handle(result: Result<Image, Task.Error>, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) {
         if let handler = options.handler {
             handler(view: self, result: result, options: options, isFromMemoryCache: isFromMemoryCache)
             return
@@ -155,7 +155,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 
 // MARK: - ImageViewLoadingController
 
-public typealias ImageViewLoadingHandler = (result: Task.ResultType, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void
+public typealias ImageViewLoadingHandler = (result: Result<Image, Task.Error>, options: ImageViewLoadingOptions, isFromMemoryCache: Bool) -> Void
 
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {

@@ -18,13 +18,13 @@ import Foundation
 
 /// Creates a task with a given URL using shared Manager. 
 /// After you create a task, start it using resume method.
-public func task(with url: URL, completion: Task.Completion? = nil) -> Task {
+public func task(with url: URL, completion: Manager.Completion? = nil) -> Task {
     return Manager.shared.task(with: url, completion: completion)
 }
 
 /// Creates a task with a given request using shared Manager.
 /// After you create a task, start it using resume method.
-public func task(with request: Request, completion: Task.Completion? = nil) -> Task {
+public func task(with request: Request, completion: Manager.Completion? = nil) -> Task {
     return Manager.shared.task(with: request, completion: completion)
 }
 
@@ -34,7 +34,7 @@ public func task(with request: Request, completion: Task.Completion? = nil) -> T
 public extension Manager {
     /// Creates a task with a given request.
     /// For more info see `task(with:completion:)` methpd.
-    func task(with url: URL, completion: Task.Completion? = nil) -> Task {
+    func task(with url: URL, completion: Completion? = nil) -> Task {
         return task(with: Request(url: url), completion: completion)
     }
 }
