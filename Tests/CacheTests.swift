@@ -1,5 +1,5 @@
 //
-//  ImageCacheTest.swift
+//  CacheTest.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 3/15/15.
@@ -9,18 +9,18 @@
 import XCTest
 import Nuke
 
-class MockImageCacheTests: XCTestCase {
-    var manager: ImageManager!
-    var mocCache: MockImageCache!
+class MockCacheTests: XCTestCase {
+    var manager: Manager!
+    var mocCache: MockCache!
     var mockSessionManager: MockDataLoader!
     
     override func setUp() {
         super.setUp()
 
-        mocCache = MockImageCache()
+        mocCache = MockCache()
         mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: mockSessionManager)
-        manager = ImageManager(loader: loader, cache: mocCache)
+        let loader = Loader(dataLoader: mockSessionManager, dataDecoder: ImageDataDecoder())
+        manager = Manager(loader: loader, cache: mocCache)
     }
     
     override func tearDown() {
@@ -28,7 +28,7 @@ class MockImageCacheTests: XCTestCase {
     }
     
     func testThatCacheWorks() {
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
         XCTAssertNil(mocCache.image(for: request))
@@ -56,7 +56,7 @@ class MockImageCacheTests: XCTestCase {
     }
     
     func testThatStoreResponseMethodWorks() {
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
         XCTAssertNil(mocCache.image(for: request))
@@ -69,7 +69,7 @@ class MockImageCacheTests: XCTestCase {
     }
     
     func testThatRemoveResponseMethodWorks() {
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         
         XCTAssertEqual(mocCache.images.count, 0)
         XCTAssertNil(mocCache.image(for: request))
@@ -86,7 +86,7 @@ class MockImageCacheTests: XCTestCase {
     }
     
     func testThatCacheStorageCanBeDisabled() {
-        var request = ImageRequest(url: defaultURL)
+        var request = Request(url: defaultURL)
         XCTAssertTrue(request.memoryCacheStorageAllowed)
         request.memoryCacheStorageAllowed = false // Test default value
         
@@ -106,22 +106,22 @@ class MockImageCacheTests: XCTestCase {
     }
 }
 
-class ImageCacheTests: XCTestCase {
-    var cache: ImageCache!
-    var manager: ImageManager!
+class CacheTests: XCTestCase {
+    var cache: Nuke.Cache!
+    var manager: Manager!
     var mockSessionManager: MockDataLoader!
     
     override func setUp() {
         super.setUp()
         
-        cache = ImageCache()
+        cache = Cache()
         mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: mockSessionManager)
-        manager = ImageManager(loader: loader, cache: cache)
+        let loader = Loader(dataLoader: mockSessionManager, dataDecoder: ImageDataDecoder())
+        manager = Manager(loader: loader, cache: cache)
     }
     
     func testThatImagesAreStoredInCache() {
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         
         XCTAssertNil(cache.image(for: request))
         
@@ -148,7 +148,7 @@ class ImageCacheTests: XCTestCase {
     
     #if os(iOS) || os(tvOS)
     func testThatImageAreRemovedOnMemoryWarnings() {
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         cache.setImage(Image(), for: request)
         XCTAssertNotNil(cache.image(for: request))
         

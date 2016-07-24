@@ -9,7 +9,7 @@
 Loading, processing, caching and [**preheating**](https://kean.github.io/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
 
 ```swift
-var request = ImageRequest(url: NSURL(string: "http://..."))
+var request = Request(url: NSURL(string: "http://..."))
 request.processors = [ImageFilterGaussianBlur()] // Apply image filter
 
 Nuke.task(with: request) { response in
@@ -54,7 +54,7 @@ Nuke.task(with: request) { response in
 
 #### Creating Image Task
 
-Loading an image is as simple as creating and resuming an `ImageTask`. Nuke is thread safe, you can freely create and resume tasks from any thread. The completion closure is called on the main thread.
+Loading an image is as simple as creating and resuming an `Task`. Nuke is thread safe, you can freely create and resume tasks from any thread. The completion closure is called on the main thread.
 
 ```swift
 Nuke.task(with: NSURL(URL: "http://...")!) {
@@ -64,10 +64,10 @@ Nuke.task(with: NSURL(URL: "http://...")!) {
 
 #### Adding Request Options
 
-Each `ImageTask` is created with an `ImageRequest` which contains request parameters. An `ImageRequest` can be initialized either with `NSURL` or `NSURLRequest`.
+Each `Task` is created with an `Request` which contains request parameters. An `Request` can be initialized either with `NSURL` or `NSURLRequest`.
 
 ```swift
-var request = ImageRequest(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
+var request = Request(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
 
 // Set target size (in pixels) and content mode that describe how to resize loaded image
 request.targetSize = CGSize(width: 300.0, height: 400.0)
@@ -78,7 +78,7 @@ request.processor = ImageFilterGaussianBlur()
 
 // Control memory caching
 request.memoryCacheStorageAllowed = true // true is default
-request.memoryCachePolicy = .ReloadIgnoringCachedImage // Force reload
+request.memoryCachePolicy = .reloadIgnoringCachedObject // Force reload
 
 // Change the priority of the underlying NSURLSessionTask
 request.priority = NSURLSessionTaskPriorityHigh
@@ -111,7 +111,7 @@ Nuke.task(with: request) { response in
 
 #### Using Image Task
 
-`ImageTask` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
+`Task` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
 
 ```swift
 let task = Nuke.task(with: imageURL).resume()
@@ -121,7 +121,7 @@ print(task.state) // Prints "Running"
 task.cancel()
 ```
 
-You can also use `ImageTask` to monitor load progress.
+You can also use `Task` to monitor load progress.
 
 ```swift
 let task = Nuke.task(with: imageURL).resume()
@@ -143,14 +143,14 @@ let imageView = UIImageView()
 // Loads and displays an image for the given URL
 // Previously started requests are cancelled
 let task = imageView.nk_setImageWith(NSURL(URL: "http://...")!)
-// let task = imageView.nk_setImageWith(ImageRequest(...))
+// let task = imageView.nk_setImageWith(Request(...))
 ```
 
 You have extra control over loading via `ImageViewLoadingOptions`. If allows you to provide custom `animations`, override the completion `handler`, etc.
 
 ```swift
 let imageView = UIImageView()
-let request = ImageRequest(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
+let request = Request(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
 
 var options = ImageViewLoadingOptions()
 options.handler = {
@@ -179,7 +179,7 @@ Or providing an implementation for remaining `ImageLoadingView` methods:
 
 ```swift
 extension MKAnnotationView: ImageLoadingView {
-    public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
+    public func nk_Task(task: Task, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
         // Handle task completion
     }
 }
@@ -201,14 +201,14 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
 
 #### Applying Filters
 
-Nuke defines a simple `ImageProcessing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can also compose multiple filters together using `ImageProcessorComposition` class.
+Nuke defines a simple `Processing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can also compose multiple filters together using `ProcessorComposition` class.
 
 ```swift
-let filter1: ImageProcessing = <#filter#>
-let filter2: ImageProcessing = <#filter#>
+let filter1: Processing = <#filter#>
+let filter2: Processing = <#filter#>
 
-var request = ImageRequest(url: <#image_url#>)
-request.processor = ImageProcessorComposition(processors: [filter1, filter2])
+var request = Request(url: <#image_url#>)
+request.processor = ProcessorComposition(processors: [filter1, filter2])
 
 Nuke.task(with: request) {
     // Filters are applied, processed image is stored into memory cache
@@ -218,10 +218,10 @@ Nuke.task(with: request) {
 
 #### Creating Filters
 
-`ImageProcessing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
+`Processing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
 
 ```swift
-public class ImageFilterGaussianBlur: ImageProcessing {
+public class ImageFilterGaussianBlur: Processing {
     public let radius: Int
     public init(radius: Int = 8) {
         self.radius = radius
@@ -244,7 +244,7 @@ public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bo
 [Preheating](https://kean.github.io/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
 
 ```swift
-let requests = [ImageRequest(url: imageURL1), ImageRequest(url: imageURL2)]
+let requests = [Request(url: imageURL1), Request(url: imageURL2)]
 Nuke.startPreheating(for: requests: requests)
 Nuke.stopPreheating(for: requests: requests)
 ```
@@ -272,13 +272,13 @@ The combination of two cache layers results in a high performance caching system
 
 #### Accessing Memory Cache
 
-Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `ImageTask`.
+Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `Task`.
 
 If you need to access memory cache directly and synchronously you can use `ImageManager`:
 
 ```swift
 let manager = ImageManager.shared
-let request = ImageRequest(url: NSURL(string: "")!)
+let request = Request(url: NSURL(string: "")!)
 let response = ImageCachedResponse(image: UIImage(), userInfo: nil)
 manager.storeResponse(response, forRequest: request)
 let cachedResponse = manager.cachedResponseForRequest(request)
@@ -309,14 +309,14 @@ let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: d
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
 
-If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `DataLoading`, `DataCaching`, `DataDecoding` and `ImageProcessing` protocols.
+If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `Loader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `DataLoading`, `DataCaching`, `DataDecoding` and `Processing` protocols.
 
 ```swift
 let loader: ImageLoading = <#loader#>
 let cache: ImageCaching = <#cache#>
 
 // The ImageManagerConfiguration(dataLoader:decoder:cache:) constructor is actually
-// just a convenience initializer that creates an instance of ImageLoader class
+// just a convenience initializer that creates an instance of Loader class
 let configuration = ImageManagerConfiguration(loader: loader, cache: cache)
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
@@ -330,7 +330,7 @@ ImageManager.shared = ImageManager(configuration: configuration)
 |`ImageManager`|A top-level API for managing images|
 |`DataLoading`|Performs loading of image data (`NSData`)|
 |`DataDecoding`|Converts `NSData` to `UIImage` objects|
-|`ImageProcessing`|Processes decoded images|
+|`Processing`|Processes decoded images|
 |`ImageCaching`|Stores processed images into memory cache|
 |`DataCaching`|Stores data into disk cache|
 

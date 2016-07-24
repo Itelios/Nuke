@@ -22,7 +22,7 @@ public protocol DataDecoding {
 private let lock = Lock()
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
-public class DataDecoder: DataDecoding {
+public class ImageDataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 

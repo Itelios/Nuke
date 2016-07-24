@@ -9,33 +9,33 @@ import Foundation
     import UIKit
 #endif
 
-// MARK: - ImageRequest
+// MARK: - Request
 
 /// Encapsulates image request parameters.
-public struct ImageRequest {
-    /// Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
+public struct Request {
+    /// Defines constants that can be used to modify the way Manager interacts with the memory cache.
     public enum MemoryCachePolicy {
         /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
-        case returnCachedImageElseLoad
+        case returnCachedObjectElseLoad
         
-        /// Reload using ignoring memory cached images. Doesn't affect on-disk caching.
-        case reloadIgnoringCachedImage
+        /// Reload using ignoring memory cached objects. Doesn't affect on-disk caching.
+        case reloadIgnoringCachedObject
     }
     
-    /// The URL request that the image request was created with.
+    /// The URL request.
     public var urlRequest: URLRequest
 
-    /// Specifies whether loaded image should be stored into memory cache. Default value is true.
+    /// Specifies whether loaded object should be stored into memory cache. Default value is true.
     public var memoryCacheStorageAllowed = true
     
-    /// The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
-    public var memoryCachePolicy = MemoryCachePolicy.returnCachedImageElseLoad
+    /// The request memory cache policy. Default value is .returnCachedObjectElseLoad.
+    public var memoryCachePolicy = MemoryCachePolicy.returnCachedObjectElseLoad
 
     /// Filters to be applied to the image.
-    public var processors = [AnyImageProcessor]()
+    public var processors = [AnyProcessor]()
     
-    public mutating func add<T: ImageProcessing>(processor: T) {
-        processors.append(AnyImageProcessor(processor))
+    public mutating func add<T: Processing>(processor: T) {
+        processors.append(AnyProcessor(processor))
     }
 
     /// Allows users to pass some custom info alongside the request.
@@ -52,22 +52,22 @@ public struct ImageRequest {
     }
 }
 
-extension ImageRequest {
-    var processor: ImageProcessorComposition? {
-        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
+extension Request {
+    var processor: ProcessorComposition? {
+        return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }
 }
 
-// MARK: - ImageRequestEquating
+// MARK: - RequestEquating
 
-public protocol ImageRequestEquating {
-    func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool
+public protocol RequestEquating {
+    func isEqual(_ a: Request, to b: Request) -> Bool
 }
 
-public struct ImageRequestLoadingEquator: ImageRequestEquating {
+public struct RequestLoadingEquator: RequestEquating {
     public init() {}
     
-    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+    public func isEqual(_ a: Request, to b: Request) -> Bool {
         return isLoadEquivalent(a.urlRequest, to: b.urlRequest) && a.processor == b.processor
     }
     
@@ -80,10 +80,10 @@ public struct ImageRequestLoadingEquator: ImageRequestEquating {
     }
 }
 
-public struct ImageRequestCachingEquator: ImageRequestEquating {
+public struct RequestCachingEquator: RequestEquating {
     public init() {}
     
-    public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
+    public func isEqual(_ a: Request, to b: Request) -> Bool {
         return a.urlRequest.url == b.urlRequest.url && a.processor == b.processor
     }
 }

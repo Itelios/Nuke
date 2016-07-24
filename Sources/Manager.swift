@@ -4,29 +4,29 @@
 
 import Foundation
 
-// MARK: - ImageManager
+// MARK: - Manager
 
 /**
-The `ImageManager` class and related classes provide methods for loading, processing, caching.
+The `Manager` class and related classes provide methods for loading, processing, caching images.
 
-`ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
+`Manager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
-public class ImageManager {
-    public var loader: ImageLoading
-    public var cache: ImageCaching?
+public class Manager {
+    public var loader: Loading
+    public var cache: Caching?
     
-    private var executingTasks = Set<ImageTask>()
+    private var executingTasks = Set<Task>()
     private let lock = RecursiveLock()
     
     /// Returns all executing tasks.
-    public var tasks: Set<ImageTask> {
+    public var tasks: Set<Task> {
         return lock.synced { executingTasks }
     }
 
     // MARK: Configuring Manager
 
     /// Initializes image manager with a given loader and cache.
-    public init(loader: ImageLoading, cache: ImageCaching?) {
+    public init(loader: Loading, cache: Caching?) {
         self.loader = loader
         self.cache = cache
     }
@@ -38,8 +38,8 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = ImageTask(request: request, completion: completion)
+    public func task(with request: Request, completion: Task.Completion? = nil) -> Task {
+        let task = Task(request: request, completion: completion)
         task.resumeHandler = { [weak self] task in
             self?.lock.sync { self?.run(task) }
         }
@@ -51,13 +51,13 @@ public class ImageManager {
     
     // MARK: Task Execution
 
-    private func run(_ task: ImageTask) {
+    private func run(_ task: Task) {
         if task.state == .suspended {
             task.state = .running
 
             executingTasks.insert(task)
 
-            if task.request.memoryCachePolicy == .returnCachedImageElseLoad,
+            if task.request.memoryCachePolicy == .returnCachedObjectElseLoad,
                 let image = cache?.image(for: task.request) {
                 complete(task, result: .success(image))
             } else {
@@ -66,7 +66,7 @@ public class ImageManager {
         }
     }
 
-    private func loadImage(for task: ImageTask) {
+    private func loadImage(for task: Task) {
         task.loadTask = loader.loadImage(
             for: task.request,
             progress: { completed, total in
@@ -90,7 +90,7 @@ public class ImageManager {
             })
     }
 
-    private func cancel(_ task: ImageTask) {
+    private func cancel(_ task: Task) {
         if task.state == .suspended || task.state == .running {
             if task.state == .running {
                 task.loadTask?.cancel()
@@ -101,7 +101,7 @@ public class ImageManager {
         }
     }
 
-    private func complete(_ task: ImageTask, result: ImageTask.ResultType) {
+    private func complete(_ task: Task, result: Task.ResultType) {
         if task.state == .running {
             task.state = .completed
             executingTasks.remove(task)
@@ -109,7 +109,7 @@ public class ImageManager {
         }
     }
 
-    private func dispatch(result: ImageTask.ResultType, for task: ImageTask) {
+    private func dispatch(result: Task.ResultType, for task: Task) {
         if let completion = task.completion {
             DispatchQueue.main.async {
                 completion(task: task, result: result)
@@ -119,18 +119,18 @@ public class ImageManager {
 }
 
 /// Respresents image task.
-public class ImageTask: Hashable {
+public class Task: Hashable {
     public enum Error: ErrorProtocol {
         case cancelled
         
-        /// Some underlying error returned by class conforming to ImageLoading protocol
+        /// Some underlying error returned by class conforming to Loading protocol
         case loadingFailed(AnyError)
     }
     
     public typealias ResultType = Result<Image, Error>
     
-    /// ImageTask completion block, gets called when task is either completed or cancelled.
-    public typealias Completion = (task: ImageTask, result: ResultType) -> Void
+    /// Task completion block, gets called when task is either completed or cancelled.
+    public typealias Completion = (task: Task, result: ResultType) -> Void
     /**
      The state of the task. Allowed transitions include:
      - suspended -> [running, cancelled]
@@ -145,7 +145,7 @@ public class ImageTask: Hashable {
     // MARK: Obtainig General Task Information
     
     /// The request that task was created with.
-    public let request: ImageRequest
+    public let request: Request
     
     /// Return hash value for the receiver.
     public var hashValue: Int { return unsafeAddress(of: self).hashValue }
@@ -162,35 +162,35 @@ public class ImageTask: Hashable {
     
     // MARK: Controlling Task State
     
-    public static let DidUpdateState = Notification.Name("com.github.kean.Nuke.ImageTask.DidUpdateState")
+    public static let DidUpdateState = Notification.Name("com.github.kean.Nuke.Task.DidUpdateState")
     
     /// The current state of the task.
     public private(set) var state: State = .suspended {
         didSet {
-            NotificationCenter.default.post(name: ImageTask.DidUpdateState, object: self)
+            NotificationCenter.default.post(name: Task.DidUpdateState, object: self)
         }
     }
     
     /// Resumes the task if suspended. Resume methods are nestable.
     public func resume() { resumeHandler?(task: self) }
-    private var resumeHandler: ((task: ImageTask) -> Void)?
+    private var resumeHandler: ((task: Task) -> Void)?
     
-    /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
+    /// Cancels the task if it hasn't completed yet.
     public func cancel() { cancellationHandler?(task: self) }
-    private var cancellationHandler: ((task: ImageTask) -> Void)?
+    private var cancellationHandler: ((task: Task) -> Void)?
     
     // MARK: Private
     
     private let completion: Completion?
     private var loadTask: Cancellable?
     
-    private init(request: ImageRequest, completion: Completion?) {
+    private init(request: Request, completion: Completion?) {
         self.request = request
         self.completion = completion
     }
 }
 
 /// Compares two image tasks by reference.
-public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
+public func ==(lhs: Task, rhs: Task) -> Bool {
     return lhs === rhs
 }

@@ -24,7 +24,7 @@ private struct AssociatedKeys {
     static var ProcessorIDs = "nk_test_processorIDs"
 }
 
-class MockImageProcessor: ImageProcessing {
+class MockImageProcessor: Processing {
     let ID: String
     init(ID: String) {
         self.ID = ID

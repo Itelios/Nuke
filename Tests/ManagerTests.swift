@@ -1,5 +1,5 @@
 //
-//  ImageManagerTest.swift
+//  ManagerTest.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 3/14/15.
@@ -9,22 +9,22 @@
 import XCTest
 import Nuke
 
-class ImageManagerTests: XCTestCase {
-    var manager: ImageManager!
+class ManagerTests: XCTestCase {
+    var manager: Manager!
     var loader: MockImageLoader!
 
     override func setUp() {
         super.setUp()
 
         loader = MockImageLoader()
-        manager = ImageManager(loader: loader, cache: nil)
+        manager = Manager(loader: loader, cache: nil)
     }
 
     // MARK: Basics
 
     func testThatRequestIsCompelted() {
         expect { fulfill in
-            manager.task(with: ImageRequest(url: defaultURL)) {
+            manager.task(with: Request(url: defaultURL)) {
                 XCTAssertNotNil($0.1.value, "")
                 fulfill()
             }.resume()
@@ -146,7 +146,7 @@ class ImageManagerTests: XCTestCase {
     
     // MARK: Misc
     
-    func testThatGetImageTasksMethodReturnsCorrectTasks() {
+    func testThatGetTasksMethodReturnsCorrectTasks() {
         loader.queue.isSuspended = true
         
         let task1 = manager.task(with: URL(string: "http://test1.com")!, completion: nil)

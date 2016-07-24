@@ -4,17 +4,17 @@ import XCPlayground
 
 /*:
 ### Applying Filters
-Applying image filters is as easy as setting `processor` property on the `ImageRequest`. Nuke does all the heavy lifting, including storing processed images into memory cache. Creating image filters is also dead simple thanks to `ImageProcessing` protocol and its extensions.
+Applying image filters is as easy as setting `processor` property on the `Request`. Nuke does all the heavy lifting, including storing processed images into memory cache. Creating image filters is also dead simple thanks to `Processing` protocol and its extensions.
 */
 
-class ImageFilterDrawInCircle: ImageProcessing {
+class ImageFilterDrawInCircle: Processing {
     func process(image: UIImage) -> UIImage? {
         return drawImageInCircle(cropImageToSquare(image))
     }
 }
 
 example("Applying Filters") {
-    var request = ImageRequest(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+    var request = Request(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
     request.processor = ImageFilterDrawInCircle()
     
     Nuke.task(with: request) {
@@ -24,11 +24,11 @@ example("Applying Filters") {
 
 /*:
 ### Creating CoreImage Based Filters
- Here we use a simple function `applyFilter` to wrap a `CIGaussianBlur` into an `ImageProcessing` protocol.
+ Here we use a simple function `applyFilter` to wrap a `CIGaussianBlur` into an `Processing` protocol.
  */
 
 /// Blurs image using CIGaussianBlur filter.
-public struct ImageFilterGaussianBlur: ImageProcessing {
+public struct ImageFilterGaussianBlur: Processing {
     /// Blur radius.
     public let radius: Int
     
@@ -60,10 +60,10 @@ It's easy to combine multiple filters using `ImageFilterComposition` class. Lets
 import CoreImage
 
 example("Composing Filters") {
-    var request = ImageRequest(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+    var request = Request(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
     
     // Compose filters
-    let filter = ImageProcessorComposition(processors: [ ImageFilterGaussianBlur(), ImageFilterDrawInCircle()])
+    let filter = ProcessorComposition(processors: [ ImageFilterGaussianBlur(), ImageFilterDrawInCircle()])
     request.processor = filter
 
     Nuke.task(with: request) {

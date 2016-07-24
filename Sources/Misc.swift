@@ -4,14 +4,14 @@
 
 import Foundation
 
-// MARK: ImageRequestKey
+// MARK: RequestKey
 
-/// Makes it possible to use ImageRequest as a key.
-final class ImageRequestKey: Hashable {
-    private let request: ImageRequest
-    private let equator: ImageRequestEquating
+/// Makes it possible to use Request as a key.
+final class RequestKey: Hashable {
+    private let request: Request
+    private let equator: RequestEquating
     
-    init(request: ImageRequest, equator: ImageRequestEquating) {
+    init(request: Request, equator: RequestEquating) {
         self.request = request
         self.equator = equator
     }
@@ -23,7 +23,7 @@ final class ImageRequestKey: Hashable {
 }
 
 /// Compares two keys for equivalence.
-func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
     return lhs.equator.isEqual(lhs.request, to: rhs.request)
 }
 

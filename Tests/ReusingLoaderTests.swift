@@ -11,21 +11,21 @@ import Foundation
 import XCTest
 import Nuke
 
-class ReusingImageLoaderTests: XCTestCase {
-    var reuser: ReusingImageLoader!
+class ReusingLoaderTests: XCTestCase {
+    var reuser: ReusingLoader!
     var loader: MockImageLoader!
     
     override func setUp() {
         super.setUp()
         
         loader = MockImageLoader()
-        reuser = ReusingImageLoader(loader: loader)
+        reuser = ReusingLoader(loader: loader)
     }
 
     func testThatTasksAreReused() {
-        let request1 = ImageRequest(url: defaultURL)
-        let request2 = ImageRequest(url: defaultURL)
-        XCTAssertTrue(ImageRequestLoadingEquator().isEqual(request1, to: request2))
+        let request1 = Request(url: defaultURL)
+        let request2 = Request(url: defaultURL)
+        XCTAssertTrue(RequestLoadingEquator().isEqual(request1, to: request2))
 
         expect { fulfill in
             _ = reuser.loadImage(for: request1) { _ in
@@ -45,9 +45,9 @@ class ReusingImageLoaderTests: XCTestCase {
     }
     
     func testThatTasksForRequestsWithDifferentCachePolicyAreNotReused() {
-        let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-        XCTAssertFalse(ImageRequestLoadingEquator().isEqual(request1, to: request2))
+        let request1 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
+        let request2 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
+        XCTAssertFalse(RequestLoadingEquator().isEqual(request1, to: request2))
         
         expect { fulfill in
             _ = reuser.loadImage(for: request1) { _ in
@@ -69,7 +69,7 @@ class ReusingImageLoaderTests: XCTestCase {
     func testThatTaskWithRemainingHandlersDontGetCancelled() {
         loader.queue.isSuspended = true
 
-        let manager = ImageManager(loader: reuser, cache: nil)
+        let manager = Manager(loader: reuser, cache: nil)
         
         let task1 = expected { fulfill in
             return manager.task(with: defaultURL) {
@@ -105,9 +105,9 @@ class ReusingImageLoaderTests: XCTestCase {
     func testThatProgressHandlersAreCalled() {
         loader.queue.isSuspended = true
         
-        let request1 = ImageRequest(url: defaultURL)
-        let request2 = ImageRequest(url: defaultURL)
-        XCTAssertTrue(ImageRequestLoadingEquator().isEqual(request1, to: request2))
+        let request1 = Request(url: defaultURL)
+        let request2 = Request(url: defaultURL)
+        XCTAssertTrue(RequestLoadingEquator().isEqual(request1, to: request2))
         
         expect { fulfill in
             var completedUnitCount: Int64 = 0

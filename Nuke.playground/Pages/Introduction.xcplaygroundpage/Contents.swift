@@ -12,7 +12,7 @@ Nuke's goal is to solve those complex tasks in a most efficient and user-friendl
 
 /*:
 ### Zero Config
-Create and resume `ImageTask` with `NSURL`.
+Create and resume `Task` with `NSURL`.
 */
 Nuke.task(with: NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { _, response in
     let image = response.value
@@ -20,11 +20,11 @@ Nuke.task(with: NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7
 
 /*:
 ### Adding Request Options
-Create `ImageRequest` with `NSURLRequest`. Configure `ImageRequest` to resize image. Create and resume `ImageTask`.
+Create `Request` with `NSURLRequest`. Configure `Request` to resize image. Create and resume `Task`.
 */
 
 let URLRequest = NSURLRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 60)
-var request = ImageRequest(URLRequest: URLRequest)
+var request = Request(URLRequest: URLRequest)
 
 // Set target size in pixels
 request.processors = [ImageDecompressor(targetSize: CGSize(width: 200.0, height: 200.0), contentMode: .AspectFill)]

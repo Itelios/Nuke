@@ -22,7 +22,7 @@
 - Remove deprecated `suspend` method from `ImageTask`
 - Remove `ImageFilterGaussianBlur` and Core Image helper functions which are now part of [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
 - Cleanup project structure (as expected by SPM)
-- `ImageManager` constructor now has a default value for configuration
+- `Manager` constructor now has a default value for configuration
 - `nk_setImageWith(URL:)` method no longer resizes images by default, because resizing is not effective in most cases
 - Remove `nk_setImageWith(request:options:placeholder:)` method, it's trivial
 - `ImageLoadingView` default implementation no longer implements "Cross Dissolve" animations, use `ImageViewLoadingOptions` instead (see `animations` or `handler` property)
@@ -63,9 +63,9 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - #48 Update according to [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/). All APIs now just feel right.
 - Add `UIImage` extension with helper functions for `Core Image`: `nk_filter(_:)`, etc.
 - Add `ImageFilterGaussianBlur` as an example of a filter on top of `Core Image` framework
-- Add `ImageRequestMemoryCachePolicy` enum that specifies the way `ImageManager` interacts with a memory cache; `NSURLRequestCachePolicy` no longer affects memory cache
+- Add `ImageRequestMemoryCachePolicy` enum that specifies the way `Manager` interacts with a memory cache; `NSURLRequestCachePolicy` no longer affects memory cache
 - #17 Add `priority` to `ImageRequest`
-- Add `removeResponseForKey()` method to `ImageMemoryCaching` protocol and the corresponding method to `ImageManager`
+- Add `removeResponseForKey()` method to `ImageMemoryCaching` protocol and the corresponding method to `Manager`
 - Implement congestion control for `ImageLoader` that prevents `NSURLSession` trashing
 - Simplify `ImageLoaderDelegate` by combining methods that were customizing processing in a single high-level method: `imageLoader(_:processorFor:image:)`. Users now have more control over processing
 - Add `NSURLResponse?` parameter to `decode` method from `ImageDecoding` protocol
@@ -102,7 +102,7 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - Fill most of the blanks in the documentation
 - #47 Fix target size rounding errors in image downscaling (Pyry Jahkola @pyrtsa)
 - Add `imageScale` property to `ImageDecoder` class that returns scale to be used when creating `UIImage` (iOS, tvOS, watchOS only)
-- Wrap each iteration in `ImageProcessorComposition` in an `autoreleasepool`
+- Wrap each iteration in `ProcessorComposition` in an `autoreleasepool`
 
 
 ## Nuke 1.2.0
@@ -140,6 +140,6 @@ extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
 ```
 - #30 Add UIImageView extension instead of custom UIImageView subclass
 - Back to the Mac! All new protocol and extensions for UI components (#30) are also available on a Mac, including new NSImageView extension.
-- #26 Add `getImageTaskWithCompletion(_:)` method to ImageManager
+- #26 Add `getImageTaskWithCompletion(_:)` method to Manager
 - Add essential documentation
 - Add handy extensions to ImageResponse

@@ -10,19 +10,19 @@ import Foundation
 #endif
 
 /// Provides in-memory storage for image.
-public protocol ImageCaching {
+public protocol Caching {
     /// Returns an image for the specified key.
-    func image(for request: ImageRequest) -> Image?
+    func image(for request: Request) -> Image?
 
     /// Stores the image for the specified key.
-    func setImage(_ image: Image, for request: ImageRequest)
+    func setImage(_ image: Image, for request: Request)
     
     /// Removes the cached image for the specified key.
-    func removeImage(for request: ImageRequest)
+    func removeImage(for request: Request)
 }
 
 /// Auto purging memory cache that uses NSCache as its internal storage.
-public class ImageCache: ImageCaching {
+public class Cache: Caching {
     deinit {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.removeObserver(self)
@@ -32,22 +32,22 @@ public class ImageCache: ImageCaching {
     // MARK: Configuring Cache
     
     /// The internal memory cache.
-    public let cache: Cache<AnyObject, AnyObject>
+    public let cache: Foundation.Cache<AnyObject, AnyObject>
     
-    private let equator: ImageRequestEquating
+    private let equator: RequestEquating
 
     /// Initializes the receiver with a given memory cache.
-    public init(cache: Cache<AnyObject, AnyObject> = ImageCache.makeDefaultCache(), equator: ImageRequestEquating = ImageRequestCachingEquator()) {
+    public init(cache: Foundation.Cache<AnyObject, AnyObject> = Cache.makeDefaultCache(), equator: RequestEquating = RequestCachingEquator()) {
         self.cache = cache
         self.equator = equator
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.addObserver(self, selector: #selector(ImageCache.didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
     
     /// Initializes cache with the recommended cache total limit.
-    private static func makeDefaultCache() -> Cache<AnyObject, AnyObject> {
-        let cache = Cache<AnyObject, AnyObject>()
+    private static func makeDefaultCache() -> Foundation.Cache<AnyObject, AnyObject> {
+        let cache = Foundation.Cache<AnyObject, AnyObject>()
         cache.totalCostLimit = {
             let physicalMemory = ProcessInfo.processInfo.physicalMemory
             let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
@@ -60,22 +60,22 @@ public class ImageCache: ImageCaching {
     // MARK: Managing Cached Images
 
     /// Returns an image for the specified key.
-    public func image(for request: ImageRequest) -> Image? {
+    public func image(for request: Request) -> Image? {
         return cache.object(forKey: makeKey(for: request)) as? Image
     }
 
     /// Stores the image for the specified key.
-    public func setImage(_ image: Image, for request: ImageRequest) {
+    public func setImage(_ image: Image, for request: Request) {
         cache.setObject(image, forKey: makeKey(for: request), cost: cost(for: image))
     }
 
     /// Removes the cached image for the specified key.
-    public func removeImage(for request: ImageRequest) {
+    public func removeImage(for request: Request) {
         cache.removeObject(forKey: makeKey(for: request))
     }
 
-    private func makeKey(for request: ImageRequest) -> Wrapped<ImageRequestKey> {
-        return Wrapped(val: ImageRequestKey(request: request, equator: equator))
+    private func makeKey(for request: Request) -> Wrapped<RequestKey> {
+        return Wrapped(val: RequestKey(request: request, equator: equator))
     }
 
     // MARK: Subclassing Hooks

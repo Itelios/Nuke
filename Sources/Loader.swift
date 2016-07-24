@@ -4,36 +4,36 @@
 
 import Foundation
 
-// MARK: - ImageLoading
+// MARK: - Loading
 
-public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias ImageLoadingCompletion = (result: Result<Image, AnyError>) -> Void
+public typealias LoadingProgress = (completed: Int64, total: Int64) -> Void
+public typealias LoadingCompletion = (result: Result<Image, AnyError>) -> Void
 
 /// Performs loading of images.
-public protocol ImageLoading: class {
+public protocol Loading: class {
     /// Loads image for the given request.
-    func loadImage(for request: ImageRequest, progress: ImageLoadingProgress?, completion: ImageLoadingCompletion) -> Cancellable
+    func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion) -> Cancellable
 }
 
-// MARK: - ImageLoader
+// MARK: - Loader
 
 /**
 Performs loading of images for the image tasks.
 
-This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `DataLoading` protocol. Image data is decoded via `DataDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
+This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `DataLoading` protocol. Image data is decoded via `DataDecoding` protocol. Decoded images are processed by objects conforming to `Processing` protocols.
 
 - Provides transparent loading, decoding and processing with a single completion signal
 */
-public class ImageLoader: ImageLoading {
+public class Loader: Loading {
     /// Queues on which to execute certain tasks.
     public struct Queues {
-        /// Image caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
+        /// Data caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
         public var dataCaching = OperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
 
         /// Data loading queue. Default queue has a maximum concurrent operation count 8.
         public var dataLoading = OperationQueue(maxConcurrentOperationCount: 8)
 
-        /// Image decoding queue. Default queue has a maximum concurrent operation count 1.
+        /// Data decoding queue. Default queue has a maximum concurrent operation count 1.
         public var dataDecoding = OperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
 
         /// Image processing queue. Default queue has a maximum concurrent operation count 2.
@@ -49,16 +49,16 @@ public class ImageLoader: ImageLoading {
     public let dataCache: DataCaching?
     public let dataLoader: DataLoading
     public let dataDecoder: DataDecoding
-    public let queues: ImageLoader.Queues
+    public let queues: Loader.Queues
 
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImageLoader.Queue", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader.Queue", attributes: DispatchQueueAttributes.serial)
     
     /// Initializes image loader with a configuration.
     public init(
         dataLoader: DataLoading,
-        dataDecoder: DataDecoding = DataDecoder(),
+        dataDecoder: DataDecoding,
         dataCache: DataCaching? = nil,
-        queues: ImageLoader.Queues = ImageLoader.Queues())
+        queues: Loader.Queues = Loader.Queues())
     {
         self.dataLoader = dataLoader
         self.dataCache = dataCache
@@ -67,7 +67,7 @@ public class ImageLoader: ImageLoading {
     }
 
     /// Resumes loading for the image task.
-    public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress? = nil, completion: ImageLoadingCompletion) -> Cancellable {
+    public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
         let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
             self?.cancel($0)
         })
@@ -142,7 +142,7 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func process<P: ImageProcessing>(_ image: Image, task: Task, processor: P) {
+    private func process<P: Processing>(_ image: Image, task: Task, processor: P) {
         enterState(task, state: .processing(BlockOperation() {
             let result = Result(value: processor.process(image), error: Error.processingFailed)
             self.then(for: task, result: result) { image in
@@ -206,14 +206,14 @@ public class ImageLoader: ImageLoading {
             case processing(Foundation.Operation)
         }
         
-        var request: ImageRequest
-        let progress: ImageLoadingProgress?
-        let completion: ImageLoadingCompletion
+        var request: Request
+        let progress: LoadingProgress?
+        let completion: LoadingCompletion
         var cancellation: (Task) -> Void
         var cancelled = false
         var state: State?
         
-        init(request: ImageRequest, progress: ImageLoadingProgress?, completion: ImageLoadingCompletion, cancellation: (Task) -> Void) {
+        init(request: Request, progress: LoadingProgress?, completion: LoadingCompletion, cancellation: (Task) -> Void) {
             self.request = request
             self.progress = progress
             self.completion = completion

@@ -16,36 +16,36 @@ import Foundation
 
 // MARK: - Convenience
 
-/// Creates a task with a given URL using shared ImageManager. 
+/// Creates a task with a given URL using shared Manager. 
 /// After you create a task, start it using resume method.
-public func task(with url: URL, completion: ImageTask.Completion? = nil) -> ImageTask {
-    return ImageManager.shared.task(with: url, completion: completion)
+public func task(with url: URL, completion: Task.Completion? = nil) -> Task {
+    return Manager.shared.task(with: url, completion: completion)
 }
 
-/// Creates a task with a given request using shared ImageManager.
+/// Creates a task with a given request using shared Manager.
 /// After you create a task, start it using resume method.
-public func task(with request: ImageRequest, completion: ImageTask.Completion? = nil) -> ImageTask {
-    return ImageManager.shared.task(with: request, completion: completion)
+public func task(with request: Request, completion: Task.Completion? = nil) -> Task {
+    return Manager.shared.task(with: request, completion: completion)
 }
 
-// MARK: - ImageManager (Convenience)
+// MARK: - Manager (Convenience)
 
-/// Convenience methods for ImageManager.
-public extension ImageManager {
+/// Convenience methods for Manager.
+public extension Manager {
     /// Creates a task with a given request.
     /// For more info see `task(with:completion:)` methpd.
-    func task(with url: URL, completion: ImageTask.Completion? = nil) -> ImageTask {
-        return task(with: ImageRequest(url: url), completion: completion)
+    func task(with url: URL, completion: Task.Completion? = nil) -> Task {
+        return task(with: Request(url: url), completion: completion)
     }
 }
 
-// MARK: - ImageManager (Shared)
+// MARK: - Manager (Shared)
 
-/// Shared ImageManager instance.
-public extension ImageManager {
-    public static var shared: ImageManager = {
-        let loader = ImageLoader(dataLoader: DataLoader(), dataDecoder: DataDecoder())
-        return ImageManager(loader: loader, cache: ImageCache())
+/// Shared Manager instance.
+public extension Manager {
+    public static var shared: Manager = {
+        let loader = Loader(dataLoader: DataLoader(), dataDecoder: ImageDataDecoder())
+        return Manager(loader: loader, cache: Cache())
     }()
 }
 

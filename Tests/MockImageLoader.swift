@@ -1,5 +1,5 @@
 //
-//  MockImageLoader.swift
+//  MockLoader.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 23/07/16.
@@ -9,15 +9,15 @@
 import Foundation
 import Nuke
 
-class MockImageLoader: ImageLoading {
-    static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockImageLoader.DidStartTask")
-    static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockImageLoader.DidCancelTask")
+class MockImageLoader: Loading {
+    static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
+    static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
     
     var createdTaskCount = 0
     let queue = OperationQueue()
     
-    func loadImage(for request: ImageRequest, progress: ImageLoadingProgress? = nil, completion: ImageLoadingCompletion) -> Cancellable {
-        let task = MockImageTask()
+    func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
+        let task = MockTask()
         NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
         task.cancellation = { _ in
             NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
@@ -31,7 +31,7 @@ class MockImageLoader: ImageLoading {
             let bundle = Bundle(for: MockImageLoader.self)
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try! Data(contentsOf: URL!)
-            let image = Nuke.DataDecoder().decode(data: data, response: URLResponse())!
+            let image = Nuke.ImageDataDecoder().decode(data: data, response: URLResponse())!
             DispatchQueue.main.async {
                 completion(result: .success(image))
             }
@@ -41,8 +41,8 @@ class MockImageLoader: ImageLoading {
     }
 }
 
-class MockImageTask: Cancellable {
-    var cancellation: ((MockImageTask) -> Void)?
+class MockTask: Cancellable {
+    var cancellation: ((MockTask) -> Void)?
     func cancel() {
         cancellation?(self)
     }

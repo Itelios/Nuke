@@ -1,5 +1,5 @@
 //
-//  ImagePreheaterTests.swift
+//  PreheaterTests.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 23/07/16.
@@ -9,23 +9,23 @@
 import XCTest
 import Nuke
 
-class ImagePreheaterTests: XCTestCase {
-    var manager: ImageManager!
+class PreheaterTests: XCTestCase {
+    var manager: Manager!
     var loader: MockImageLoader!
 
     override func setUp() {
         super.setUp()
 
         loader = MockImageLoader()
-        manager = ImageManager(loader: loader, cache: nil)
+        manager = Manager(loader: loader, cache: nil)
     }
 
     func testThatPreheatingRequestsAreStopped() {
         loader.queue.isSuspended = true
 
-        let preheater = ImagePreheater(manager: manager)
+        let preheater = Preheater(manager: manager)
 
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request])
         wait()
@@ -38,9 +38,9 @@ class ImagePreheaterTests: XCTestCase {
     func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
         loader.queue.isSuspended = true
 
-        let preheater = ImagePreheater(manager: manager)
+        let preheater = Preheater(manager: manager)
 
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request, request])
         preheater.startPreheating(for: [request])
@@ -57,9 +57,9 @@ class ImagePreheaterTests: XCTestCase {
     func testThatAllPreheatingRequestsAreStopped() {
         loader.queue.isSuspended = true
 
-        let preheater = ImagePreheater(manager: manager)
+        let preheater = Preheater(manager: manager)
 
-        let request = ImageRequest(url: defaultURL)
+        let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
         preheater.startPreheating(for: [request])
         wait(2)

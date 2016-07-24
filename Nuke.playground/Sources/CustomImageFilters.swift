@@ -43,7 +43,7 @@ public extension UIImage {
     /**
      Applies closure with a filter to the image.
      
-     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ImageProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
+     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
      
      - parameter context: Core Image context, uses shared context by default.
      - parameter filter: Closure for applying image filter.

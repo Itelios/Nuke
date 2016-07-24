@@ -4,21 +4,21 @@
 
 import Foundation
 
-public class ReusingImageLoader: ImageLoading {
-    private let loader: ImageLoading
-    private let equator: ImageRequestEquating
-    private var tasks = [ImageRequestKey: Task]()
+public class ReusingLoader: Loading {
+    private let loader: Loading
+    private let equator: RequestEquating
+    private var tasks = [RequestKey: Task]()
     private let lock = RecursiveLock()
     
-    public init(loader: ImageLoading, equator: ImageRequestEquating = ImageRequestLoadingEquator()) {
+    public init(loader: Loading, equator: RequestEquating = RequestLoadingEquator()) {
         self.loader = loader
         self.equator = equator
     }
     
     /// Loads image for the given request.
-    public func loadImage(for request: ImageRequest, progress: ImageLoadingProgress? = nil, completion: ImageLoadingCompletion) -> Cancellable {
+    public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
         return lock.synced {
-            let key = ImageRequestKey(request: request, equator: equator)
+            let key = RequestKey(request: request, equator: equator)
             var task: Task! = tasks[key]
             if task == nil {
                 task = Task()
@@ -37,7 +37,7 @@ public class ReusingImageLoader: ImageLoading {
         }
     }
     
-    private func loadImage(for request: ImageRequest, task: Task, key: ImageRequestKey) -> Cancellable {
+    private func loadImage(for request: Request, task: Task, key: RequestKey) -> Cancellable {
         return loader.loadImage(
             for: request,
             progress: { [weak self, weak task] completed, total in
@@ -53,7 +53,7 @@ public class ReusingImageLoader: ImageLoading {
             })
     }
     
-    private func unsibscribe(handler: Handler, from task: Task, key: ImageRequestKey) {
+    private func unsibscribe(handler: Handler, from task: Task, key: RequestKey) {
         lock.sync {
             if let index = task.handlers.index(where: { $0 === handler }) {
                 task.handlers.remove(at: index)
@@ -66,10 +66,10 @@ public class ReusingImageLoader: ImageLoading {
     }
     
     class Handler: Cancellable {
-        let progress: ImageLoadingProgress?
-        let completion: ImageLoadingCompletion
+        let progress: LoadingProgress?
+        let completion: LoadingCompletion
         let cancellation: (Handler) -> Void
-        init(progress: ImageLoadingProgress?, completion: ImageLoadingCompletion, cancellation: (Handler) -> Void) {
+        init(progress: LoadingProgress?, completion: LoadingCompletion, cancellation: (Handler) -> Void) {
             self.progress = progress
             self.completion = completion
             self.cancellation = cancellation

@@ -9,21 +9,21 @@ import Foundation
     import UIKit
 #endif
 
-// MARK: - ImageProcessing
+// MARK: - Processing
 
 /// Performs image processing.
-public protocol ImageProcessing: Equatable {
+public protocol Processing: Equatable {
     /// Returns processed image.
     func process(_ image: Image) -> Image?
 }
 
 // A type-erased image processor.
-public struct AnyImageProcessor: ImageProcessing {
+public struct AnyProcessor: Processing {
     private let _process: (Image) -> Image?
     private let _processor: Any
-    private let _equator: (to: AnyImageProcessor) -> Bool
+    private let _equator: (to: AnyProcessor) -> Bool
     
-    public init<P: ImageProcessing>(_ processor: P) {
+    public init<P: Processing>(_ processor: P) {
         self._process = { image in
             return processor.process(image)
         }
@@ -38,20 +38,20 @@ public struct AnyImageProcessor: ImageProcessing {
 }
 
 /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
-public func ==(lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
+public func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
     return lhs._equator(to: rhs)
 }
 
 
-// MARK: - ImageProcessorComposition
+// MARK: - ProcessorComposition
 
 /// Composes multiple image processors.
-public struct ImageProcessorComposition: ImageProcessing {
+public struct ProcessorComposition: Processing {
     /// Image processors that the receiver was initialized with.
-    public let processors: [AnyImageProcessor]
+    public let processors: [AnyProcessor]
     
     /// Composes multiple image processors.
-    public init(processors: [AnyImageProcessor]) {
+    public init(processors: [AnyProcessor]) {
         self.processors = processors
     }
     
@@ -64,7 +64,7 @@ public struct ImageProcessorComposition: ImageProcessing {
 }
 
 /// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
-public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
+public func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
     return lhs.processors.count == rhs.processors.count &&
         !(zip(lhs.processors, rhs.processors).contains{ $0 != $1 })
 }
@@ -80,7 +80,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
      
      Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
      */
-    public struct ImageDecompressor: ImageProcessing {
+    public struct ImageDecompressor: Processing {
         /// An option for how to resize the image to the target size.
         public enum ContentMode {
             /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.

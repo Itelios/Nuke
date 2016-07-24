@@ -1,5 +1,5 @@
 //
-//  ImageProcessingTest.swift
+//  ProcessingTest.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 06/10/15.
@@ -9,20 +9,20 @@
 import XCTest
 import Nuke
 
-class ImageProcessingTests: XCTestCase {
-    var manager: ImageManager!
-    var mockMemoryCache: MockImageCache!
+class ProcessingTests: XCTestCase {
+    var manager: Manager!
+    var mockMemoryCache: MockCache!
     var mockSessionManager: MockDataLoader!
 
     override func setUp() {
         super.setUp()
 
         mockSessionManager = MockDataLoader()
-        mockMemoryCache = MockImageCache()
+        mockMemoryCache = MockCache()
         
         mockSessionManager = MockDataLoader()
-        let loader = ImageLoader(dataLoader: mockSessionManager)
-        manager = ImageManager(loader: loader, cache: mockMemoryCache)
+        let loader = Loader(dataLoader: mockSessionManager, dataDecoder: ImageDataDecoder())
+        manager = Manager(loader: loader, cache: mockMemoryCache)
     }
 
     override func tearDown() {
@@ -32,7 +32,7 @@ class ImageProcessingTests: XCTestCase {
     // MARK: Applying Filters
 
     func testThatImageIsProcessed() {
-        var request = ImageRequest(url: defaultURL)
+        var request = Request(url: defaultURL)
         request.add(processor: MockImageProcessor(ID: "processor1"))
 
         expect { fulfill in
@@ -46,7 +46,7 @@ class ImageProcessingTests: XCTestCase {
 
     func testThatProcessedImageIsMemCached() {
         expect { fulfill in
-            var request = ImageRequest(url: defaultURL)
+            var request = Request(url: defaultURL)
             request.add(processor: MockImageProcessor(ID: "processor1"))
 
             manager.task(with: request) {
@@ -56,7 +56,7 @@ class ImageProcessingTests: XCTestCase {
         }
         wait()
 
-        var request = ImageRequest(url: defaultURL)
+        var request = Request(url: defaultURL)
         request.add(processor: MockImageProcessor(ID: "processor1"))
         guard let image = manager.cache?.image(for: request) else {
             XCTFail()
@@ -68,7 +68,7 @@ class ImageProcessingTests: XCTestCase {
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {
-        var request = ImageRequest(url: defaultURL)
+        var request = Request(url: defaultURL)
         request.add(processor: MockImageProcessor(ID: "processor1"))
         request.add(processor: MockImageProcessor(ID: "processor2"))
 
@@ -83,7 +83,7 @@ class ImageProcessingTests: XCTestCase {
 
     func testThatImageProcessedWithFilterCompositionIsMemCached() {
         expect { fulfill in
-            var request = ImageRequest(url: defaultURL)
+            var request = Request(url: defaultURL)
             request.add(processor: MockImageProcessor(ID: "processor1"))
             request.add(processor: MockImageProcessor(ID: "processor2"))
             manager.task(with: request) {
@@ -93,7 +93,7 @@ class ImageProcessingTests: XCTestCase {
         }
         wait()
 
-        var request = ImageRequest(url: defaultURL)
+        var request = Request(url: defaultURL)
         request.add(processor: MockImageProcessor(ID: "processor1"))
         request.add(processor: MockImageProcessor(ID: "processor2"))
         guard let image = manager.cache?.image(for: request) else {
