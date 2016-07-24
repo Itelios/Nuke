@@ -123,7 +123,11 @@ private class AnimatedImageCell: UICollectionViewCell {
     }
     
     func setImage(with url: Foundation.URL) {
-        setImage(with: ImageRequest(url: url))
+        var request = ImageRequest(url: url)
+        /// As an alternative you can wrap your processors
+        /// into AnimatedImageProcessor which skips AnimatedImages
+        request.processors.removeAll()
+        setImage(with: request)
     }
     
     func setImage(with request: ImageRequest) {
