@@ -14,12 +14,12 @@ private let cellReuseID = "reuseID"
 class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
     var preheatController: Preheat.Controller<UICollectionView>!
-    var preheater: Nuke.ImagePreheater!
+    var preheater: Nuke.Preheater!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        preheater = ImagePreheater(manager: Nuke.ImageManager.shared)
+        preheater = Preheater(manager: Nuke.Manager.shared)
 
         photos = demoPhotosURLs
         preheatController = Preheat.Controller(view: collectionView!)
@@ -75,7 +75,7 @@ class PreheatingDemoViewController: UICollectionViewController {
         let imageView = self.imageView(for: cell)
         let imageURL = photos[indexPath.row]
         imageView.image = nil
-        imageView.nk_setImage(with: ImageRequest(url: imageURL))
+        imageView.nk_setImage(with: Nuke.Request(url: imageURL))
         
         return cell
     }
@@ -96,8 +96,8 @@ class PreheatingDemoViewController: UICollectionViewController {
     // MARK: Preheating
  
     func preheatWindowChanged(addedIndexPaths: [IndexPath], removedIndexPaths: [IndexPath]) {
-        func requestForIndexPaths(_ indexPaths: [NSIndexPath]) -> [ImageRequest] {
-            return indexPaths.map { ImageRequest(url: photos[$0.row]) }
+        func requestForIndexPaths(_ indexPaths: [NSIndexPath]) -> [Nuke.Request] {
+            return indexPaths.map { Nuke.Request(url: photos[$0.row]) }
         }
         preheater.startPreheating(for: requestForIndexPaths(addedIndexPaths))
         preheater.stopPreheating(for: requestForIndexPaths(removedIndexPaths))

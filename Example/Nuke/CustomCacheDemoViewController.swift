@@ -14,8 +14,8 @@ class CustomCacheDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let loader = ImageLoader(dataLoader: DataLoader(), dataDecoder: DataDecoder(), dataCache: DFDiskCache(name: "test"))
-        imageManager =  ImageManager(loader: loader, cache: ImageCache())
+        let loader = Nuke.Loader(dataLoader: Nuke.DataLoader(), dataDecoder: Nuke.ImageDataDecoder(), dataCache: DFDiskCache(name: "test"))
+        imageManager =  Nuke.Manager(loader: loader, cache: Nuke.Cache())
     }
 
 }

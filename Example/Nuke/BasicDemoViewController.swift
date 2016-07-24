@@ -13,7 +13,7 @@ private let cellReuseID = "reuseID"
 class BasicDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
-    var imageManager = ImageManager.shared
+    var imageManager = Nuke.Manager.shared
     
     override func viewDidLoad() {
         super.viewDidLoad()

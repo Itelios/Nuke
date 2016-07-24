@@ -81,8 +81,8 @@ public extension ImageLoadingView {
     }
 
     /// Returns current task.
-    public var nk_Task: Task? {
-        return nk_imageLoadingController.Task
+    public var nk_imageTask: Task? {
+        return nk_imageLoadingController.task
     }
     
     /// Returns image loading controller associated with the view.
@@ -160,7 +160,7 @@ public typealias ImageViewLoadingHandler = (result: Task.ResultType, options: Im
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {
     /// Current task.
-    public private(set) var Task: Task?
+    public private(set) var task: Task?
     
     /// Handler that gets called each time current task completes.
     private var handler: ImageViewLoadingHandler
@@ -179,8 +179,8 @@ public class ImageViewLoadingController {
     
     /// Cancels current task.
     public func cancelLoading() {
-        Task?.cancel()
-        Task = nil
+        task?.cancel()
+        task = nil
     }
     
     /// Creates a task, subscribes to it and resumes it.
@@ -194,11 +194,11 @@ public class ImageViewLoadingController {
             }
         }
         
-        Task = manager.task(with: request) { [weak self] task, result in
-            if task == self?.Task {
+        task = manager.task(with: request) { [weak self] task, result in
+            if task == self?.task {
                 self?.handler(result: result, options: options, isFromMemoryCache: false)
             }
         }
-        Task?.resume()
+        task?.resume()
     }
 }
