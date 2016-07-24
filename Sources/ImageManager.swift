@@ -124,7 +124,7 @@ public class ImageTask: Hashable {
         case cancelled
         
         /// Some underlying error returned by class conforming to ImageLoading protocol
-        case loadingFailed(Nuke.Error)
+        case loadingFailed(AnyError)
     }
     
     public typealias ResultType = Result<Image, Error>

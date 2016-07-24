@@ -72,13 +72,13 @@ public protocol Cancellable {
     func cancel()
 }
 
-// MARK: Error
+// MARK: - AnyError
 
 /// Allows us to use ErrorProtocol in Nuke.Result without
 /// resorting to generics. Dynamic typing makes much more
 /// sense at this point, because generics are under-developed
 /// and type-safety in error handling in Nuke isn't crucial.
-public struct Error: ErrorProtocol {
+public struct AnyError: ErrorProtocol {
     public var error: ErrorProtocol
     public init(_ error: ErrorProtocol) {
         self.error = error

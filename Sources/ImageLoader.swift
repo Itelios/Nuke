@@ -7,7 +7,7 @@ import Foundation
 // MARK: - ImageLoading
 
 public typealias ImageLoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias ImageLoadingCompletion = (result: Result<Image, Error>) -> Void
+public typealias ImageLoadingCompletion = (result: Result<Image, AnyError>) -> Void
 
 /// Performs loading of images.
 public protocol ImageLoading: class {
@@ -151,7 +151,7 @@ public class ImageLoader: ImageLoading {
         }))
     }
 
-    private func complete(_ task: Task, result: Result<Image, Nuke.Error>) {
+    private func complete(_ task: Task, result: Result<Image, AnyError>) {
         task.completion(result: result)
     }
 
@@ -191,7 +191,7 @@ public class ImageLoader: ImageLoading {
         then(for: task) {
             switch result {
             case let .success(val): block(val)
-            case let .failure(err): self.complete(task, result: .failure(Nuke.Error(err)))
+            case let .failure(err): self.complete(task, result: .failure(AnyError(err)))
             }
         }
     }
