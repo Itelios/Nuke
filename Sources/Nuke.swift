@@ -45,7 +45,7 @@ public extension Manager {
 public extension Manager {
     public static var shared: Manager = {
         let loader = Loader(dataLoader: DataLoader(), dataDecoder: ImageDataDecoder())
-        return Manager(loader: loader, cache: Cache())
+        return Manager(loader: DeduplicatingLoader(loader: loader), cache: Cache())
     }()
 }
 

@@ -11,7 +11,7 @@ public typealias LoadingCompletion = (result: Result<Image, AnyError>) -> Void
 
 /// Performs loading of images.
 public protocol Loading: class {
-    /// Loads image for the given request.
+    /// Loads an image for the given request.
     func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion) -> Cancellable
 }
 

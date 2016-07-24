@@ -7,7 +7,7 @@ import Foundation
 // MARK: RequestKey
 
 /// Makes it possible to use Request as a key.
-final class RequestKey: Hashable {
+struct RequestKey: Hashable {
     private let request: Request
     private let equator: RequestEquating
     

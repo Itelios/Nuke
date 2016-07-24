@@ -11,30 +11,32 @@ import Foundation
 import XCTest
 import Nuke
 
-class ReusingLoaderTests: XCTestCase {
-    var reuser: ReusingLoader!
+class DeduplicatingLoaderTests: XCTestCase {
+    var deduplicator: DeduplicatingLoader!
     var loader: MockImageLoader!
     
     override func setUp() {
         super.setUp()
         
         loader = MockImageLoader()
-        reuser = ReusingLoader(loader: loader)
+        deduplicator = DeduplicatingLoader(loader: loader)
     }
 
-    func testThatTasksAreReused() {
+    func testThatEquivalentRequestsAreDeduplicated() {
         let request1 = Request(url: defaultURL)
         let request2 = Request(url: defaultURL)
         XCTAssertTrue(RequestLoadingEquator().isEqual(request1, to: request2))
 
         expect { fulfill in
-            _ = reuser.loadImage(for: request1) { _ in
+            _ = deduplicator.loadImage(for: request1) { result in
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            _ = reuser.loadImage(for: request2) { _ in
+            _ = deduplicator.loadImage(for: request2) { result in
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }
         }
@@ -44,19 +46,21 @@ class ReusingLoaderTests: XCTestCase {
         }
     }
     
-    func testThatTasksForRequestsWithDifferentCachePolicyAreNotReused() {
+    func testThatNonEquivalentRequestsAreNotDeduplicated() {
         let request1 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
         XCTAssertFalse(RequestLoadingEquator().isEqual(request1, to: request2))
         
         expect { fulfill in
-            _ = reuser.loadImage(for: request1) { _ in
+            _ = deduplicator.loadImage(for: request1) { result in
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }
         }
         
         expect { fulfill in
-            _ = reuser.loadImage(for: request2) { _ in
+            _ = deduplicator.loadImage(for: request2) { result in
+                XCTAssertTrue(result.isSuccess)
                 fulfill()
             }
         }
@@ -66,11 +70,13 @@ class ReusingLoaderTests: XCTestCase {
         }
     }
     
-    func testThatTaskWithRemainingHandlersDontGetCancelled() {
+    func testThatDeduplicatedRequestIsNotCancelledAfterSingleUnsubsribe() {
         loader.queue.isSuspended = true
 
-        let manager = Manager(loader: reuser, cache: nil)
+        let manager = Manager(loader: deduplicator, cache: nil)
         
+        // We test it using Manager because Loader is not required
+        // to call completion handler for cancelled requests.
         let task1 = expected { fulfill in
             return manager.task(with: defaultURL) {
                 XCTAssertTrue($0.state == .cancelled)
@@ -111,7 +117,7 @@ class ReusingLoaderTests: XCTestCase {
         
         expect { fulfill in
             var completedUnitCount: Int64 = 0
-            _ = reuser.loadImage(for: request1, progress: { completed, total in
+            _ = deduplicator.loadImage(for: request1, progress: { completed, total in
                 completedUnitCount += 50
                 XCTAssertEqual(completedUnitCount, completed)
                 if completed == total {
@@ -124,7 +130,7 @@ class ReusingLoaderTests: XCTestCase {
         
         expect { fulfill in
             var completedUnitCount: Int64 = 0
-            _ = reuser.loadImage(for: request2, progress: { completed, total in
+            _ = deduplicator.loadImage(for: request2, progress: { completed, total in
                 completedUnitCount += 50
                 XCTAssertEqual(completedUnitCount, completed)
                 if completed == total {
@@ -137,6 +143,35 @@ class ReusingLoaderTests: XCTestCase {
         
         // wait till both tasks are fully registered
         loader.queue.isSuspended = false
+        
+        wait()
+    }
+    
+    func testThreadSafety() {
+        for _ in 0..<500 {
+            self.expect { fulfill in
+                DispatchQueue.global().async {
+                    let request = Request(url: URL(string: "\(defaultURL)/\(arc4random_uniform(10))")!)
+                    let shouldCancel = arc4random_uniform(3) == 0
+                    
+                    let task = self.deduplicator.loadImage(for: request) {
+                        if shouldCancel {
+                            // do nothing, we don't expect completion on cancel
+                        } else {
+                            XCTAssertTrue($0.isSuccess)
+                            fulfill()
+                        }
+                    }
+                    
+                    if shouldCancel {
+                        DispatchQueue.global().async {
+                            task.cancel()
+                            fulfill()
+                        }
+                    }
+                }
+            }
+        }
         
         wait()
     }

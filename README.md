@@ -28,6 +28,7 @@ Nuke.task(with: request) { response in
 - Protocol for integrating any third-party caching library
 - Automates image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
 - Create, compose and apply image filters
+- Deduplicate equivalent requests 
 - Background image decompression
 - Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
 
@@ -285,6 +286,15 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 ```
 
 `Nuke.task(with: _:)` family of functions are just shortcuts for methods of the `ImageManager` class.
+
+#### Request Deduplication
+
+If you attempt to load an image using `DeduplicatingLoader` more than once before the initial load is complete, it would merge duplicate tasks - the image would be loaded only once. In order to enable deduplication you should wrap a `Loading` instance into a `DeduplicatingLoader` object. The shared `Manager` uses `DeduplicatingLoader` by default.
+
+```swift
+let loader = Loader(dataLoader: DataLoader(), dataDecoder: ImageDataDecoder())
+let manager = Manager(loader: DeduplicatingLoader(loader: loader))
+```
 
 #### Customizing Image Manager
 
