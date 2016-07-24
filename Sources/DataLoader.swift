@@ -7,7 +7,7 @@ import Foundation
 // MARK: - DataLoading
 
 public typealias DataLoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), NSError>) -> Void
+public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), AnyError>) -> Void
 
 /// Performs loading of image data.
 public protocol DataLoading {
@@ -76,7 +76,7 @@ public final class DataLoader: DataLoading {
                         handler.completion(result: .success(val))
                     } else {
                         let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
-                        handler.completion(result: .failure(error))
+                        handler.completion(result: .failure(AnyError(error)))
                     }
                     handlers[task] = nil
                 }

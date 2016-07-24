@@ -108,6 +108,6 @@ public protocol Cancellable {
 public struct AnyError: ErrorProtocol {
     public var cause: ErrorProtocol
     public init(_ cause: ErrorProtocol) {
-        self.cause = cause
+        self.cause = (cause as? AnyError)?.cause ?? cause
     }
 }
