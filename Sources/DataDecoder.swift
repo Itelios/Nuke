@@ -22,7 +22,7 @@ public protocol DataDecoding {
 private let lock = Lock()
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
-public class ImageDataDecoder: DataDecoding {
+public struct ImageDataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 
@@ -43,26 +43,5 @@ public class ImageDataDecoder: DataDecoding {
                 return UIImage(data: data, scale: scale)
             #endif
         }
-    }
-}
-
-/// Composes multiple image decoders.
-public class DataDecoderComposition: DataDecoding {
-    /// Image decoders that the receiver was initialized with.
-    public let decoders: [DataDecoding]
-
-    /// Composes multiple image decoders.
-    public init(decoders: [DataDecoding]) {
-        self.decoders = decoders
-    }
-
-    /// Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
-    public func decode(data: Data, response: URLResponse) -> Image? {
-        for decoder in decoders {
-            if let image = decoder.decode(data: data, response: response) {
-                return image
-            }
-        }
-        return nil
     }
 }

@@ -69,6 +69,7 @@ public class ReusingLoader: Loading {
         let progress: LoadingProgress?
         let completion: LoadingCompletion
         let cancellation: (Handler) -> Void
+        
         init(progress: LoadingProgress?, completion: LoadingCompletion, cancellation: (Handler) -> Void) {
             self.progress = progress
             self.completion = completion
