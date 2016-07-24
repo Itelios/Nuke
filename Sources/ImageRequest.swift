@@ -31,13 +31,12 @@ public struct ImageRequest {
     /// The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
     public var memoryCachePolicy = MemoryCachePolicy.returnCachedImageElseLoad
 
-    #if os(OSX)
-    /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters. Empty by default.
-        public var processors = [ImageProcessing]()
-    #else
-    /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters. By default contains an instance of ImageDecompressor.
-        public var processors: [ImageProcessing] = [ImageDecompressor()]
-    #endif
+    /// Filters to be applied to the image.
+    public var processors = [AnyImageProcessor]()
+    
+    public mutating func add<T: ImageProcessing>(processor: T) {
+        processors.append(AnyImageProcessor(processor))
+    }
 
     /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?
@@ -54,7 +53,7 @@ public struct ImageRequest {
 }
 
 extension ImageRequest {
-    var processor: ImageProcessing? {
+    var processor: ImageProcessorComposition? {
         return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
 }
@@ -69,7 +68,7 @@ public struct ImageRequestLoadingEquator: ImageRequestEquating {
     public init() {}
     
     public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return isLoadEquivalent(a.urlRequest, to: b.urlRequest) && isEquivalent(a.processor, rhs: b.processor)
+        return isLoadEquivalent(a.urlRequest, to: b.urlRequest) && a.processor == b.processor
     }
     
     private func isLoadEquivalent(_ a: URLRequest, to b: URLRequest) -> Bool {
@@ -85,7 +84,6 @@ public struct ImageRequestCachingEquator: ImageRequestEquating {
     public init() {}
     
     public func isEqual(_ a: ImageRequest, to b: ImageRequest) -> Bool {
-        return a.urlRequest.url == b.urlRequest.url &&
-            isEquivalent(a.processor, rhs: b.processor)
+        return a.urlRequest.url == b.urlRequest.url && a.processor == b.processor
     }
 }

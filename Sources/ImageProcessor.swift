@@ -11,46 +11,50 @@ import Foundation
 
 // MARK: - ImageProcessing
 
-/**
-Performs image processing.
-
-Types that implement `ImageProcessing` protocol should either use one of the default implementations of `isEquivalent(_:)` method or provide their own implementation, which is required to cache processed images.
-*/
-public protocol ImageProcessing {
+/// Performs image processing.
+public protocol ImageProcessing: Equatable {
     /// Returns processed image.
     func process(_ image: Image) -> Image?
-
-    /// Compares two processors for equivalence. Two processors are equivalent if they produce the same image for the same input. For more info see the extensions that provide default implementations of this method.
-    func isEquivalent(_ other: ImageProcessing) -> Bool
 }
 
-public extension ImageProcessing {
-    /// Returns true if both processors are instances of the same class. Use this implementation when your filter doesn't have any parameters.
-    public func isEquivalent(_ other: ImageProcessing) -> Bool {
-        return other is Self
+// A type-erased image processor.
+public struct AnyImageProcessor: ImageProcessing {
+    private let _process: (Image) -> Image?
+    private let _processor: Any
+    private let _equator: (to: AnyImageProcessor) -> Bool
+    
+    public init<P: ImageProcessing>(_ processor: P) {
+        self._process = { image in
+            return processor.process(image)
+        }
+        self._processor = processor
+        self._equator = { other in
+            return (other._processor as? P) == processor
+        }
+    }
+    public func process(_ image: Image) -> Image? {
+        return self._process(image)
     }
 }
 
-public extension ImageProcessing where Self: Equatable {
-    /// Compares processors using == function.
-    public func isEquivalent(_ other: ImageProcessing) -> Bool {
-        return (other as? Self) == self
-    }
+/// Returns true if both decompressors have the same `targetSize` and `contentMode`.
+public func ==(lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
+    return lhs._equator(to: rhs)
 }
 
 
 // MARK: - ImageProcessorComposition
 
 /// Composes multiple image processors.
-public class ImageProcessorComposition: ImageProcessing, Equatable {
+public struct ImageProcessorComposition: ImageProcessing {
     /// Image processors that the receiver was initialized with.
-    public let processors: [ImageProcessing]
-
+    public let processors: [AnyImageProcessor]
+    
     /// Composes multiple image processors.
-    public init(processors: [ImageProcessing]) {
+    public init(processors: [AnyImageProcessor]) {
         self.processors = processors
     }
-
+    
     /// Processes the given image by applying each processor in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
     public func process(_ input: Image) -> Image? {
         return processors.reduce(input as Image!) { image, processor in
@@ -62,30 +66,21 @@ public class ImageProcessorComposition: ImageProcessing, Equatable {
 /// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
 public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
     return lhs.processors.count == rhs.processors.count &&
-        !(zip(lhs.processors, rhs.processors).contains{ !$0.isEquivalent($1) })
-}
-
-
-func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
-    switch (lhs, rhs) {
-    case let (l?, r?): return l.isEquivalent(r)
-    case (nil, nil): return true
-    default: return false
-    }
+        !(zip(lhs.processors, rhs.processors).contains{ $0 != $1 })
 }
 
 #if !os(OSX)
-
+    
     // MARK: - ImageDecompressor
-
+    
     /**
-    Decompresses and scales input images.
-
-    If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ContentMode enum for more info). Image is scaled maintaining aspect ratio.
-
-    Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
-    */
-    public class ImageDecompressor: ImageProcessing, Equatable {
+     Decompresses and scales input images.
+     
+     If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ContentMode enum for more info). Image is scaled maintaining aspect ratio.
+     
+     Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
+     */
+    public struct ImageDecompressor: ImageProcessing {
         /// An option for how to resize the image to the target size.
         public enum ContentMode {
             /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
@@ -100,13 +95,13 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         
         /// Target size in pixels. Default value is MaximumSize.
         private let targetSize: CGSize
-
+        
         /// An option for how to resize the image to the target size. Default value is .AspectFill. See ContentMode enum for more info.
         private let contentMode: ContentMode
-
+        
         /**
          Initializes the receiver with target size and content mode.
-
+         
          - parameter targetSize: Target size in pixels. Default value is MaximumSize.
          - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ContentMode enum for more info.
          */
@@ -114,18 +109,18 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
             self.targetSize = targetSize
             self.contentMode = contentMode
         }
-
+        
         /// Decompresses the input image.
         public func process(_ image: Image) -> Image? {
             return decompress(image, targetSize: targetSize, contentMode: contentMode)
         }
     }
-
+    
     /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
     public func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
-
+    
     private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
         let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
@@ -134,19 +129,19 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
         return decompress(image, scale: CGFloat(min(scale, 1)))
     }
-
+    
     private func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
         
         let size = CGSize(width: round(scale * CGFloat(cgImage.width)),
                           height: round(scale * CGFloat(cgImage.height)))
-
+        
         // For more info see:
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
         let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
-    
+        
         guard let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: alphaInfo.rawValue) else {
             return image
         }
@@ -154,7 +149,7 @@ func isEquivalent(_ lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         guard let decompressed = ctx.makeImage() else { return image }
         return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
     }
-
+    
     private func isOpaque(_ image: CGImage) -> Bool {
         let alpha = image.alphaInfo
         return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast

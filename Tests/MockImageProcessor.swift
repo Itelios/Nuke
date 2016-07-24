@@ -41,9 +41,3 @@ class MockImageProcessor: ImageProcessing {
 func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
     return lhs.ID == rhs.ID
 }
-
-class MockParameterlessImageProcessor: ImageProcessing {
-    func process(_ image: Image) -> Image? {
-        return image
-    }
-}

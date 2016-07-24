@@ -142,7 +142,7 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func process(_ image: Image, task: Task, processor: ImageProcessing) {
+    private func process<P: ImageProcessing>(_ image: Image, task: Task, processor: P) {
         enterState(task, state: .processing(BlockOperation() {
             let result = Result(value: processor.process(image), error: Error.processingFailed)
             self.then(for: task, result: result) { image in
