@@ -20,8 +20,6 @@ class ManagerTests: XCTestCase {
         manager = Manager(loader: loader, cache: nil)
     }
 
-    // MARK: Basics
-
     func testThatRequestIsCompelted() {
         expect { fulfill in
             manager.task(with: Request(url: defaultURL)) {
@@ -77,11 +75,19 @@ class ManagerTests: XCTestCase {
             }
         }
 
-        XCTAssertTrue(task.state == .suspended)
+        // Wait until task is started
+        _ = expectNotification(MockImageLoader.DidStartTask) { _ in
+            // Here's a potential problem: as a result of this
+            // task gets cancelled during the resume()
+            // which leads to MockTask now being cancelled
+            task.cancel()
+            return true
+        }
+
         task.resume()
-        XCTAssertTrue(task.state == .running)
-        task.cancel()
         XCTAssertTrue(task.state == .cancelled)
+        
+        _ = expectNotification(MockImageLoader.DidCancelTask)
 
         wait()
     }

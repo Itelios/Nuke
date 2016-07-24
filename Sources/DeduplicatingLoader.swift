@@ -41,13 +41,13 @@ public final class DeduplicatingLoader: Loading {
             let handler = Handler(progress, completion, cancellation: {
                 [weak self, weak task] handler in
                 if let task = task {
-                    self?.unsibscribe(handler: handler, from: task, key: key)
+                    self?.remove(handler: handler, from: task, key: key)
                 }
             })
             
             // Register the handler and start the request if necessary
             task.handlers.append(handler)
-            if task.underlyingTask == nil { // defered till the end
+            if task.underlyingTask == nil { // deferred till the end
                 task.underlyingTask = loadImage(for: request, task: task, key: key)
             }
             return handler
@@ -70,7 +70,7 @@ public final class DeduplicatingLoader: Loading {
             })
     }
     
-    private func unsibscribe(handler: Handler, from task: Task, key: RequestKey) {
+    private func remove(handler: Handler, from task: Task, key: RequestKey) {
         lock.sync {
             if let index = task.handlers.index(where: { $0 === handler }) {
                 task.handlers.remove(at: index)

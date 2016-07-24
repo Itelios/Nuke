@@ -6,60 +6,43 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [**preheating**](https://kean.github.io/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
-
-```swift
-var request = Request(url: NSURL(string: "http://..."))
-request.processors = [ImageFilterGaussianBlur()] // Apply image filter
-
-Nuke.task(with: request) { response in
-    let image = response.image
-}.resume()
-```
+Micro-framework for loading, processing, caching and [preheating](https://kean.github.io/blog/image-preheating) images. Get started at http://kean.github.io/Nuke
 
 ## <a name="h_features"></a>Features
 
-- User-friendly API, zero configuration required
-- Performant, asynchronous, thread safe
-- Nuke is a [pipeline](#h_design) with injectable dependencies
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- Simple, user-friendly API, zero configuration required
+- Performant, asynchronous, thread-safe
 - Extensions for UI components
 - Two [cache layers](https://kean.github.io/blog/image-caching) including auto purging memory cache
-- Protocol for integrating any third-party caching library
-- Automates image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
-- Create, compose and apply image filters
-- Deduplicate equivalent requests 
 - Background image decompression
-- Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
+- Deduplication of equivalent requests
+- Create and apply image filters
+- Automate image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
+- [Pipeline](#h_design) with injectable dependencies
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 
-- iOS 8.0+ / watchOS 2.0+ / OS X 10.10+ / tvOS 9.0+
-- Xcode 7.3+, Swift 2.2+
+- iOS 8.0 / watchOS 2.0 / OS X 10.10 / tvOS 9.0
+- Xcode 8, Swift 3
 
 ## <a name="h_getting_started"></a>Getting Started
 
-- Best place to get started is http://kean.github.io/Nuke
-- Get a demo project using `pod try Nuke` command
-- Experiment with Nuke in a [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
+- Get started at http://kean.github.io/Nuke
+- [Documentation](http://kean.github.io/Nuke/docs/)
+- Get a demo project using `pod try Nuke`
+- Swift [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 - [Install](#installation) and `import Nuke`
-
-## <a name="h_documentation"></a>Documentation
-
-- API reference: [iOS](http://kean.github.io/Nuke/docs/ios/) / [OSX](http://kean.github.io/Nuke/docs/osx/) / [tvOS](http://kean.github.io/Nuke/docs/tvos/) / [watchOS](http://kean.github.io/Nuke/docs/watchos/)
-- [Usage](http://kean.github.io/Nuke/usage/)
-- [Plugins](http://kean.github.io/Nuke/plugins/)
-- [Docs](http://kean.github.io/Nuke/docs/)
 
 ## <a name="h_usage"></a>Usage
 
-#### Creating Image Task
+#### Loading Image
 
-Loading an image is as simple as creating and resuming an `Task`. Nuke is thread safe, you can freely create and resume tasks from any thread. The completion closure is called on the main thread.
+Loading an image is as simple as creating and resuming a `Task`. The completion closure is called on the main thread.
 
 ```swift
-Nuke.task(with: NSURL(URL: "http://...")!) {
-    let image = $0.image
+Nuke.task(with: URL(string: "http://...")!) { result in
+    let image = result.value
 }.resume()
 ```
 

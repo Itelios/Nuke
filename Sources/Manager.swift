@@ -4,13 +4,10 @@
 
 import Foundation
 
-// MARK: - Manager
-
-/**
-The `Manager` class and related classes provide methods for loading, processing, caching images.
-
-`Manager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
-*/
+/// Mananges creating and execution of image tasks.
+///
+/// `Manager` loads images using injectable dependencies conforming to `Loading`,
+/// and `Caching` protocols.
 public class Manager {
     public var loader: Loading
     public var cache: Caching?
@@ -19,27 +16,27 @@ public class Manager {
     private let lock = RecursiveLock()
     
     /// Returns all executing tasks.
-    public var tasks: Set<Task> {
-        return lock.synced { executingTasks }
-    }
+    public var tasks: Set<Task> { return lock.synced { executingTasks } }
 
     // MARK: Configuring Manager
 
-    /// Initializes image manager with a given loader and cache.
+    /// Initializes `Manager` instance with the given loader and cache.
     public init(loader: Loading, cache: Caching?) {
         self.loader = loader
         self.cache = cache
     }
     
     // MARK: Making Tasks
+
+    public typealias Completion = (task: Task, response: Task.Response) -> Void
     
-    public typealias Completion = (task: Task, result: Result<Image, Task.Error>) -> Void
-    
-    /**
-     Creates a task with a given request. After you create a task, you start it by calling its resume method.
-     
-     The manager holds a strong reference to the task until it is either completes or get cancelled.
-     */
+    /// Creates a task with the given `Request`. After you create a task, 
+    /// start it using `resume()` method. The completion closure gets called
+    /// on the main thread when tasks either completes or gets cancelled.
+    /// - parameter options: `Options()` be default.
+    ///
+    /// The manager maintains a strong reference to the task until it finishes
+    /// or fails.
     public func task(with request: Request, options: Options = Options(), completion: Completion? = nil) -> Task {
         let task = Task()
         let ctx = Context(request: request, options: options, completion: completion)
@@ -62,7 +59,7 @@ public class Manager {
 
             if ctx.options.memoryCachePolicy == .returnCachedObjectElseLoad,
                 let image = cache?.image(for: ctx.request) {
-                complete(task, result: .success(image), ctx: ctx)
+                complete(task, response: .success(image), ctx: ctx)
             } else {
                 loadImage(for: task, ctx: ctx)
             }
@@ -85,9 +82,9 @@ public class Manager {
                         if ctx.options.memoryCacheStorageAllowed {
                             self?.cache?.setImage(image, for: ctx.request)
                         }
-                        self?.complete(task, result: .success(image), ctx: ctx)
+                        self?.complete(task, response: .success(image), ctx: ctx)
                     case let .failure(err):
-                        self?.complete(task, result: .failure(.loadingFailed(err)), ctx: ctx)
+                        self?.complete(task, response: .failure(.loadingFailed(err)), ctx: ctx)
                     }
                 }
             })
@@ -100,49 +97,46 @@ public class Manager {
                 executingTasks.remove(task)
             }
             task.state = .cancelled
-            dispatch(result: .failure(.cancelled), for: task, ctx: ctx)
+            dispatch(response: .failure(.cancelled), for: task, ctx: ctx)
         }
     }
 
-    private func complete(_ task: Task, result: Result<Image, Task.Error>, ctx: Context) {
+    private func complete(_ task: Task, response: Task.Response, ctx: Context) {
         if task.state == .running {
             task.state = .completed
             executingTasks.remove(task)
-            dispatch(result: result, for: task, ctx: ctx)
+            dispatch(response: response, for: task, ctx: ctx)
         }
     }
 
-    private func dispatch(result: Result<Image, Task.Error>, for task: Task, ctx: Context) {
+    private func dispatch(response: Task.Response, for task: Task, ctx: Context) {
         if let completion = ctx.completion {
-            DispatchQueue.main.async {
-                completion(task: task, result: result)
-            }
+            DispatchQueue.main.async { completion(task: task, response: response) }
         }
     }
     
-    // MARK: - Options
-    
-    /// Memory caching options
+    /// A set of options affecting how `Manager` deliveres an image.
     public struct Options {
-        /// Defines constants that can be used to modify the way Manager interacts with the memory cache.
+        /// Defines the way `Manager` interacts with the memory cache.
         public enum MemoryCachePolicy {
-            /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
+            /// Return memory cached image corresponding the request.
+            /// If there is no existing image in the memory cache, 
+            /// the image manager continues with the request.
             case returnCachedObjectElseLoad
             
-            /// Reload using ignoring memory cached objects. Doesn't affect on-disk caching.
+            /// Reload using ignoring memory cached objects.
             case reloadIgnoringCachedObject
         }
         
-        /// Specifies whether loaded object should be stored into memory cache. Default value is true.
+        /// Specifies whether loaded object should be stored into memory cache.
+        /// `true` be default.
         public var memoryCacheStorageAllowed = true
         
-        /// The request memory cache policy. Default value is .returnCachedObjectElseLoad.
+        /// `.returnCachedObjectElseLoad` by default.
         public var memoryCachePolicy = MemoryCachePolicy.returnCachedObjectElseLoad
 
         public init() {}
     }
-    
-    // MARK: - Execution Context
     
     /// Task execution context.
     private class Context {
@@ -159,40 +153,38 @@ public class Manager {
     }
 }
 
-/// Respresents image task.
+/// Respresents the image task.
+///
+/// Task is always in one of four states: `suspended`, `running`, `cancelled` or
+/// `completed`. The task is always created in a `suspended` state. You can use
+/// the corresponding `resume()` and `cancel()` methods to control the task's 
+/// state. It's always safe to call these methods, no matter in which state
+/// the task is currently in.
 public class Task: Hashable {
+    public typealias Response = Result<Image, Error>
+    
     public enum Error: ErrorProtocol {
+        /// `Task` was cancelled.
         case cancelled
         
-        /// Some underlying error returned by class conforming to Loading protocol
+        /// Some underlying error returned by `Loading` instance
         case loadingFailed(AnyError)
     }
     
-    /**
-     The state of the task. Allowed transitions include:
-     - suspended -> [running, cancelled]
-     - running -> [cancelled, completed]
-     - cancelled -> []
-     - completed -> []
-     */
+    /// The state of the `Task`. Allowed transitions:
+    /// - suspended -> [running, cancelled]
+    /// - running -> [cancelled, completed]
     public enum State {
         case suspended, running, cancelled, completed
     }
     
-    // MARK: Obtainig General Task Information
-    
-    /// Return hash value for the receiver.
-    public var hashValue: Int { return unsafeAddress(of: self).hashValue }
-    
-    
-    // MARK: Obraining Task Progress
+    // MARK: Obtaining Task Progress
     
     /// Return current task progress. Initial value is (0, 0).
     public private(set) var progress = Progress()
     
-    /// A progress closure that gets periodically during the lifecycle of the task.
+    /// A progress closure, gets periodically during when image is loaded.
     public var progressHandler: ((progress: Progress) -> Void)?
-    
     
     // MARK: Controlling Task State
     
@@ -205,13 +197,15 @@ public class Task: Hashable {
         }
     }
     
-    /// Resumes the task if suspended. Resume methods are nestable.
+    /// Resumes the task if suspended.
     public func resume() { resumeHandler?(task: self) }
     private var resumeHandler: ((task: Task) -> Void)?
     
     /// Cancels the task if it hasn't completed yet.
     public func cancel() { cancellationHandler?(task: self) }
     private var cancellationHandler: ((task: Task) -> Void)?
+    
+    public var hashValue: Int { return unsafeAddress(of: self).hashValue }
 }
 
 /// Compares two image tasks by reference.

@@ -13,7 +13,7 @@ import Foundation
 ///
 /// To start preheating images call `startPreheating(for:)` method. When you
 /// need an individual image just create a `Task` using `Manager`.
-/// When preheating is no logner necessary call `stopPreheating(for:)` method.
+/// When preheating is no longer necessary call `stopPreheating(for:)` method.
 ///
 /// `Preheater` guarantees that its tasks never interfere with regular tasks
 /// created for individual images which always run first.
