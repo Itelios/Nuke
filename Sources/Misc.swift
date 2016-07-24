@@ -85,9 +85,11 @@ final class Operation: Foundation.Operation {
     
     private func finish() {
         lock.sync {
-            isExecuting = false
-            isFinished = true
-            cancellation = nil
+            if !isFinished {
+                isExecuting = false
+                isFinished = true
+                cancellation = nil
+            }
         }
     }
     

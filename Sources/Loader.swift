@@ -111,6 +111,7 @@ public class Loader: Loading {
                     }
             })
             return {
+                fulfill()
                 dataTask.cancel()
             }
         }))
