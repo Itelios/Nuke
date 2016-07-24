@@ -14,17 +14,22 @@ private let cellReuseID = "reuseID"
 class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
     var preheatController: Preheat.Controller<UICollectionView>!
-    var preheater: Nuke.Preheater!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        preheater = Preheater(manager: Nuke.Manager.shared)
-
+        func request(for indexPaths: [NSIndexPath]) -> [Nuke.Request] {
+            return indexPaths.map { Nuke.Request(url: photos[$0.row]) }
+        }
+        
+        let preheater = Preheater(manager: Nuke.Manager.shared)
+        
         photos = demoPhotosURLs
         preheatController = Preheat.Controller(view: collectionView!)
-        preheatController.handler = { [weak self] in
-            self?.preheatWindowChanged(addedIndexPaths: $0, removedIndexPaths: $1)
+        preheatController.handler = { addedIndexPaths, removedIndexPaths in
+            preheater.startPreheating(for: request(for: addedIndexPaths))
+            preheater.stopPreheating(for: request(for: removedIndexPaths))
+            logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
         }
         
         collectionView?.backgroundColor = UIColor.white()
@@ -92,26 +97,15 @@ class PreheatingDemoViewController: UICollectionViewController {
         }
         return imageView!
     }
-    
-    // MARK: Preheating
- 
-    func preheatWindowChanged(addedIndexPaths: [IndexPath], removedIndexPaths: [IndexPath]) {
-        func requestForIndexPaths(_ indexPaths: [NSIndexPath]) -> [Nuke.Request] {
-            return indexPaths.map { Nuke.Request(url: photos[$0.row]) }
+}
+
+private func logAddedIndexPaths(_ addedIndexPath: [IndexPath], removedIndexPaths: [IndexPath]) {
+    func stringForIndexPaths(_ indexPaths: [IndexPath]) -> String {
+        guard indexPaths.count > 0 else {
+            return "[]"
         }
-        preheater.startPreheating(for: requestForIndexPaths(addedIndexPaths))
-        preheater.stopPreheating(for: requestForIndexPaths(removedIndexPaths))
-        logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
+        let items = indexPaths.map{ return "\(($0 as NSIndexPath).item)" }.joined(separator: " ")
+        return "[\(items)]"
     }
-    
-    func logAddedIndexPaths(_ addedIndexPath: [IndexPath], removedIndexPaths: [IndexPath]) {
-        func stringForIndexPaths(_ indexPaths: [IndexPath]) -> String {
-            guard indexPaths.count > 0 else {
-                return "[]"
-            }
-            let items = indexPaths.map{ return "\(($0 as NSIndexPath).item)" }.joined(separator: " ")
-            return "[\(items)]"
-        }
-        print("did change preheat rect with added indexes \(stringForIndexPaths(addedIndexPath)), removed indexes \(stringForIndexPaths(removedIndexPaths))")
-    }
+    print("did change preheat rect with added indexes \(stringForIndexPaths(addedIndexPath)), removed indexes \(stringForIndexPaths(removedIndexPaths))")
 }

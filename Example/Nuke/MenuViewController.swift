@@ -64,7 +64,7 @@ class MenuViewController: UITableViewController {
             self?.push(controller)
         })
 
-        items.append(MenuItem(title: "Preheat Demo", subtitle: "Uses Preheat package") { [weak self] in
+        items.append(MenuItem(title: "Preheat Demo", subtitle: "Uses Preheat library") { [weak self] in
             let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = $0.title
             self?.push(controller)

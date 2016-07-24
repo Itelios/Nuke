@@ -30,7 +30,7 @@ public final class DeduplicatingLoader: Loading {
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
         return lock.synced {
             // Find existing or create a new task (manages multiple handlers)
-            let key = RequestKey(request: request, equator: equator)
+            let key = RequestKey(request, equator: equator)
             var task: Task! = tasks[key]
             if task == nil {
                 task = Task()

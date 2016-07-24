@@ -242,21 +242,30 @@ public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bo
 
 #### Preheating Images
 
-[Preheating](https://kean.github.io/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
+[Preheating](https://kean.github.io/blog/image-preheating) means loading and caching images ahead of time in anticipation of its use. Nuke provides a `Preheater` class with a set of self-explanatory methods for image preheating which were inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
 
 ```swift
-let requests = [Request(url: imageURL1), Request(url: imageURL2)]
-Nuke.startPreheating(for: requests: requests)
-Nuke.stopPreheating(for: requests: requests)
+let preheater = Preheater(manager: Manager.shared)
+
+// User enters the screen:
+let requests = [Request(url: imageURL1), Request(url: imageURL2), ...]
+preheater.startPreheating(for: requests)
+
+// User leaves the screen:
+preheater.stopPreheating(for: requests)
 ```
 
 #### Automating Preheating
 
-Nuke can be used in conjuction with [Preheat](https://github.com/kean/Preheat) package which automates precaching of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
+You can use Nuke with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
 
 ```swift
-let preheater = PreheatControllerForCollectionView(collectionView: <#collectionView#>)
-preheater.delegate = self // Signals when preheat index paths change
+let preheater = Nuke.Preheater(manager: Manager.shared)
+let controller = Preheat.Controller(view: <#collectionView#>)
+controller.handler = { addedIndexPaths, removedIndexPaths in
+    preheater.startPreheating(for: requests(for: addedIndexPaths))
+    preheater.stopPreheating(for: requests(for: removedIndexPaths))
+}
 ```
 
 #### Caching Images

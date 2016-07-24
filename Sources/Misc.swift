@@ -11,7 +11,7 @@ struct RequestKey: Hashable {
     private let request: Request
     private let equator: RequestEquating
     
-    init(request: Request, equator: RequestEquating) {
+    init(_ request: Request, equator: RequestEquating) {
         self.request = request
         self.equator = equator
     }

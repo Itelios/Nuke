@@ -75,7 +75,7 @@ public class Cache: Caching {
     }
 
     private func makeKey(for request: Request) -> Wrapped<RequestKey> {
-        return Wrapped(val: RequestKey(request: request, equator: equator))
+        return Wrapped(val: RequestKey(request, equator: equator))
     }
 
     // MARK: Subclassing Hooks

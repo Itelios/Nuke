@@ -12,18 +12,18 @@ import Nuke
 class PreheaterTests: XCTestCase {
     var manager: Manager!
     var loader: MockImageLoader!
+    var preheater: Preheater!
 
     override func setUp() {
         super.setUp()
 
         loader = MockImageLoader()
         manager = Manager(loader: loader, cache: nil)
+        preheater = Preheater(manager: manager)
     }
 
     func testThatPreheatingRequestsAreStopped() {
         loader.queue.isSuspended = true
-
-        let preheater = Preheater(manager: manager)
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
@@ -35,10 +35,8 @@ class PreheaterTests: XCTestCase {
         wait()
     }
 
-    func testThatSimilarPreheatingRequestsAreStoppedWithSingleStopCall() {
+    func testThatEquaivalentRequestsAreStoppedWithSingleStopCall() {
         loader.queue.isSuspended = true
-
-        let preheater = Preheater(manager: manager)
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
@@ -56,8 +54,6 @@ class PreheaterTests: XCTestCase {
 
     func testThatAllPreheatingRequestsAreStopped() {
         loader.queue.isSuspended = true
-
-        let preheater = Preheater(manager: manager)
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
