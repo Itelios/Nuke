@@ -56,7 +56,7 @@ class BasicDemoViewController: UICollectionViewController {
         let imageView = imageViewForCell(cell)
         imageView.image = nil
         let imageURL = photos[indexPath.row]
-        imageView.nk_imageLoadingController.manager = imageManager
+        imageView.nk_context.manager = imageManager
         imageView.nk_setImage(with: imageURL)
         
         return cell

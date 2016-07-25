@@ -79,7 +79,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             return cell
         } else {
             let cell: AnimatedImageCell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath) as! AnimatedImageCell
-            cell.imageView.nk_imageLoadingController.manager = imageManager
+            cell.imageView.nk_context.manager = imageManager
             cell.setImage(with: imageURLs[indexPath.row])
             return cell
         }
@@ -129,9 +129,9 @@ private class AnimatedImageCell: UICollectionViewCell {
     
     func setImage(with request: Request) {
         imageView.nk_setImage(with: request)
-        if let task = imageView.nk_imageTask {
+        if let task = imageView.nk_task {
             task.progressHandler = { [weak self, weak task] completed, total in
-                guard let task = task, task == self?.imageView.nk_imageTask else {
+                guard let task = task, task == self?.imageView.nk_task else {
                     return
                 }
                 let fractionCompleted = total == 0 ? 0.0 : Float(completed) / Float(total)
