@@ -27,12 +27,17 @@ func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
     return lhs.equator.isEqual(lhs.request, to: rhs.request)
 }
 
-// MARK: OperationQueue Extension
+// MARK: Operations
 
 internal extension OperationQueue {
     convenience init(maxConcurrentOperations: Int) {
         self.init()
         self.maxConcurrentOperationCount = maxConcurrentOperations
+    }
+
+    func add(_ operation: Foundation.Operation) -> Foundation.Operation {
+        addOperation(operation)
+        return operation
     }
 }
 

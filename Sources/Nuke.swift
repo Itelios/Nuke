@@ -85,6 +85,8 @@ public protocol Cancellable {
     func cancel()
 }
 
+extension Foundation.Operation: Cancellable {}
+
 // MARK: - AnyError
 
 /// Type erased error.

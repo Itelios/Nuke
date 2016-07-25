@@ -33,33 +33,31 @@ public class Loader: Loading {
         case processingFailed
     }
 
-    public let dataCache: DataCaching?
-    public let dataLoader: DataLoading
-    public let dataDecoder: DataDecoding
+    public let cache: DataCaching?
+    public let loader: DataLoading
+    public let decoder: DataDecoding
     public let queues: Loader.Queues
     
     /// Queues which are used to execute a corresponding steps of the pipeline.
     public struct Queues {
         /// `maxConcurrentOperationCount` is 2 be default.
-        public var dataCaching = OperationQueue(maxConcurrentOperations: 2)
+        public var caching = OperationQueue(maxConcurrentOperations: 2)
         // Based on benchmark there is a ~2.3x increase in performance when
         // increasing `maxConcurrentOperationCount` to 2, but this factor
         // drops sharply after that (tested with DFCache and FileManager).
         
         /// `maxConcurrentOperationCount` is 8 be default.
-        public var dataLoading = OperationQueue(maxConcurrentOperations: 8)
+        public var loading = OperationQueue(maxConcurrentOperations: 8)
 
         /// `maxConcurrentOperationCount` is 1 be default.
-        public var dataDecoding = OperationQueue(maxConcurrentOperations: 1)
+        public var decoding = OperationQueue(maxConcurrentOperations: 1)
         // There is no reason to increase `maxConcurrentOperationCount` for
         // built-in `ImageDataDecoder` that locks globally while decoding.
-        
+
         /// `maxConcurrentOperationCount` is 2 be default.
         public var processing = OperationQueue(maxConcurrentOperations: 2)
     }
-    
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader.Queue", attributes: DispatchQueueAttributes.serial)
-    
+
     /// Initializes `Loader` instance with the given data loader, decoder and
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter dataCache: `nil` by default.
@@ -69,163 +67,139 @@ public class Loader: Loading {
         dataDecoder: DataDecoding,
         dataCache: DataCaching? = nil,
         queues: Loader.Queues = Loader.Queues()) {
-        self.dataLoader = dataLoader
-        self.dataCache = dataCache
-        self.dataDecoder = dataDecoder
+        self.loader = dataLoader
+        self.cache = dataCache
+        self.decoder = dataDecoder
         self.queues = queues
     }
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        let task = Task(request, progress, completion, cancellation: {
-            self.cancel($0)
-        })
-        queue.async {
-            if let dataCache = self.dataCache {
-                self.loadData(for: task, dataCache: dataCache)
-            } else {
-                self.loadData(for: task)
-            }
-        }
-        return task
+        return Task(self, request, progress, completion).start()
     }
 
-    private func loadData(for task: Task, dataCache: DataCaching) {
-        enterState(task, state: .dataCaching(BlockOperation() {
-            let response = dataCache.response(for: task.request.urlRequest)
-            self.then(for: task) {
-                if let response = response {
-                    self.decode(data: response.data, response: response.response, for: task)
-                } else {
-                    self.loadData(for: task)
-                }
-            }
-        }))
-    }
-
-    private func loadData(for task: Task) {
-        enterState(task, state: .dataLoading(Operation() { fulfill in
-            let dataTask = self.dataLoader.loadData(
-                for: task.request.urlRequest,
-                progress: { completed, total in
-                    self.queue.async {
-                        task.progress?(completed: completed, total: total)
-                    }
-                },
-                completion: {
-                    fulfill()
-                    self.then(for: task, result: $0) { data, response in
-                        self.store(data: data, response: response, for: task)
-                        self.decode(data: data, response: response, for: task)
-                    }
-            })
-            return {
-                fulfill()
-                dataTask.cancel()
-            }
-        }))
-    }
-    
-    private func store(data: Data, response: URLResponse, for task: Task) {
-        if let cache = dataCache {
-            queues.dataCaching.addOperation(BlockOperation() {
-                cache.setResponse(CachedURLResponse(response: response, data: data), for: task.request.urlRequest)
-            })
-        }
-    }
-    
-    private func decode(data: Data, response: URLResponse, for task: Task) {
-        enterState(task, state: .dataDecoding(BlockOperation() {
-            let image = self.dataDecoder.decode(data: data, response: response)
-            let result = Result(image, error: Error.decodingFailed)
-            self.then(for: task, result: result) { image in
-                self.process(image, for: task)
-            }
-        }))
-    }
-
-    private func process(_ image: Image, for task: Task) {
-        if let processor = task.request.processor {
-            enterState(task, state: .processing(BlockOperation() {
-                let result = Result(processor.process(image), error: Error.processingFailed)
-                self.then(for: task, result: result) { image in
-                    self.complete(task, result: .success(image))
-                }
-            }))
-        } else {
-            complete(task, result: .success(image))
-        }
-    }
-
-    private func complete(_ task: Task, result: Result<Image, AnyError>) {
-        task.completion(result: result)
-    }
-
-    private func enterState(_ task: Task, state: Task.State) {
-        switch state {
-        case .dataCaching(let op): queues.dataCaching.addOperation(op)
-        case .dataLoading(let op): queues.dataLoading.addOperation(op)
-        case .dataDecoding(let op): queues.dataDecoding.addOperation(op)
-        case .processing(let op): queues.processing.addOperation(op)
-        }
-        task.state = state
-    }
-
-    private func cancel(_ task: Task) {
-        queue.async {
-            if let state = task.state {
-                switch state {
-                case .dataCaching(let op): op.cancel()
-                case .dataLoading(let op): op.cancel()
-                case .dataDecoding(let op): op.cancel()
-                case .processing(let op): op.cancel()
-                }
-            }
-            task.cancelled = true
-        }
-    }
-
-    private func then(for task: Task, block: ((Void) -> Void)) {
-        queue.async {
-            if !task.cancelled {
-                block()
-            }
-        }
-    }
-    
-    private func then<V, E: ErrorProtocol>(for task: Task, result: Result<V, E>, block: ((V) -> Void)) {
-        then(for: task) {
-            switch result {
-            case let .success(val): block(val)
-            case let .failure(err): self.complete(task, result: .failure(AnyError(err)))
-            }
-        }
-    }
-    
+    /// Implements image loading pipeline.
     private class Task: Cancellable {
-        enum State {
-            case dataCaching(Foundation.Operation)
-            case dataLoading(Foundation.Operation)
-            case dataDecoding(Foundation.Operation)
-            case processing(Foundation.Operation)
-        }
-        
-        var request: Request
+        let ctx: Loader
+        let request: Request
         let progress: LoadingProgress?
         let completion: LoadingCompletion
-        var cancellation: (Task) -> Void
         var cancelled = false
-        var state: State?
-        
-        init(_ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion, cancellation: (Task) -> Void) {
+        var subtask: Cancellable?
+
+        let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader.Task", attributes: DispatchQueueAttributes.serial)
+
+        /// Uses `Loader` just as an execution context.
+        init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
+            self.ctx = loader
             self.request = request
             self.progress = progress
             self.completion = completion
-            self.cancellation = cancellation
+        }
+
+        func start() -> Self {
+            queue.async {
+                if let cache = self.ctx.cache {
+                    self.loadData(cache: cache)
+                } else {
+                    self.loadData()
+                }
+            }
+            return self
+        }
+
+        func loadData(cache: DataCaching) {
+            subtask = ctx.queues.caching.add(BlockOperation() {
+                let response = cache.response(for: self.request.urlRequest)
+                self.then {
+                    if let response = response {
+                        self.decode(data: response.data, response: response.response)
+                    } else {
+                        self.loadData()
+                    }
+                }
+            })
+        }
+
+        func loadData() {
+            subtask = ctx.queues.loading.add(Operation() { fulfill in
+                let dataTask = self.ctx.loader.loadData(
+                    for: self.request.urlRequest,
+                    progress: { completed, total in
+                        self.progress?(completed: completed, total: total)
+                    },
+                    completion: { result in
+                        fulfill()
+                        self.then(with: result) { data, response in
+                            self.store(data: data, response: response)
+                            self.decode(data: data, response: response)
+                        }
+                })
+                return {
+                    fulfill()
+                    dataTask.cancel()
+                }
+            })
+        }
+
+        func store(data: Data, response: URLResponse) {
+            if let cache = ctx.cache {
+                ctx.queues.caching.addOperation(BlockOperation() {
+                    cache.setResponse(CachedURLResponse(response: response, data: data), for: self.request.urlRequest)
+                })
+            }
+        }
+
+        func decode(data: Data, response: URLResponse) {
+            subtask = ctx.queues.decoding.add(BlockOperation() {
+                let image = self.ctx.decoder.decode(data: data, response: response)
+                self.then(with: Result(image, error: Error.decodingFailed)) {
+                    self.process($0)
+                }
+            })
+        }
+
+        func process(_ image: Image) {
+            if let processor = request.processor {
+                subtask = ctx.queues.processing.add(BlockOperation() {
+                    let image = processor.process(image)
+                    self.then(with: Result(image, error: Error.processingFailed)) {
+                        self.complete(with: .success($0))
+                    }
+                })
+            } else {
+                complete(with: .success(image))
+            }
+        }
+
+        func complete(with result: Result<Image, AnyError>) {
+            completion(result: result)
+            subtask = nil // break retain cycle
+        }
+
+        func cancel() {
+            queue.async {
+                self.cancelled = true
+                self.subtask?.cancel()
+                self.subtask = nil
+            }
+        }
+
+        func then(_ block: ((Void) -> Void)) {
+            queue.async {
+                if !self.cancelled {
+                    block()
+                }
+            }
         }
         
-        func cancel() {
-            cancellation(self)
+        func then<V, E: ErrorProtocol>(with result: Result<V, E>, block: ((V) -> Void)) {
+            then {
+                switch result {
+                case let .success(val): block(val)
+                case let .failure(err): self.complete(with: .failure(AnyError(err)))
+                }
+            }
         }
     }
 }

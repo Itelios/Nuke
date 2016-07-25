@@ -47,8 +47,8 @@ public final class DeduplicatingLoader: Loading {
             
             // Register the handler and start the request if necessary
             task.handlers.append(handler)
-            if task.underlyingTask == nil { // deferred till the end
-                task.underlyingTask = loadImage(for: request, task: task, key: key)
+            if task.subtask == nil { // deferred till the end
+                task.subtask = loadImage(for: request, task: task, key: key)
             }
             return handler
         }
@@ -75,7 +75,7 @@ public final class DeduplicatingLoader: Loading {
             if let index = task.handlers.index(where: { $0 === handler }) {
                 task.handlers.remove(at: index)
                 if task.handlers.isEmpty {
-                    task.underlyingTask?.cancel()
+                    task.subtask?.cancel()
                     tasks[key] = nil
                 }
             }
@@ -100,6 +100,6 @@ public final class DeduplicatingLoader: Loading {
 
     final class Task {
         var handlers = [Handler]()
-        var underlyingTask: Cancellable?
+        var subtask: Cancellable?
     }
 }
