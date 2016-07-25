@@ -4,6 +4,8 @@
 
 import Foundation
 
+internal let domain = "com.github.kean.Nuke"
+
 // MARK: RequestKey
 
 /// Makes it possible to use Request as a key.
@@ -69,7 +71,7 @@ internal final class Operation: Foundation.Operation {
     
     let starter: (fulfill: Fulfill) -> Cancellation?
     private var cancellation: Cancellation?
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "\(domain).Operation", attributes: .serial)
     
     init(starter: (fulfill: Fulfill) -> Cancellation?) {
         self.starter = starter

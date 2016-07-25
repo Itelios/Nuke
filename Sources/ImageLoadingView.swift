@@ -55,19 +55,16 @@ public extension ImageLoadingView {
         
         ctx.cancel()
         
-        if options.memoryCachePolicy != .reloadIgnoringCachedObject {
-            if let image = ctx.manager.cache?.image(for: request) {
-                ctx.handler(response: .success(image), isFromMemoryCache: true)
-                return
+        if let image = ctx.manager.image(for: request, options: options) {
+            ctx.handler(response: .success(image), isFromMemoryCache: true)
+        } else {
+            ctx.task = ctx.manager.task(with: request) { [weak ctx] task, response in
+                if task == ctx?.task {
+                    ctx?.handler(response: response, isFromMemoryCache: false)
+                }
             }
+            ctx.task?.resume()
         }
-        
-        ctx.task = ctx.manager.task(with: request) { [weak ctx] task, response in
-            if task == ctx?.task {
-                ctx?.handler(response: response, isFromMemoryCache: false)
-            }
-        }
-        ctx.task?.resume()
     }
 
     /// Returns current task.

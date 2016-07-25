@@ -29,7 +29,7 @@ public final class DataLoader: DataLoading {
     
     private static func defaultConfiguration() -> URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
-        conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.nuke-cache")
+        conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "\(domain).Cache")
         return conf
     }
     
@@ -43,7 +43,7 @@ public final class DataLoader: DataLoading {
 
     private final class SessionDelegate: NSObject, URLSessionDataDelegate {
         var handlers = [URLSessionTask: Handler]()
-        let queue = DispatchQueue(label: "com.github.kean.Nuke.SessionDelegate", attributes: DispatchQueueAttributes.serial)
+        let queue = DispatchQueue(label: "\(domain).SessionDelegate", attributes: .serial)
         
         func register(task: URLSessionTask, progress: DataLoadingProgress?, completion: DataLoadingCompletion) {
             queue.sync {

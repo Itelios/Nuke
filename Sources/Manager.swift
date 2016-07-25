@@ -13,7 +13,7 @@ public class Manager {
     public var cache: Caching?
     
     private var executingTasks = Set<Task>()
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "\(domain).Manager", attributes: .serial)
     
     /// Returns all executing tasks.
     public var tasks: Set<Task> { return queue.sync { executingTasks } }
@@ -26,7 +26,7 @@ public class Manager {
         self.cache = cache
     }
         
-    // MARK: Making Tasks
+    // MARK: Requesting Images
 
     public typealias Completion = (task: Task, response: Task.Response) -> Void
     
@@ -49,6 +49,14 @@ public class Manager {
         return task
     }
     
+    /// Returns an image from the internal memory cache.
+    public func image(for request: Request, options: Options = Options()) -> Image? {
+        if options.memoryCachePolicy == .returnCachedObjectElseLoad {
+            return cache?.image(for: request)
+        }
+        return nil
+    }
+    
     // MARK: Task Execution
 
     private func run(_ task: Task, ctx: Context) {
@@ -56,9 +64,8 @@ public class Manager {
             task.state = .running
 
             executingTasks.insert(task)
-
-            if ctx.options.memoryCachePolicy == .returnCachedObjectElseLoad,
-                let image = cache?.image(for: ctx.request) {
+            
+            if let image = image(for: ctx.request, options: ctx.options) {
                 complete(task, response: .success(image), ctx: ctx)
             } else {
                 loadImage(for: task, ctx: ctx)
@@ -189,7 +196,7 @@ public class Task: Hashable {
     
     // MARK: Controlling Task State
     
-    public static let DidUpdateState = Notification.Name("com.github.kean.Nuke.Task.DidUpdateState")
+    public static let DidUpdateState = Notification.Name("\(domain).Task.DidUpdateState")
     
     /// The current state of the task.
     public private(set) var state: State = .suspended {

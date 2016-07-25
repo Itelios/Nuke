@@ -14,14 +14,14 @@ public final class DeduplicatingLoader: Loading {
     private let loader: Loading
     private let equator: RequestEquating
     private var tasks = [RequestKey: Task]()
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.DeduplicatingLoader", attributes: DispatchQueueAttributes.serial)
+    private let queue = DispatchQueue(label: "\(domain).DeduplicatingLoader", attributes: .serial)
     
     /// Initializes the `DeduplicatingLoader` instance with the underlying
     /// `loader` used for loading images, and the request `equator`.
     /// - parameter loader: Underlying loader used for loading images.
     /// - parameter equator: Compares requests for equivalence.
     /// `RequestLoadingEquator()` be default.
-    public init(loader: Loading, equator: RequestEquating = RequestLoadingEquator()) {
+    public init(with loader: Loading, equator: RequestEquating = RequestLoadingEquator()) {
         self.loader = loader
         self.equator = equator
     }
@@ -58,12 +58,12 @@ public final class DeduplicatingLoader: Loading {
         return loader.loadImage(
             for: request,
             progress: { [weak self, weak task] completed, total in
-                self?.queue.async {
+                _ = self?.queue.sync {
                     task?.handlers.forEach { $0.progress?(completed: completed, total: total) }
                 }
             },
             completion: { [weak self, weak task] result in
-                self?.queue.async {
+                self?.queue.sync {
                     task?.handlers.forEach { $0.completion(result: result) }
                     self?.tasks[key] = nil
                 }

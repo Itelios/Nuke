@@ -15,7 +15,7 @@ class MockCacheTests: XCTestCase {
 
         mocCache = MockCache()
         mockSessionManager = MockDataLoader()
-        let loader = Loader(dataLoader: mockSessionManager, dataDecoder: ImageDataDecoder())
+        let loader = Loader(loader: mockSessionManager, decoder: ImageDataDecoder())
         manager = Manager(loader: loader, cache: mocCache)
     }
     
@@ -113,7 +113,7 @@ class CacheTests: XCTestCase {
         
         cache = Cache()
         mockSessionManager = MockDataLoader()
-        let loader = Loader(dataLoader: mockSessionManager, dataDecoder: ImageDataDecoder())
+        let loader = Loader(loader: mockSessionManager, decoder: ImageDataDecoder())
         manager = Manager(loader: loader, cache: cache)
     }
     

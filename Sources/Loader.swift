@@ -62,20 +62,16 @@ public class Loader: Loading {
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter dataCache: `nil` by default.
     /// - parameter queues: `Loader.Queues()` by default.
-    public init(
-        dataLoader: DataLoading,
-        dataDecoder: DataDecoding,
-        dataCache: DataCaching? = nil,
-        queues: Loader.Queues = Loader.Queues()) {
-        self.loader = dataLoader
-        self.cache = dataCache
-        self.decoder = dataDecoder
+    public init(loader: DataLoading, decoder: DataDecoding, cache: DataCaching? = nil, queues: Queues = Queues()) {
+        self.loader = loader
+        self.cache = cache
+        self.decoder = decoder
         self.queues = queues
     }
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        return Pipeline(self, request, progress, completion).start()
+        return Pipeline(self, request, progress, completion)
     }
 }
 
@@ -87,17 +83,14 @@ private class Pipeline: Cancellable {
     let completion: LoadingCompletion
     var cancelled = false
     var subtask: Cancellable?
-    let queue = DispatchQueue(label: "com.github.kean.Nuke.Pipeline", attributes: DispatchQueueAttributes.serial)
+    let queue = DispatchQueue(label: "\(domain).Pipeline", attributes: .serial)
     
-    /// Uses `Loader` just as an execution context.
+    /// Starts loading immediately after initialization.
     init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
         self.ctx = loader
         self.request = request
         self.progress = progress
         self.completion = completion
-    }
-    
-    func start() -> Self {
         queue.sync {
             if let cache = ctx.cache {
                 loadData(cache: cache)
@@ -105,7 +98,6 @@ private class Pipeline: Cancellable {
                 loadData()
             }
         }
-        return self
     }
     
     func loadData(cache: DataCaching) {

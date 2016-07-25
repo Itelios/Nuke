@@ -19,8 +19,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
     
     var imageManager: Nuke.Manager {
         let decoder = NukeAnimatedImagePlugin.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.ImageDataDecoder()])
-        let loader = Nuke.Loader(dataLoader: Nuke.DataLoader(), dataDecoder: decoder)
-        // FIXME: Configure image manager to prevent animated image processing
+        let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder)
         return Nuke.Manager(loader: loader, cache: AnimatedImageCache())
     }
     

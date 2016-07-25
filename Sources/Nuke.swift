@@ -42,8 +42,8 @@ public extension Manager {
     /// Shared manager is created with `DataLoader()`, `ImageDataDecoder()`,
     /// and `Cache()`. Loader is wrapped into `DeduplicatingLoader`.
     public static var shared: Manager = {
-        let loader = Loader(dataLoader: DataLoader(), dataDecoder: ImageDataDecoder())
-        return Manager(loader: DeduplicatingLoader(loader: loader), cache: Cache())
+        let loader = Loader(loader: DataLoader(), decoder: ImageDataDecoder())
+        return Manager(loader: DeduplicatingLoader(with: loader), cache: Cache())
     }()
 }
 

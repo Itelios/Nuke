@@ -194,32 +194,6 @@ class ManagerTests: XCTestCase {
     // MARK: Thread-Safety
     
     func testThreadSafety() {
-        for _ in 0..<500 {
-            self.expect { fulfill in
-                DispatchQueue.global().async {
-                    let request = Request(url: URL(string: "\(defaultURL)/\(arc4random_uniform(10))")!)
-                    let shouldCancel = arc4random_uniform(3) == 0
-                    
-                    let task = self.manager.task(with: request) { task, response in
-                        if shouldCancel {
-                            // do nothing, we can't expect that task
-                            // would get cancelled before it completes
-                        } else {
-                            XCTAssertTrue(response.isSuccess)
-                        }
-                        fulfill()
-                    }
-                    task.resume()
-                    
-                    if shouldCancel {
-                        DispatchQueue.global().async {
-                            task.cancel()
-                        }
-                    }
-                }
-            }
-        }
-        
-        wait()
+        runThreadSafetyTests(for: manager)
     }
 }
