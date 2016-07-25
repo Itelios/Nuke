@@ -1,12 +1,6 @@
+// The MIT License (MIT)
 //
-//  ReusingImageLoaderTests.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 23/07/16.
-//  Copyright © 2016 Alexander Grebenyuk. All rights reserved.
-//
-
-import Foundation
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke

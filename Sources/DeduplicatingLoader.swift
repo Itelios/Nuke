@@ -14,7 +14,7 @@ public final class DeduplicatingLoader: Loading {
     private let loader: Loading
     private let equator: RequestEquating
     private var tasks = [RequestKey: Task]()
-    private let lock = RecursiveLock()
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.DeduplicatingLoader", attributes: DispatchQueueAttributes.serial)
     
     /// Initializes the `DeduplicatingLoader` instance with the underlying
     /// `loader` used for loading images, and the request `equator`.
@@ -28,7 +28,7 @@ public final class DeduplicatingLoader: Loading {
     
     /// Loads an image for the given request.
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        return lock.synced {
+        return queue.sync {
             // Find existing or create a new task (manages multiple handlers)
             let key = RequestKey(request, equator: equator)
             var task: Task! = tasks[key]
@@ -58,12 +58,12 @@ public final class DeduplicatingLoader: Loading {
         return loader.loadImage(
             for: request,
             progress: { [weak self, weak task] completed, total in
-                self?.lock.sync {
+                self?.queue.async {
                     task?.handlers.forEach { $0.progress?(completed: completed, total: total) }
                 }
             },
             completion: { [weak self, weak task] result in
-                self?.lock.sync {
+                self?.queue.async {
                     task?.handlers.forEach { $0.completion(result: result) }
                     self?.tasks[key] = nil
                 }
@@ -71,7 +71,7 @@ public final class DeduplicatingLoader: Loading {
     }
     
     private func remove(handler: Handler, from task: Task, key: RequestKey) {
-        lock.sync {
+        queue.sync {
             if let index = task.handlers.index(where: { $0 === handler }) {
                 task.handlers.remove(at: index)
                 if task.handlers.isEmpty {

@@ -69,56 +69,41 @@ internal final class Operation: Foundation.Operation {
     
     let starter: (fulfill: Fulfill) -> Cancellation?
     private var cancellation: Cancellation?
-    private let lock = RecursiveLock()
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: DispatchQueueAttributes.serial)
     
     init(starter: (fulfill: Fulfill) -> Cancellation?) {
         self.starter = starter
     }
     
     override func start() {
-        lock.sync {
+        queue.sync {
             isExecuting = true
             if isCancelled {
                 finish()
             } else {
                 cancellation = starter() { [weak self] in
-                    self?.finish()
+                    self?.queue.async { // clients might fulfill synchronously
+                        self?.finish()
+                    }
                 }
             }
         }
     }
     
     private func finish() {
-        lock.sync {
-            if !isFinished {
-                isExecuting = false
-                isFinished = true
-                cancellation = nil
-            }
+        if !isFinished {
+            isExecuting = false
+            isFinished = true
+            cancellation = nil
         }
     }
     
     override func cancel() {
-        lock.sync {
+        queue.sync {
             if !isCancelled {
                 super.cancel()
                 cancellation?() // user should call fulfill
             }
         }
-    }
-}
-
-// MARK: Locking
-
-internal extension Locking {
-    func sync(_ closure: @noescape (Void) -> Void) {
-        _ = synced(closure)
-    }
-    
-    func synced<T>(_ closure: @noescape (Void) -> T) -> T {
-        lock()
-        let result = closure()
-        unlock()
-        return result
     }
 }

@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  ManagerTest.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 3/14/15.
-//  Copyright (c) 2016 Alexander Grebenyuk (github.com/kean). All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke
@@ -71,21 +67,6 @@ class ManagerTests: XCTestCase {
         }
         XCTAssertTrue(task.state == .suspended)
         task.resume()
-        XCTAssertTrue(task.state == .running)
-        wait()
-    }
-
-    func testThatTaskChangesStateOnCallersThreadWhenCompleted() {
-        let expectation = expected()
-        DispatchQueue.global(attributes: DispatchQueue.GlobalAttributes.qosDefault).async {
-            let task = self.manager.task(with: defaultURL) { task, _ in
-                XCTAssertTrue(task.state == .completed)
-                expectation.fulfill()
-            }
-            XCTAssertTrue(task.state == .suspended)
-            task.resume()
-            XCTAssertTrue(task.state == .running)
-        }
         wait()
     }
 
@@ -107,7 +88,6 @@ class ManagerTests: XCTestCase {
 
         task.resume()
         task.cancel()
-        XCTAssertTrue(task.state == .cancelled)
         
         wait()
     }
@@ -125,7 +105,6 @@ class ManagerTests: XCTestCase {
         }
         XCTAssertTrue(task.state == .suspended)
         task.cancel()
-        XCTAssertTrue(task.state == .cancelled)
         wait()
     }
 
@@ -153,15 +132,11 @@ class ManagerTests: XCTestCase {
         
         // Wait until task is started
         _ = expectNotification(MockImageLoader.DidStartTask) { _ in
-            // Here's a potential problem: as a result of this
-            // task gets cancelled during the resume()
-            // which leads to MockTask now being cancelled
             task.cancel()
             return true
         }
         
         task.resume()
-        XCTAssertTrue(task.state == .cancelled)
         
         _ = expectNotification(MockImageLoader.DidCancelTask)
         

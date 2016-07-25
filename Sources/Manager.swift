@@ -13,10 +13,10 @@ public class Manager {
     public var cache: Caching?
     
     private var executingTasks = Set<Task>()
-    private let lock = RecursiveLock()
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager", attributes: DispatchQueueAttributes.serial)
     
     /// Returns all executing tasks.
-    public var tasks: Set<Task> { return lock.synced { executingTasks } }
+    public var tasks: Set<Task> { return queue.sync { executingTasks } }
 
     // MARK: Configuring Manager
 
@@ -41,10 +41,10 @@ public class Manager {
         let task = Task()
         let ctx = Context(request: request, options: options, completion: completion)
         task.resumeHandler = { [weak self] task in
-            self?.lock.sync { self?.run(task, ctx: ctx) }
+            self?.queue.async { self?.run(task, ctx: ctx) }
         }
         task.cancellationHandler = { [weak self] task in
-            self?.lock.sync { self?.cancel(task, ctx: ctx) }
+            self?.queue.async { self?.cancel(task, ctx: ctx) }
         }
         return task
     }
@@ -76,7 +76,7 @@ public class Manager {
                 }
             },
             completion: { [weak self] result in
-                self?.lock.sync {
+                self?.queue.async {
                     switch result {
                     case let .success(image):
                         if ctx.options.memoryCacheStorageAllowed {
@@ -174,6 +174,7 @@ public class Task: Hashable {
     /// The state of the `Task`. Allowed transitions:
     /// - suspended -> [running, cancelled]
     /// - running -> [cancelled, completed]
+    /// State does not change immediately after `resume()` or `cancel()` calls
     public enum State {
         case suspended, running, cancelled, completed
     }

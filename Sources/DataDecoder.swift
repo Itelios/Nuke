@@ -18,7 +18,7 @@ public protocol DataDecoding {
     func decode(data: Data, response: URLResponse) -> Image?
 }
 
-private let lock = Lock()
+private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImageDataDecoder", attributes: DispatchQueueAttributes.serial)
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
 public struct ImageDataDecoder: DataDecoding {
@@ -30,7 +30,7 @@ public struct ImageDataDecoder: DataDecoding {
         // Image initializers are not thread safe:
         // - https://github.com/AFNetworking/AFNetworking/issues/2572
         // - https://github.com/Alamofire/AlamofireImage/issues/75
-        return lock.synced {
+        return queue.sync {
             #if os(OSX)
                 return NSImage(data: data)
             #else

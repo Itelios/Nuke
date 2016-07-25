@@ -43,16 +43,16 @@ public final class DataLoader: DataLoading {
 
     private final class SessionDelegate: NSObject, URLSessionDataDelegate {
         var handlers = [URLSessionTask: Handler]()
-        var lock = RecursiveLock()
+        let queue = DispatchQueue(label: "com.github.kean.Nuke.SessionDelegate", attributes: DispatchQueueAttributes.serial)
         
         func register(task: URLSessionTask, progress: DataLoadingProgress?, completion: DataLoadingCompletion) {
-            lock.sync {
+            queue.sync {
                 handlers[task] = Handler(progress: progress, completion: completion)
             }
         }
         
         func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-            lock.sync {
+            queue.sync {
                 if let handler = handlers[dataTask] {
                     handler.data.append(data)
                     handler.progress?(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
@@ -61,7 +61,7 @@ public final class DataLoader: DataLoading {
         }
         
         func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: NSError?) {
-            lock.sync {
+            queue.sync {
                 if let handler = handlers[task] {
                     if let response = task.response {
                         let val = (handler.data, response)

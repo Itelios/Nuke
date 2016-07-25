@@ -75,130 +75,129 @@ public class Loader: Loading {
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        return Task(self, request, progress, completion).start()
+        return Pipeline(self, request, progress, completion).start()
     }
+}
 
-    /// Implements image loading pipeline.
-    private class Task: Cancellable {
-        let ctx: Loader
-        let request: Request
-        let progress: LoadingProgress?
-        let completion: LoadingCompletion
-        var cancelled = false
-        var subtask: Cancellable?
-
-        let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader.Task", attributes: DispatchQueueAttributes.serial)
-
-        /// Uses `Loader` just as an execution context.
-        init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
-            self.ctx = loader
-            self.request = request
-            self.progress = progress
-            self.completion = completion
+/// Implements image loading pipeline.
+private class Pipeline: Cancellable {
+    let ctx: Loader
+    let request: Request
+    let progress: LoadingProgress?
+    let completion: LoadingCompletion
+    var cancelled = false
+    var subtask: Cancellable?
+    let queue = DispatchQueue(label: "com.github.kean.Nuke.Pipeline", attributes: DispatchQueueAttributes.serial)
+    
+    /// Uses `Loader` just as an execution context.
+    init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
+        self.ctx = loader
+        self.request = request
+        self.progress = progress
+        self.completion = completion
+    }
+    
+    func start() -> Self {
+        queue.sync {
+            if let cache = ctx.cache {
+                loadData(cache: cache)
+            } else {
+                loadData()
+            }
         }
-
-        func start() -> Self {
-            queue.async {
-                if let cache = self.ctx.cache {
-                    self.loadData(cache: cache)
+        return self
+    }
+    
+    func loadData(cache: DataCaching) {
+        subtask = ctx.queues.caching.add(BlockOperation() {
+            let response = cache.response(for: self.request.urlRequest)
+            self.then {
+                if let response = response {
+                    self.decode(data: response.data, response: response.response)
                 } else {
                     self.loadData()
                 }
             }
-            return self
-        }
-
-        func loadData(cache: DataCaching) {
-            subtask = ctx.queues.caching.add(BlockOperation() {
-                let response = cache.response(for: self.request.urlRequest)
-                self.then {
-                    if let response = response {
-                        self.decode(data: response.data, response: response.response)
-                    } else {
-                        self.loadData()
-                    }
-                }
-            })
-        }
-
-        func loadData() {
-            subtask = ctx.queues.loading.add(Operation() { fulfill in
-                let dataTask = self.ctx.loader.loadData(
-                    for: self.request.urlRequest,
-                    progress: { completed, total in
-                        self.progress?(completed: completed, total: total)
-                    },
-                    completion: { result in
-                        fulfill()
-                        self.then(with: result) { data, response in
-                            self.store(data: data, response: response)
-                            self.decode(data: data, response: response)
-                        }
-                })
-                return {
+        })
+    }
+    
+    func loadData() {
+        subtask = ctx.queues.loading.add(Operation() { fulfill in
+            let dataTask = self.ctx.loader.loadData(
+                for: self.request.urlRequest,
+                progress: { completed, total in
+                    self.progress?(completed: completed, total: total)
+                },
+                completion: { result in
                     fulfill()
-                    dataTask.cancel()
-                }
-            })
-        }
-
-        func store(data: Data, response: URLResponse) {
-            if let cache = ctx.cache {
-                ctx.queues.caching.addOperation(BlockOperation() {
-                    cache.setResponse(CachedURLResponse(response: response, data: data), for: self.request.urlRequest)
-                })
-            }
-        }
-
-        func decode(data: Data, response: URLResponse) {
-            subtask = ctx.queues.decoding.add(BlockOperation() {
-                let image = self.ctx.decoder.decode(data: data, response: response)
-                self.then(with: Result(image, error: Error.decodingFailed)) {
-                    self.process($0)
-                }
-            })
-        }
-
-        func process(_ image: Image) {
-            if let processor = request.processor {
-                subtask = ctx.queues.processing.add(BlockOperation() {
-                    let image = processor.process(image)
-                    self.then(with: Result(image, error: Error.processingFailed)) {
-                        self.complete(with: .success($0))
+                    self.then(with: result) { data, response in
+                        self.store(data: data, response: response)
+                        self.decode(data: data, response: response)
                     }
-                })
-            } else {
-                complete(with: .success(image))
+            })
+            return {
+                fulfill()
+                dataTask.cancel()
             }
+        })
+    }
+    
+    func store(data: Data, response: URLResponse) {
+        if let cache = ctx.cache {
+            ctx.queues.caching.addOperation(BlockOperation() {
+                cache.setResponse(CachedURLResponse(response: response, data: data), for: self.request.urlRequest)
+            })
         }
-
-        func complete(with result: Result<Image, AnyError>) {
-            completion(result: result)
-            subtask = nil // break retain cycle
-        }
-
-        func cancel() {
-            queue.async {
-                self.cancelled = true
-                self.subtask?.cancel()
-                self.subtask = nil
+    }
+    
+    func decode(data: Data, response: URLResponse) {
+        subtask = ctx.queues.decoding.add(BlockOperation() {
+            let image = self.ctx.decoder.decode(data: data, response: response)
+            self.then(with: Result(image, error: Loader.Error.decodingFailed)) {
+                self.process($0)
             }
-        }
-
-        func then(_ block: ((Void) -> Void)) {
-            queue.async {
-                if !self.cancelled {
-                    block()
+        })
+    }
+    
+    func process(_ image: Image) {
+        if let processor = request.processor {
+            subtask = ctx.queues.processing.add(BlockOperation() {
+                let image = processor.process(image)
+                self.then(with: Result(image, error: Loader.Error.processingFailed)) {
+                    self.complete(with: .success($0))
                 }
+            })
+        } else {
+            complete(with: .success(image))
+        }
+    }
+    
+    func complete(with result: Result<Image, AnyError>) {
+        completion(result: result)
+        subtask = nil // break retain cycle
+    }
+    
+    func cancel() {
+        queue.sync {
+            cancelled = true
+            subtask?.cancel()
+            subtask = nil
+        }
+    }
+    
+    func then(_ block: @noescape (Void) -> Void) {
+        queue.sync {
+            if !cancelled {
+                block()
             }
         }
-        
-        func then<V, E: ErrorProtocol>(with result: Result<V, E>, block: ((V) -> Void)) {
-            then {
-                switch result {
-                case let .success(val): block(val)
-                case let .failure(err): self.complete(with: .failure(AnyError(err)))
-                }
+    }
+    
+    func then<V, E: ErrorProtocol>(with result: Result<V, E>, block: @noescape (V) -> Void) {
+        then {
+            switch result {
+            case let .success(val): block(val)
+            case let .failure(err): complete(with: .failure(AnyError(err)))
             }
         }
     }

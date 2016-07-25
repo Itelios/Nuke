@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  ProcessingTest.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 06/10/15.
-//  Copyright © 2015 CocoaPods. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke

@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  XCTestCase+Nuke.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 01/10/15.
-//  Copyright (c) 2016 Alexander Grebenyuk. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Foundation

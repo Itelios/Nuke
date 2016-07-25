@@ -97,6 +97,9 @@
 		0CD1952A1D4348AC00E011BB /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0CD1952B1D4348AC00E011BB /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0CD1952C1D4348AC00E011BB /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
+		0CE3992D1D4697CE00A87D47 /* LoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* LoaderTests.swift */; };
+		0CE3992E1D4697CE00A87D47 /* LoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* LoaderTests.swift */; };
+		0CE3992F1D4697CE00A87D47 /* LoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* LoaderTests.swift */; };
 		0CF4DE7D1D412A9E00170289 /* Preheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* Preheater.swift */; };
 		0CF4DE7E1D412A9E00170289 /* Preheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* Preheater.swift */; };
 		0CF4DE7F1D412A9E00170289 /* Preheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* Preheater.swift */; };
@@ -145,7 +148,7 @@
 		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke OSX Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; name = Info.plist; path = Tests/Info.plist; sourceTree = "<group>"; };
 		0C7C06861BCA888800089D7F /* ManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ManagerTests.swift; sourceTree = "<group>"; };
 		0C7C06871BCA888800089D7F /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
 		0C7C06881BCA888800089D7F /* ProcessingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProcessingTests.swift; sourceTree = "<group>"; };
@@ -162,6 +165,7 @@
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke tvOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CD195291D4348AC00E011BB /* PreheaterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheaterTests.swift; sourceTree = "<group>"; };
+		0CE3992C1D4697CE00A87D47 /* LoaderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoaderTests.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* Preheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Preheater.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -245,13 +249,13 @@
 		0C7C06551BCA87EC00089D7F /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				0C7C06821BCA888800089D7F /* Info.plist */,
 				0C7C068D1BCA888800089D7F /* Tests.swift */,
 				0C7C06861BCA888800089D7F /* ManagerTests.swift */,
 				0C7C06871BCA888800089D7F /* CacheTests.swift */,
 				0C7C06881BCA888800089D7F /* ProcessingTests.swift */,
 				0CD195291D4348AC00E011BB /* PreheaterTests.swift */,
 				0C820F7E1D440D1300263E5D /* DeduplicatingLoaderTests.swift */,
+				0CE3992C1D4697CE00A87D47 /* LoaderTests.swift */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
 				0C7C069A1BCA888C00089D7F /* Mocks */,
 				0C7C06831BCA888800089D7F /* Resources */,
@@ -262,6 +266,7 @@
 		0C7C06831BCA888800089D7F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0C7C06821BCA888800089D7F /* Info.plist */,
 				0C8BE6291D45E6EC00613839 /* Image.jpg */,
 			);
 			path = Resources;
@@ -682,6 +687,7 @@
 				0C22DA581BCAAA3A006E1D3B /* MockImageCache.swift in Sources */,
 				0C22DA561BCAAA13006E1D3B /* ProcessingTests.swift in Sources */,
 				0C22DA531BCAAA06006E1D3B /* Tests.swift in Sources */,
+				0CE3992E1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 				0C22DA541BCAAA0C006E1D3B /* ManagerTests.swift in Sources */,
 				0C22DA551BCAAA10006E1D3B /* CacheTests.swift in Sources */,
 				0C820F801D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */,
@@ -700,6 +706,7 @@
 				0C7C06931BCA888800089D7F /* ProcessingTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Tests.swift in Sources */,
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
+				0CE3992D1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 				0C7C06951BCA888800089D7F /* MockImageProcessor.swift in Sources */,
 				0C7C06911BCA888800089D7F /* ManagerTests.swift in Sources */,
 				0C820F7F1D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */,
@@ -758,6 +765,7 @@
 				0CC345C81BD96E1D005C2DD8 /* ProcessingTests.swift in Sources */,
 				0CC345C11BD96E16005C2DD8 /* MockImageProcessor.swift in Sources */,
 				0CC345C61BD96E1D005C2DD8 /* ManagerTests.swift in Sources */,
+				0CE3992F1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 				0CC345C31BD96E16005C2DD8 /* MockDataLoader.swift in Sources */,
 				0CC345C71BD96E1D005C2DD8 /* CacheTests.swift in Sources */,
 				0C820F811D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */,
