@@ -7,7 +7,7 @@ import Foundation
 // MARK: RequestKey
 
 /// Makes it possible to use Request as a key.
-struct RequestKey: Hashable {
+internal struct RequestKey: Hashable {
     private let request: Request
     private let equator: RequestEquating
     
@@ -29,16 +29,16 @@ func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
 
 // MARK: OperationQueue Extension
 
-extension OperationQueue {
-    convenience init(maxConcurrentOperationCount: Int) {
+internal extension OperationQueue {
+    convenience init(maxConcurrentOperations: Int) {
         self.init()
-        self.maxConcurrentOperationCount = maxConcurrentOperationCount
+        self.maxConcurrentOperationCount = maxConcurrentOperations
     }
 }
 
 // MARK: Operation
 
-final class Operation: Foundation.Operation {
+internal final class Operation: Foundation.Operation {
     override var isExecuting : Bool {
         get { return _isExecuting }
         set {
@@ -105,7 +105,7 @@ final class Operation: Foundation.Operation {
 
 // MARK: Locking
 
-extension Locking {
+internal extension Locking {
     func sync(_ closure: @noescape (Void) -> Void) {
         _ = synced(closure)
     }

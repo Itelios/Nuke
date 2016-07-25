@@ -15,9 +15,9 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 - Extensions for UI components
 - Two [cache layers](https://kean.github.io/blog/image-caching) including auto purging memory cache
 - Background image decompression
+- Custom image filters
 - Deduplication of equivalent requests
-- Create and apply image filters
-- Automate image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
+- Automate [preheating (precaching)](https://kean.github.io/blog/image-preheating)
 - [Pipeline](#h_design) with injectable dependencies
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 

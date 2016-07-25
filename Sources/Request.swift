@@ -4,11 +4,8 @@
 
 import Foundation
 
-// MARK: - Request
-
 /// Encapsulates image request parameters.
 public struct Request {
-    /// The URL request.
     public var urlRequest: URLRequest
 
     /// Filters to be applied to the image.
@@ -21,18 +18,18 @@ public struct Request {
     /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?
     
-    /// Initializes request with a URL.
+    /// Initializes `Request` with a URL.
     public init(url: URL) {
         self.urlRequest = URLRequest(url: url)
     }
     
-    /// Initializes request with a URL request.
+    /// Initializes `Request` with a URL request.
     public init(urlRequest: URLRequest) {
         self.urlRequest = urlRequest
     }
 }
 
-extension Request {
+internal extension Request {
     var processor: ProcessorComposition? {
         return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }

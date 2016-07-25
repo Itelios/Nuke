@@ -54,7 +54,7 @@ public enum Result<V, E: ErrorProtocol> {
     case success(V)
     case failure(E)
     
-    init(value: V?, error: @autoclosure () -> E) {
+    init(_ value: V?, error: @autoclosure () -> E) {
         self = value.map(Result.success) ?? .failure(error())
     }
 }
@@ -76,23 +76,6 @@ public extension Result {
     
     public var isSuccess: Bool {
         return value != nil
-    }
-}
-
-// MARK: - Progress
-
-/// Represents progress.
-public struct Progress {
-    /// Completed unit count.
-    public var completed: Int64 = 0
-    
-    /// Total unit count.
-    public var total: Int64 = 0
-    
-    /// The fraction of overall work completed.
-    /// If the total unit count is 0 fraction completed is also 0.
-    public var fractionCompleted: Double {
-        return total == 0 ? 0.0 : Double(completed) / Double(total)
     }
 }
 

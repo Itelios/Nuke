@@ -4,42 +4,29 @@
 
 import Foundation
 
-// MARK: - Loading
-
 public typealias LoadingProgress = (completed: Int64, total: Int64) -> Void
 public typealias LoadingCompletion = (result: Result<Image, AnyError>) -> Void
 
 /// Performs loading of images.
 public protocol Loading: class {
     /// Loads an image for the given request.
+    ///
+    /// The implementation is not required to call the completion handler
+    /// when the load gets cancelled.
     func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion) -> Cancellable
 }
 
-// MARK: - Loader
-
-/**
-Performs loading of images for the image tasks.
-
-This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `DataLoading` protocol. Image data is decoded via `DataDecoding` protocol. Decoded images are processed by objects conforming to `Processing` protocols.
-
-- Provides transparent loading, decoding and processing with a single completion signal
-*/
+/// Performs loading of images.
+///
+/// This class implements an image loading pipeline. First, data is loaded using
+/// an object conforming to `DataLoading` protocol. Then data is decoded using
+/// `DataDecoding` protocol. Decoded images are then processed by objects
+/// conforming to `Processing` protocol which are provided by `Request`.
+///
+/// You can initialize `Loader` with `DataCaching` object to add data caching
+/// into a pipeline. Custom data cache might be more performant than caching
+/// provided by `URL Loading System` (if that's what is used for loading).
 public class Loader: Loading {
-    /// Queues on which to execute certain tasks.
-    public struct Queues {
-        /// Data caching queue (both read and write). Default queue has a maximum concurrent operation count 2.
-        public var dataCaching = OperationQueue(maxConcurrentOperationCount: 2) // based on benchmark: there is a ~2.3x increase in performance when increasing maxConcurrentOperationCount from 1 to 2, but this factor drops sharply right after that
-
-        /// Data loading queue. Default queue has a maximum concurrent operation count 8.
-        public var dataLoading = OperationQueue(maxConcurrentOperationCount: 8)
-
-        /// Data decoding queue. Default queue has a maximum concurrent operation count 1.
-        public var dataDecoding = OperationQueue(maxConcurrentOperationCount: 1) // there is no reason to increase maxConcurrentOperationCount, because the built-in ImageDecoder locks while decoding data.
-
-        /// Image processing queue. Default queue has a maximum concurrent operation count 2.
-        public var processing = OperationQueue(maxConcurrentOperationCount: 2)
-    }
-    
     public enum Error: ErrorProtocol {
         case loadingFailed(NSError)
         case decodingFailed
@@ -50,26 +37,48 @@ public class Loader: Loading {
     public let dataLoader: DataLoading
     public let dataDecoder: DataDecoding
     public let queues: Loader.Queues
+    
+    /// Queues which are used to execute a corresponding steps of the pipeline.
+    public struct Queues {
+        /// `maxConcurrentOperationCount` is 2 be default.
+        public var dataCaching = OperationQueue(maxConcurrentOperations: 2)
+        // Based on benchmark there is a ~2.3x increase in performance when
+        // increasing `maxConcurrentOperationCount` to 2, but this factor
+        // drops sharply after that (tested with DFCache and FileManager).
+        
+        /// `maxConcurrentOperationCount` is 8 be default.
+        public var dataLoading = OperationQueue(maxConcurrentOperations: 8)
 
+        /// `maxConcurrentOperationCount` is 1 be default.
+        public var dataDecoding = OperationQueue(maxConcurrentOperations: 1)
+        // There is no reason to increase `maxConcurrentOperationCount` for
+        // built-in `ImageDataDecoder` that locks globally while decoding.
+        
+        /// `maxConcurrentOperationCount` is 2 be default.
+        public var processing = OperationQueue(maxConcurrentOperations: 2)
+    }
+    
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader.Queue", attributes: DispatchQueueAttributes.serial)
     
-    /// Initializes image loader with a configuration.
+    /// Initializes `Loader` instance with the given data loader, decoder and
+    /// cache. You could also provide loader with you own set of queues.
+    /// - parameter dataCache: `nil` by default.
+    /// - parameter queues: `Loader.Queues()` by default.
     public init(
         dataLoader: DataLoading,
         dataDecoder: DataDecoding,
         dataCache: DataCaching? = nil,
-        queues: Loader.Queues = Loader.Queues())
-    {
+        queues: Loader.Queues = Loader.Queues()) {
         self.dataLoader = dataLoader
         self.dataCache = dataCache
         self.dataDecoder = dataDecoder
         self.queues = queues
     }
 
-    /// Resumes loading for the image task.
+    /// Loads an image for the given request using image loading pipeline.
     public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        let task = Task(request: request, progress: progress, completion: completion, cancellation: { [weak self] in
-            self?.cancel($0)
+        let task = Task(request, progress, completion, cancellation: {
+            self.cancel($0)
         })
         queue.async {
             if let dataCache = self.dataCache {
@@ -82,11 +91,11 @@ public class Loader: Loading {
     }
 
     private func loadData(for task: Task, dataCache: DataCaching) {
-        enterState(task, state: .dataCacheLookup(BlockOperation() {
+        enterState(task, state: .dataCaching(BlockOperation() {
             let response = dataCache.response(for: task.request.urlRequest)
             self.then(for: task) {
                 if let response = response {
-                    self.decode(data: response.data, response: response.response, task: task)
+                    self.decode(data: response.data, response: response.response, for: task)
                 } else {
                     self.loadData(for: task)
                 }
@@ -106,8 +115,8 @@ public class Loader: Loading {
                 completion: {
                     fulfill()
                     self.then(for: task, result: $0) { data, response in
-                        self.store(data: data, response: response, for: task.request.urlRequest)
-                        self.decode(data: data, response: response, task: task)
+                        self.store(data: data, response: response, for: task)
+                        self.decode(data: data, response: response, for: task)
                     }
             })
             return {
@@ -117,39 +126,35 @@ public class Loader: Loading {
         }))
     }
     
-    private func store(data: Data, response: URLResponse, for request: URLRequest) {
+    private func store(data: Data, response: URLResponse, for task: Task) {
         if let cache = dataCache {
             queues.dataCaching.addOperation(BlockOperation() {
-                cache.setResponse(CachedURLResponse(response: response, data: data), for: request)
+                cache.setResponse(CachedURLResponse(response: response, data: data), for: task.request.urlRequest)
             })
         }
     }
     
-    private func decode(data: Data, response: URLResponse, task: Task) {
+    private func decode(data: Data, response: URLResponse, for task: Task) {
         enterState(task, state: .dataDecoding(BlockOperation() {
             let image = self.dataDecoder.decode(data: data, response: response)
-            let result = Result(value: image, error: Error.decodingFailed)
+            let result = Result(image, error: Error.decodingFailed)
             self.then(for: task, result: result) { image in
-                self.process(image, task: task)
+                self.process(image, for: task)
             }
         }))
     }
 
-    private func process(_ image: Image, task: Task) {
+    private func process(_ image: Image, for task: Task) {
         if let processor = task.request.processor {
-            process(image, task: task, processor: processor)
+            enterState(task, state: .processing(BlockOperation() {
+                let result = Result(processor.process(image), error: Error.processingFailed)
+                self.then(for: task, result: result) { image in
+                    self.complete(task, result: .success(image))
+                }
+            }))
         } else {
             complete(task, result: .success(image))
         }
-    }
-
-    private func process<P: Processing>(_ image: Image, task: Task, processor: P) {
-        enterState(task, state: .processing(BlockOperation() {
-            let result = Result(value: processor.process(image), error: Error.processingFailed)
-            self.then(for: task, result: result) { image in
-                self.complete(task, result: .success(image))
-            }
-        }))
     }
 
     private func complete(_ task: Task, result: Result<Image, AnyError>) {
@@ -158,7 +163,7 @@ public class Loader: Loading {
 
     private func enterState(_ task: Task, state: Task.State) {
         switch state {
-        case .dataCacheLookup(let op): queues.dataCaching.addOperation(op)
+        case .dataCaching(let op): queues.dataCaching.addOperation(op)
         case .dataLoading(let op): queues.dataLoading.addOperation(op)
         case .dataDecoding(let op): queues.dataDecoding.addOperation(op)
         case .processing(let op): queues.processing.addOperation(op)
@@ -170,7 +175,7 @@ public class Loader: Loading {
         queue.async {
             if let state = task.state {
                 switch state {
-                case .dataCacheLookup(let op): op.cancel()
+                case .dataCaching(let op): op.cancel()
                 case .dataLoading(let op): op.cancel()
                 case .dataDecoding(let op): op.cancel()
                 case .processing(let op): op.cancel()
@@ -183,7 +188,7 @@ public class Loader: Loading {
     private func then(for task: Task, block: ((Void) -> Void)) {
         queue.async {
             if !task.cancelled {
-                block() // execute only if task is still registered
+                block()
             }
         }
     }
@@ -197,11 +202,9 @@ public class Loader: Loading {
         }
     }
     
-    // MARK: - Task
-    
     private class Task: Cancellable {
         enum State {
-            case dataCacheLookup(Foundation.Operation)
+            case dataCaching(Foundation.Operation)
             case dataLoading(Foundation.Operation)
             case dataDecoding(Foundation.Operation)
             case processing(Foundation.Operation)
@@ -214,7 +217,7 @@ public class Loader: Loading {
         var cancelled = false
         var state: State?
         
-        init(request: Request, progress: LoadingProgress?, completion: LoadingCompletion, cancellation: (Task) -> Void) {
+        init(_ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion, cancellation: (Task) -> Void) {
             self.request = request
             self.progress = progress
             self.completion = completion

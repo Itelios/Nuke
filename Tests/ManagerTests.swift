@@ -19,11 +19,41 @@ class ManagerTests: XCTestCase {
         loader = MockImageLoader()
         manager = Manager(loader: loader, cache: nil)
     }
-
+    
+    // MARK: Basics
+    
     func testThatRequestIsCompelted() {
         expect { fulfill in
-            manager.task(with: Request(url: defaultURL)) {
-                XCTAssertNotNil($0.1.value, "")
+            manager.task(with: Request(url: defaultURL)) { task, response in
+                XCTAssertNil(response.error)
+                XCTAssertNotNil(response.value)
+                fulfill()
+            }.resume()
+        }
+        wait()
+    }
+
+    func testThatRequestIsFailed() {
+        loader.results[defaultURL] = .failure(AnyError("failed"))
+        expect { fulfill in
+            manager.task(with: Request(url: defaultURL)) { task, response in
+                XCTAssertNotNil(response.error)
+                XCTAssertNil(response.value)
+                fulfill()
+            }.resume()
+        }
+        wait()
+    }
+    
+    func testThatLoadingErrorGetsRelayed() {
+        loader.results[defaultURL] = .failure(AnyError("failed"))
+        expect { fulfill in
+            manager.task(with: Request(url: defaultURL)) { task, response in
+                switch response.error! {
+                case let .loadingFailed(error):
+                    XCTAssertTrue((error.cause as? String) == "failed")
+                default: XCTFail()
+                }
                 fulfill()
             }.resume()
         }
@@ -75,20 +105,10 @@ class ManagerTests: XCTestCase {
             }
         }
 
-        // Wait until task is started
-        _ = expectNotification(MockImageLoader.DidStartTask) { _ in
-            // Here's a potential problem: as a result of this
-            // task gets cancelled during the resume()
-            // which leads to MockTask now being cancelled
-            task.cancel()
-            return true
-        }
-
         task.resume()
+        task.cancel()
         XCTAssertTrue(task.state == .cancelled)
         
-        _ = expectNotification(MockImageLoader.DidCancelTask)
-
         wait()
     }
 
@@ -122,26 +142,48 @@ class ManagerTests: XCTestCase {
         wait()
     }
     
+    func testThatLoadTaskIsCancelledWithReEntrantCancel() {
+        loader.queue.isSuspended = true
+        
+        let task = expected { fulfill in
+            return manager.task(with: defaultURL) { _ in
+                fulfill()
+            }
+        }
+        
+        // Wait until task is started
+        _ = expectNotification(MockImageLoader.DidStartTask) { _ in
+            // Here's a potential problem: as a result of this
+            // task gets cancelled during the resume()
+            // which leads to MockTask now being cancelled
+            task.cancel()
+            return true
+        }
+        
+        task.resume()
+        XCTAssertTrue(task.state == .cancelled)
+        
+        _ = expectNotification(MockImageLoader.DidCancelTask)
+        
+        wait()
+    }
+    
     // MARK: Progress
 
     func testThatProgressClosureIsCalled() {
         let task = manager.task(with: defaultURL)
         XCTAssertEqual(task.progress.total, 0)
         XCTAssertEqual(task.progress.completed, 0)
-        XCTAssertEqual(task.progress.fractionCompleted, 0.0)
         
         expect { fulfill in
-            var fractionCompleted = 0.0
             var completedUnitCount: Int64 = 0
             task.progressHandler = { progress in
-                fractionCompleted += 0.5
                 completedUnitCount += 50
                 XCTAssertEqual(completedUnitCount, progress.completed)
                 XCTAssertEqual(100, progress.total)
                 XCTAssertEqual(completedUnitCount, task.progress.completed)
                 XCTAssertEqual(100, task.progress.total)
-                XCTAssertEqual(fractionCompleted, task.progress.fractionCompleted)
-                if task.progress.fractionCompleted == 1.0 {
+                if task.progress.completed == 100 {
                     fulfill()
                 }
             }
@@ -150,7 +192,7 @@ class ManagerTests: XCTestCase {
         wait()
     }
     
-    // MARK: Misc
+    // MARK: Get Tasks
     
     func testThatGetTasksMethodReturnsCorrectTasks() {
         loader.queue.isSuspended = true
@@ -171,6 +213,38 @@ class ManagerTests: XCTestCase {
             XCTAssertTrue(task2.state == .suspended)
             fulfill()
         }
+        wait()
+    }
+
+    // MARK: Thread-Safety
+    
+    func testThreadSafety() {
+        for _ in 0..<500 {
+            self.expect { fulfill in
+                DispatchQueue.global().async {
+                    let request = Request(url: URL(string: "\(defaultURL)/\(arc4random_uniform(10))")!)
+                    let shouldCancel = arc4random_uniform(3) == 0
+                    
+                    let task = self.manager.task(with: request) { task, response in
+                        if shouldCancel {
+                            // do nothing, we can't expect that task
+                            // would get cancelled before it completes
+                        } else {
+                            XCTAssertTrue(response.isSuccess)
+                        }
+                        fulfill()
+                    }
+                    task.resume()
+                    
+                    if shouldCancel {
+                        DispatchQueue.global().async {
+                            task.cancel()
+                        }
+                    }
+                }
+            }
+        }
+        
         wait()
     }
 }

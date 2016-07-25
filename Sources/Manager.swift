@@ -25,7 +25,7 @@ public class Manager {
         self.loader = loader
         self.cache = cache
     }
-    
+        
     // MARK: Making Tasks
 
     public typealias Completion = (task: Task, response: Task.Response) -> Void
@@ -71,8 +71,8 @@ public class Manager {
             for: ctx.request,
             progress: { completed, total in
                 DispatchQueue.main.async {
-                    task.progress = Progress(completed: completed, total: total)
-                    task.progressHandler?(progress: task.progress)
+                    task.progress = (completed: completed, total: total)
+                    task.progressHandler?(completed: completed, total: total)
                 }
             },
             completion: { [weak self] result in
@@ -181,10 +181,10 @@ public class Task: Hashable {
     // MARK: Obtaining Task Progress
     
     /// Return current task progress. Initial value is (0, 0).
-    public private(set) var progress = Progress()
+    public private(set) var progress = (completed: Int64, total: Int64)(0, 0)
     
-    /// A progress closure, gets periodically during when image is loaded.
-    public var progressHandler: ((progress: Progress) -> Void)?
+    /// A progress closure, gets called periodically.
+    public var progressHandler: ((completed: Int64, total: Int64) -> Void)?
     
     // MARK: Controlling Task State
     

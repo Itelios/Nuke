@@ -10,3 +10,5 @@ import Nuke
 import XCTest
 
 let defaultURL = URL(string: "http://test.com")!
+
+extension String: ErrorProtocol {}

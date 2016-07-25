@@ -4,8 +4,6 @@
 
 import Foundation
 
-// MARK: - DataLoading
-
 public typealias DataLoadingProgress = (completed: Int64, total: Int64) -> Void
 public typealias DataLoadingCompletion = (result: Result<(Data, URLResponse), AnyError>) -> Void
 
@@ -14,12 +12,10 @@ public protocol DataLoading {
     /// Creates a task with a given URL request.
     /// Task is resumed by the user that called the method.
     ///
-    /// Completion block should always get called, even if the task gets cancelled.
+    /// The implementation is not required to call the completion handler
+    /// when the load gets cancelled.
     func loadData(for request: URLRequest, progress: DataLoadingProgress?, completion: DataLoadingCompletion) -> Cancellable
 }
-
-
-// MARK: - DataLoader
 
 /// Provides basic networking using NSURLSession.
 public final class DataLoader: DataLoading {
@@ -37,8 +33,6 @@ public final class DataLoader: DataLoading {
         return conf
     }
     
-    // MARK: DataLoading
-
     /// Creates task for the given request.
     public func loadData(for request: URLRequest, progress: DataLoadingProgress? = nil, completion: DataLoadingCompletion) -> Cancellable {
         let task = session.dataTask(with: request)
@@ -47,8 +41,6 @@ public final class DataLoader: DataLoading {
         return task
     }
 
-    // MARK: SessionDelegate
-    
     private final class SessionDelegate: NSObject, URLSessionDataDelegate {
         var handlers = [URLSessionTask: Handler]()
         var lock = RecursiveLock()

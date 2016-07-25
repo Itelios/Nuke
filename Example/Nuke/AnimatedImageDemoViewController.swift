@@ -130,12 +130,13 @@ private class AnimatedImageCell: UICollectionViewCell {
     func setImage(with request: Request) {
         imageView.nk_setImage(with: request)
         if let task = imageView.nk_imageTask {
-            task.progressHandler = { [weak self, weak task] _ in
+            task.progressHandler = { [weak self, weak task] completed, total in
                 guard let task = task, task == self?.imageView.nk_imageTask else {
                     return
                 }
-                self?.progressView.setProgress(Float(task.progress.fractionCompleted), animated: true)
-                if task.progress.fractionCompleted == 1 {
+                let fractionCompleted = total == 0 ? 0.0 : Float(completed) / Float(total)
+                self?.progressView.setProgress(fractionCompleted, animated: true)
+                if fractionCompleted == 1 {
                     UIView.animate(withDuration: 0.2) {
                         self?.progressView.alpha = 0
                     }

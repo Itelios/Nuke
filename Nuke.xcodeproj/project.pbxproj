@@ -62,9 +62,7 @@
 		0C22DA581BCAAA3A006E1D3B /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
-		0C22DA5C1BCAAAC5006E1D3B /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
-		0C7C06901BCA888800089D7F /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; };
 		0C7C06911BCA888800089D7F /* ManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06861BCA888800089D7F /* ManagerTests.swift */; };
 		0C7C06921BCA888800089D7F /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* CacheTests.swift */; };
 		0C7C06931BCA888800089D7F /* ProcessingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ProcessingTests.swift */; };
@@ -80,12 +78,14 @@
 		0C820F7F1D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C820F7E1D440D1300263E5D /* DeduplicatingLoaderTests.swift */; };
 		0C820F801D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C820F7E1D440D1300263E5D /* DeduplicatingLoaderTests.swift */; };
 		0C820F811D440D1300263E5D /* DeduplicatingLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C820F7E1D440D1300263E5D /* DeduplicatingLoaderTests.swift */; };
+		0C8BE62A1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
+		0C8BE62B1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
+		0C8BE62C1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0CAD12071D3FDD22004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0CAD12091D3FDD4A004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0CAD120A1D3FDD4F004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0CAD120B1D3FDD53004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0CC345A81BD96D2A005C2DD8 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CC345971BD96CFE005C2DD8 /* Nuke.framework */; };
-		0CC345BF1BD96E13005C2DD8 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; };
 		0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0CC345C11BD96E16005C2DD8 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0CC345C31BD96E16005C2DD8 /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
@@ -146,7 +146,6 @@
 		0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke OSX Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0C7C06841BCA888800089D7F /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = Image.jpg; path = ../Image.jpg; sourceTree = "<group>"; };
 		0C7C06861BCA888800089D7F /* ManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ManagerTests.swift; sourceTree = "<group>"; };
 		0C7C06871BCA888800089D7F /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
 		0C7C06881BCA888800089D7F /* ProcessingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProcessingTests.swift; sourceTree = "<group>"; };
@@ -157,6 +156,7 @@
 		0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = XCTestCaseExtensions.swift; sourceTree = "<group>"; };
 		0C820F761D44048200263E5D /* DeduplicatingLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeduplicatingLoader.swift; sourceTree = "<group>"; };
 		0C820F7E1D440D1300263E5D /* DeduplicatingLoaderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeduplicatingLoaderTests.swift; sourceTree = "<group>"; };
+		0C8BE6291D45E6EC00613839 /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = Image.jpg; path = Tests/Image.jpg; sourceTree = SOURCE_ROOT; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CAD12051D3FDCEB004CE84F /* Nuke.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -262,7 +262,7 @@
 		0C7C06831BCA888800089D7F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				0C7C06841BCA888800089D7F /* Image.jpg */,
+				0C8BE6291D45E6EC00613839 /* Image.jpg */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -596,7 +596,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C22DA5C1BCAAAC5006E1D3B /* Image.jpg in Resources */,
+				0C8BE62B1D45E6EC00613839 /* Image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -604,7 +604,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C7C06901BCA888800089D7F /* Image.jpg in Resources */,
+				0C8BE62A1D45E6EC00613839 /* Image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -626,7 +626,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CC345BF1BD96E13005C2DD8 /* Image.jpg in Resources */,
+				0C8BE62C1D45E6EC00613839 /* Image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

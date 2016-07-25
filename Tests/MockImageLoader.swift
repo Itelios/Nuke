@@ -22,7 +22,8 @@ class MockImageLoader: Loading {
     
     var createdTaskCount = 0
     let queue = OperationQueue()
-    
+    var results = [URL: Result<Image, AnyError>]()
+
     func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
         let task = MockTask()
         NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
@@ -36,7 +37,11 @@ class MockImageLoader: Loading {
             progress?(completed: 50, total: 100)
             progress?(completed: 100, total: 100)
             DispatchQueue.main.async {
-                completion(result: .success(image))
+                if let result = self.results[request.urlRequest.url!] {
+                    completion(result: result)
+                } else {
+                    completion(result: .success(image))
+                }
             }
         }
         
