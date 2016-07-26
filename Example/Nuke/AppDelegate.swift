@@ -1,9 +1,6 @@
+// The MIT License (MIT)
 //
-//  AppDelegate.swift
-//  Nuke
-//
-//  Copyright (c) 2016 Alexander Grebenyuk (github.com/kean). All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 

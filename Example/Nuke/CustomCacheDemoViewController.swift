@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  CustomCacheDemoViewController.swift
-//  Nuke Demo
-//
-//  Created by Alexander Grebenyuk on 18/03/16.
-//  Copyright © 2016 CocoaPods. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke

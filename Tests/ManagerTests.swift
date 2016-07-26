@@ -21,7 +21,6 @@ class ManagerTests: XCTestCase {
     func testThatRequestIsCompelted() {
         expect { fulfill in
             manager.task(with: Request(url: defaultURL)) { task, response in
-                XCTAssertNil(response.error)
                 XCTAssertNotNil(response.value)
                 fulfill()
             }.resume()
@@ -34,7 +33,6 @@ class ManagerTests: XCTestCase {
         expect { fulfill in
             manager.task(with: Request(url: defaultURL)) { task, response in
                 XCTAssertNotNil(response.error)
-                XCTAssertNil(response.value)
                 fulfill()
             }.resume()
         }
@@ -45,11 +43,7 @@ class ManagerTests: XCTestCase {
         loader.results[defaultURL] = .failure(AnyError("failed"))
         expect { fulfill in
             manager.task(with: Request(url: defaultURL)) { task, response in
-                switch response.error! {
-                case let .loadingFailed(error):
-                    XCTAssertTrue((error.cause as? String) == "failed")
-                default: XCTFail()
-                }
+                XCTAssertTrue((response.error?.loadingError?.cause as? String) == "failed")
                 fulfill()
             }.resume()
         }
@@ -76,11 +70,8 @@ class ManagerTests: XCTestCase {
         loader.queue.isSuspended = true
 
         let task = expected { fulfill in
-            return manager.task(with: defaultURL) { task, result in
-                switch result.error! {
-                    case .cancelled: break
-                    default: XCTFail()
-                }
+            return manager.task(with: defaultURL) { task, response in
+                XCTAssertTrue(response.error?.isCancelled == true)
                 XCTAssertTrue(task.state == .cancelled)
                 fulfill()
             }
@@ -94,11 +85,8 @@ class ManagerTests: XCTestCase {
 
     func testThatSuspendedTaskIsCancelled() {
         let task = expected { fulfill in
-            return manager.task(with: defaultURL) { task, result in
-                switch result.error! {
-                case .cancelled: break
-                default: XCTFail()
-                }
+            return manager.task(with: defaultURL) { task, response in
+                XCTAssertTrue(response.error?.isCancelled == true)
                 XCTAssertTrue(task.state == .cancelled)
                 fulfill()
             }

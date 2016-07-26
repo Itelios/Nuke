@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  AnimatedImageDemoViewController.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 18/09/15.
-//  Copyright © 2015 CocoaPods. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -105,6 +101,23 @@ private class AnimatedImageCell: UICollectionViewCell {
         backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1)
         
         addSubview(imageView)
+        
+        imageView.nk_context.handler = { [weak self] response, isFromMemoryCache in
+            switch response {
+            case let .success(image):
+                self?.imageView.nk_display(image)
+                if !isFromMemoryCache {
+                    let animation = CABasicAnimation(keyPath: "opacity")
+                    animation.duration = 0.25
+                    animation.fromValue = 0
+                    animation.toValue = 1
+                    let layer: CALayer? = self?.layer // Make compiler happy on OSX
+                    layer?.add(animation, forKey: "imageTransition")
+                }
+            case .failure(_): return
+            }
+        }
+        
         addSubview(progressView)
         
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -148,7 +161,8 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.prepareForReuse()
         progressView.progress = 0
         progressView.alpha = 1
-        imageView.nk_display(nil)
+        imageView.animatedImage = nil
+        imageView.image = nil
         imageView.nk_cancelLoading()
     }
 }

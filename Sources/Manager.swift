@@ -27,8 +27,17 @@ public class Manager {
     }
         
     // MARK: Requesting Images
-
-    public typealias Completion = (task: Task, response: Task.Response) -> Void
+    
+    public enum Error: ErrorProtocol {
+        /// `Task` was cancelled.
+        case cancelled
+        
+        /// Some underlying error returned by `Loading` instance.
+        case loadingFailed(AnyError)
+    }
+    
+    public typealias Response = Result<Image, Error>
+    public typealias Completion = (task: Task, response: Response) -> Void
     
     /// Creates a task with the given `Request`. After you create a task, 
     /// start it using `resume()` method. The completion closure gets called
@@ -108,7 +117,7 @@ public class Manager {
         }
     }
 
-    private func complete(_ task: Task, response: Task.Response, ctx: Context) {
+    private func complete(_ task: Task, response: Response, ctx: Context) {
         if task.state == .running {
             task.state = .completed
             executingTasks.remove(task)
@@ -116,7 +125,7 @@ public class Manager {
         }
     }
 
-    private func dispatch(response: Task.Response, for task: Task, ctx: Context) {
+    private func dispatch(response: Response, for task: Task, ctx: Context) {
         if let completion = ctx.completion {
             DispatchQueue.main.async { completion(task: task, response: response) }
         }
@@ -168,16 +177,6 @@ public class Manager {
 /// state. It's always safe to call these methods, no matter in which state
 /// the task is currently in.
 public class Task: Hashable, Cancellable {
-    public typealias Response = Result<Image, Error>
-    
-    public enum Error: ErrorProtocol {
-        /// `Task` was cancelled.
-        case cancelled
-        
-        /// Some underlying error returned by `Loading` instance.
-        case loadingFailed(AnyError)
-    }
-    
     /// The state of the `Task`. Allowed transitions:
     /// - suspended -> [running, cancelled]
     /// - running -> [cancelled, completed]

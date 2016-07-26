@@ -21,29 +21,6 @@ class LoaderTests: XCTestCase {
     }
 }
 
-extension Loader.Error {
-    var loadingError: AnyError? {
-        switch self {
-        case let .loadingFailed(err): return err
-        default: return nil
-        }
-    }
-
-    var isDecodingError: Bool {
-        switch self {
-        case .decodingFailed: return true
-        default: return false
-        }
-    }
-
-    var isProcessingError: Bool {
-        switch self {
-        case .processingFailed: return true
-        default: return false
-        }
-    }
-}
-
 class LoaderErrorHandlingTests: XCTestCase {
 
     func testThatLoadingFailedErrorIsReturned() {
