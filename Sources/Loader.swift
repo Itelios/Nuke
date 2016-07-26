@@ -115,7 +115,7 @@ private class Pipeline: Cancellable {
     
     func loadData() {
         subtask = ctx.queues.loading.add(Operation() { fulfill in
-            let dataTask = self.ctx.loader.loadData(
+            return self.ctx.loader.loadData(
                 for: self.request.urlRequest,
                 progress: { completed, total in
                     self.progress?(completed: completed, total: total)
@@ -128,10 +128,6 @@ private class Pipeline: Cancellable {
                         self.decode(data: data, response: response)
                     }
                 })
-            return {
-                fulfill()
-                dataTask.cancel()
-            }
         })
     }
     

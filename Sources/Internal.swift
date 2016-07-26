@@ -65,15 +65,12 @@ internal final class Operation: Foundation.Operation {
         }
     }
     private var _isFinished = false
-    
-    typealias Cancellation = (Void) -> Void
-    typealias Fulfill = (Void) -> Void
-    
-    let starter: (fulfill: Fulfill) -> Cancellation?
-    private var cancellation: Cancellation?
+
+    private let starter: (fulfill: (Void) -> Void) -> Cancellable?
+    private var subtask: Cancellable?
     private let queue = DispatchQueue(label: "\(domain).Operation")
     
-    init(starter: (fulfill: Fulfill) -> Cancellation?) {
+    init(starter: (fulfill: (Void) -> Void) -> Cancellable?) {
         self.starter = starter
     }
     
@@ -83,10 +80,8 @@ internal final class Operation: Foundation.Operation {
             if isCancelled {
                 finish()
             } else {
-                cancellation = starter() { [weak self] in
-                    self?.queue.async { // clients might fulfill synchronously
-                        self?.finish()
-                    }
+                subtask = starter() { [weak self] in
+                    _ = self?.queue.sync { self?.finish() }
                 }
             }
         }
@@ -96,7 +91,7 @@ internal final class Operation: Foundation.Operation {
         if !isFinished {
             isExecuting = false
             isFinished = true
-            cancellation = nil
+            subtask = nil
         }
     }
     
@@ -104,7 +99,10 @@ internal final class Operation: Foundation.Operation {
         queue.sync {
             if !isCancelled {
                 super.cancel()
-                cancellation?() // user should call fulfill
+                if isExecuting {
+                    subtask?.cancel()
+                    finish()
+                }
             }
         }
     }
