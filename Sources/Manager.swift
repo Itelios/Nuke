@@ -13,7 +13,7 @@ public class Manager {
     public var cache: Caching?
     
     private var executingTasks = Set<Task>()
-    private let queue = DispatchQueue(label: "\(domain).Manager", attributes: .serial)
+    private let queue = DispatchQueue(label: "\(domain).Manager")
     
     /// Returns all executing tasks.
     public var tasks: Set<Task> { return queue.sync { executingTasks } }
@@ -167,14 +167,14 @@ public class Manager {
 /// the corresponding `resume()` and `cancel()` methods to control the task's 
 /// state. It's always safe to call these methods, no matter in which state
 /// the task is currently in.
-public class Task: Hashable {
+public class Task: Hashable, Cancellable {
     public typealias Response = Result<Image, Error>
     
     public enum Error: ErrorProtocol {
         /// `Task` was cancelled.
         case cancelled
         
-        /// Some underlying error returned by `Loading` instance
+        /// Some underlying error returned by `Loading` instance.
         case loadingFailed(AnyError)
     }
     

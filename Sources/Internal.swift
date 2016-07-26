@@ -32,9 +32,9 @@ func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
 // MARK: Operations
 
 internal extension OperationQueue {
-    convenience init(maxConcurrentOperations: Int) {
+    convenience init(maxConcurrentOperationCount: Int) {
         self.init()
-        self.maxConcurrentOperationCount = maxConcurrentOperations
+        self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
 
     func add(_ operation: Foundation.Operation) -> Foundation.Operation {
@@ -71,7 +71,7 @@ internal final class Operation: Foundation.Operation {
     
     let starter: (fulfill: Fulfill) -> Cancellation?
     private var cancellation: Cancellation?
-    private let queue = DispatchQueue(label: "\(domain).Operation", attributes: .serial)
+    private let queue = DispatchQueue(label: "\(domain).Operation")
     
     init(starter: (fulfill: Fulfill) -> Cancellation?) {
         self.starter = starter

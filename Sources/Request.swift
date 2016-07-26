@@ -14,7 +14,7 @@ public struct Request {
     public mutating func add<T: Processing>(processor: T) {
         processors.append(AnyProcessor(processor))
     }
-
+    
     /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?
     
@@ -27,15 +27,11 @@ public struct Request {
     public init(urlRequest: URLRequest) {
         self.urlRequest = urlRequest
     }
-}
-
-internal extension Request {
-    var processor: ProcessorComposition? {
+    
+    internal var processor: ProcessorComposition? {
         return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }
 }
-
-// MARK: - RequestEquating
 
 public protocol RequestEquating {
     func isEqual(_ a: Request, to b: Request) -> Bool

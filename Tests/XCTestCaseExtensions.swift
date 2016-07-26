@@ -7,16 +7,16 @@ import Foundation
 
 extension XCTestCase {
     func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
-        let expectation = expected()
+        let expectation = makeExpectation()
         block(fulfill: { expectation.fulfill() })
     }
 
     func expected<T>(_ block: @noescape (fulfill: (Void) -> Void) -> T) -> T {
-        let expectation = expected()
+        let expectation = makeExpectation()
         return block(fulfill: { expectation.fulfill() })
     }
 
-    func expected() -> XCTestExpectation {
+    func makeExpectation() -> XCTestExpectation {
         return self.expectation(description: "GenericExpectation")
     }
     

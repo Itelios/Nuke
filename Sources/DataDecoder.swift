@@ -18,10 +18,10 @@ public protocol DataDecoding {
     func decode(data: Data, response: URLResponse) -> Image?
 }
 
-private let queue = DispatchQueue(label: "\(domain).ImageDataDecoder", attributes: .serial)
+private let queue = DispatchQueue(label: "\(domain).DataDecoder")
 
 /// Decodes data into an image object. Image scale is set to the scale of the main screen.
-public struct ImageDataDecoder: DataDecoding {
+public struct DataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 

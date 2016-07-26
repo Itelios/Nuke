@@ -9,7 +9,7 @@ private let image: Image = {
     let bundle = Bundle(for: MockImageLoader.self)
     let URL = bundle.urlForResource("Image", withExtension: "jpg")
     let data = try! Data(contentsOf: URL!)
-    return Nuke.ImageDataDecoder().decode(data: data, response: URLResponse())!
+    return Nuke.DataDecoder().decode(data: data, response: URLResponse())!
 }()
 
 class MockImageLoader: Loading {
@@ -21,7 +21,7 @@ class MockImageLoader: Loading {
     var results = [URL: Result<Image, AnyError>]()
 
     func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
-        let task = MockTask()
+        let task = Task()
         NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
         task.cancellation = { _ in
             NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
@@ -43,11 +43,13 @@ class MockImageLoader: Loading {
         
         return task
     }
-}
-
-private class MockTask: Cancellable {
-    var cancellation: ((MockTask) -> Void)?
-    func cancel() {
-        cancellation?(self)
+    
+    private class Task: Cancellable {
+        var cancellation: ((Task) -> Void)?
+        func cancel() {
+            cancellation?(self)
+        }
     }
 }
+
+

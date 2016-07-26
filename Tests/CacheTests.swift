@@ -15,7 +15,7 @@ class MockCacheTests: XCTestCase {
 
         mocCache = MockCache()
         mockSessionManager = MockDataLoader()
-        let loader = Loader(loader: mockSessionManager, decoder: ImageDataDecoder())
+        let loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
         manager = Manager(loader: loader, cache: mocCache)
     }
     
@@ -40,7 +40,7 @@ class MockCacheTests: XCTestCase {
         XCTAssertEqual(mocCache.images.count, 1)
         XCTAssertNotNil(mocCache.image(for: request))
         
-        mockSessionManager.enabled = false
+        mockSessionManager.queue.isSuspended = true
         
         expect { fulfill in
             manager.task(with: request) { _, result in
@@ -113,7 +113,7 @@ class CacheTests: XCTestCase {
         
         cache = Cache()
         mockSessionManager = MockDataLoader()
-        let loader = Loader(loader: mockSessionManager, decoder: ImageDataDecoder())
+        let loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
         manager = Manager(loader: loader, cache: cache)
     }
     
@@ -132,7 +132,7 @@ class CacheTests: XCTestCase {
         
         XCTAssertNotNil(cache.image(for: request))
         
-        mockSessionManager.enabled = false
+        mockSessionManager.queue.isSuspended = true
         
         expect { fulfill in
             manager.task(with: request) { _, result in

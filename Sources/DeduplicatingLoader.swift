@@ -14,7 +14,7 @@ public final class DeduplicatingLoader: Loading {
     private let loader: Loading
     private let equator: RequestEquating
     private var tasks = [RequestKey: Task]()
-    private let queue = DispatchQueue(label: "\(domain).DeduplicatingLoader", attributes: .serial)
+    private let queue = DispatchQueue(label: "\(domain).DeduplicatingLoader")
     
     /// Initializes the `DeduplicatingLoader` instance with the underlying
     /// `loader` used for loading images, and the request `equator`.

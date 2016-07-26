@@ -9,21 +9,19 @@ class MockDataLoader: DataLoading {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
     
-    var enabled = true {
-        didSet {
-            queue.isSuspended = !enabled
-        }
-    }
     var createdTaskCount = 0
-    private let queue = OperationQueue()
+    var results = [URL: Result<(Data, URLResponse), AnyError>]()
+    let queue = OperationQueue()
 
     func loadData(for request: URLRequest, progress: DataLoadingProgress? = nil, completion: DataLoadingCompletion) -> Cancellable {
-        let task = MockDataTask()
+        let task = Task()
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
         task.cancellation = { _ in
             NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
         }
         
+        createdTaskCount += 1
+
         queue.addOperation {
             progress?(completed: 50, total: 100)
             progress?(completed: 100, total: 100)
@@ -31,19 +29,21 @@ class MockDataLoader: DataLoading {
             let URL = bundle.urlForResource("Image", withExtension: "jpg")
             let data = try! Data(contentsOf: URL!)
             DispatchQueue.main.async {
-                completion(result: .success((data, URLResponse())))
+                if let result = self.results[request.url!] {
+                    completion(result: result)
+                } else {
+                    completion(result: .success((data, URLResponse())))
+                }
             }
         }
         
-        createdTaskCount += 1
         return task
     }
-}
 
-class MockDataTask: Cancellable {
-    var cancellation: ((MockDataTask) -> Void)?
+private class Task: Cancellable {
+    var cancellation: ((Task) -> Void)?
     func cancel() {
         cancellation?(self)
     }
 }
-
+}

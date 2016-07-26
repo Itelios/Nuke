@@ -27,7 +27,7 @@ public class Preheater {
     private var map = [RequestKey: Task]()
     private var tasks = [Task]() // we need to keep tasks in order
     private var needsToResumeTasks = false
-    private let queue = DispatchQueue(label: "\(domain).Preheater", attributes: .serial)
+    private let queue = DispatchQueue(label: "\(domain).Preheater")
 
     deinit {
         NotificationCenter.default.removeObserver(self)

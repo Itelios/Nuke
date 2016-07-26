@@ -284,7 +284,7 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 If you attempt to load an image using `DeduplicatingLoader` more than once before the initial load is complete, it would merge duplicate tasks - the image would be loaded only once. In order to enable deduplication you should wrap a `Loading` instance into a `DeduplicatingLoader` object. The shared `Manager` uses `DeduplicatingLoader` by default.
 
 ```swift
-let loader = Loader(dataLoader: DataLoader(), dataDecoder: ImageDataDecoder())
+let loader = Loader(dataLoader: DataLoader(), dataDecoder: DataDecoder())
 let manager = Manager(loader: DeduplicatingLoader(loader: loader))
 ```
 

@@ -43,7 +43,7 @@ public final class DataLoader: DataLoading {
 
     private final class SessionDelegate: NSObject, URLSessionDataDelegate {
         var handlers = [URLSessionTask: Handler]()
-        let queue = DispatchQueue(label: "\(domain).SessionDelegate", attributes: .serial)
+        let queue = DispatchQueue(label: "\(domain).SessionDelegate")
         
         func register(task: URLSessionTask, progress: DataLoadingProgress?, completion: DataLoadingCompletion) {
             queue.sync {

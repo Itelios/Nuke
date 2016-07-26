@@ -28,11 +28,11 @@ public protocol Loading: class {
 /// provided by `URL Loading System` (if that's what is used for loading).
 public class Loader: Loading {
     public enum Error: ErrorProtocol {
-        case loadingFailed(NSError)
+        case loadingFailed(AnyError)
         case decodingFailed
         case processingFailed
     }
-
+    
     public let cache: DataCaching?
     public let loader: DataLoading
     public let decoder: DataDecoding
@@ -41,21 +41,21 @@ public class Loader: Loading {
     /// Queues which are used to execute a corresponding steps of the pipeline.
     public struct Queues {
         /// `maxConcurrentOperationCount` is 2 be default.
-        public var caching = OperationQueue(maxConcurrentOperations: 2)
+        public var caching = OperationQueue(maxConcurrentOperationCount: 2)
         // Based on benchmark there is a ~2.3x increase in performance when
         // increasing `maxConcurrentOperationCount` to 2, but this factor
         // drops sharply after that (tested with DFCache and FileManager).
         
         /// `maxConcurrentOperationCount` is 8 be default.
-        public var loading = OperationQueue(maxConcurrentOperations: 8)
+        public var loading = OperationQueue(maxConcurrentOperationCount: 8)
 
         /// `maxConcurrentOperationCount` is 1 be default.
-        public var decoding = OperationQueue(maxConcurrentOperations: 1)
+        public var decoding = OperationQueue(maxConcurrentOperationCount: 1)
         // There is no reason to increase `maxConcurrentOperationCount` for
-        // built-in `ImageDataDecoder` that locks globally while decoding.
+        // built-in `DataDecoder` that locks globally while decoding.
 
         /// `maxConcurrentOperationCount` is 2 be default.
-        public var processing = OperationQueue(maxConcurrentOperations: 2)
+        public var processing = OperationQueue(maxConcurrentOperationCount: 2)
     }
 
     /// Initializes `Loader` instance with the given data loader, decoder and
@@ -83,7 +83,7 @@ private class Pipeline: Cancellable {
     let completion: LoadingCompletion
     var cancelled = false
     var subtask: Cancellable?
-    let queue = DispatchQueue(label: "\(domain).Pipeline", attributes: .serial)
+    let queue = DispatchQueue(label: "\(domain).Pipeline")
     
     /// Starts loading immediately after initialization.
     init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
@@ -120,13 +120,14 @@ private class Pipeline: Cancellable {
                 progress: { completed, total in
                     self.progress?(completed: completed, total: total)
                 },
-                completion: { result in
+                completion: {
                     fulfill()
+                    let result = Result(from: $0) { Loader.Error.loadingFailed($0) }
                     self.then(with: result) { data, response in
                         self.store(data: data, response: response)
                         self.decode(data: data, response: response)
                     }
-            })
+                })
             return {
                 fulfill()
                 dataTask.cancel()
@@ -177,18 +178,18 @@ private class Pipeline: Cancellable {
         }
     }
     
-    func then(_ block: @noescape (Void) -> Void) {
+    func then(_ closure: @noescape (Void) -> Void) {
         queue.sync {
             if !cancelled {
-                block()
+                closure()
             }
         }
     }
     
-    func then<V, E: ErrorProtocol>(with result: Result<V, E>, block: @noescape (V) -> Void) {
+    func then<V>(with result: Result<V, Loader.Error>, closure: @noescape (V) -> Void) {
         then {
             switch result {
-            case let .success(val): block(val)
+            case let .success(val): closure(val)
             case let .failure(err): complete(with: .failure(AnyError(err)))
             }
         }

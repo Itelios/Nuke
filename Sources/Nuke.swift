@@ -39,10 +39,10 @@ public extension Manager {
     
     /// Shared `Manager` instance.
     ///
-    /// Shared manager is created with `DataLoader()`, `ImageDataDecoder()`,
+    /// Shared manager is created with `DataLoader()`, `DataDecoder()`,
     /// and `Cache()`. Loader is wrapped into `DeduplicatingLoader`.
     public static var shared: Manager = {
-        let loader = Loader(loader: DataLoader(), decoder: ImageDataDecoder())
+        let loader = Loader(loader: DataLoader(), decoder: DataDecoder())
         return Manager(loader: DeduplicatingLoader(with: loader), cache: Cache())
     }()
 }
@@ -56,6 +56,14 @@ public enum Result<V, E: ErrorProtocol> {
     
     init(_ value: V?, error: @autoclosure () -> E) {
         self = value.map(Result.success) ?? .failure(error())
+    }
+    
+    /// Allows simple conversion between Result errors.
+    init<OE>(from result: Result<V, OE>, error: @noescape (OE) -> E) {
+        switch result {
+        case let .success(val): self = .success(val)
+        case let .failure(err): self = .failure(error(err))
+        }
     }
 }
 

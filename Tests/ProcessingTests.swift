@@ -17,7 +17,7 @@ class ProcessingTests: XCTestCase {
         mockMemoryCache = MockCache()
         
         mockSessionManager = MockDataLoader()
-        let loader = Loader(loader: mockSessionManager, decoder: ImageDataDecoder())
+        let loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
         manager = Manager(loader: loader, cache: mockMemoryCache)
     }
 

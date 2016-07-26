@@ -11,7 +11,7 @@ class IntegrationTests: XCTestCase {
     override func setUp() {
         super.setUp()
         
-        let loader = Loader(loader: MockDataLoader(), decoder: ImageDataDecoder())
+        let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder())
         let deduplicator = DeduplicatingLoader(with: loader)
         manager = Manager(loader: deduplicator, cache: nil)
     }

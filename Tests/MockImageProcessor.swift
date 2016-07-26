@@ -20,6 +20,8 @@ private struct AssociatedKeys {
     static var ProcessorIDs = "nk_test_processorIDs"
 }
 
+// MARK: - MockImageProcessor
+
 class MockImageProcessor: Processing {
     let ID: String
     init(ID: String) {
@@ -37,3 +39,16 @@ class MockImageProcessor: Processing {
 func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
     return lhs.ID == rhs.ID
 }
+
+// MARK: - MockFailingProcessor
+
+class MockFailingProcessor: Nuke.Processing {
+    func process(_ image: Image) -> Image? {
+        return nil
+    }
+}
+
+func ==(lhs: MockFailingProcessor, rhs: MockFailingProcessor) -> Bool {
+    return true
+}
+
