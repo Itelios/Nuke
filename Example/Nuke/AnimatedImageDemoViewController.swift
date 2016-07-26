@@ -18,7 +18,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
     var imageURLs = [URL]()
     
     var imageManager: Nuke.Manager {
-        let decoder = NukeAnimatedImagePlugin.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.ImageDataDecoder()])
+        let decoder = NukeAnimatedImagePlugin.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
         let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder)
         return Nuke.Manager(loader: loader, cache: AnimatedImageCache())
     }
@@ -128,9 +128,9 @@ private class AnimatedImageCell: UICollectionViewCell {
     
     func setImage(with request: Request) {
         imageView.nk_setImage(with: request)
-        if let task = imageView.nk_task {
+        if let task = imageView.nk_context.task {
             task.progressHandler = { [weak self, weak task] completed, total in
-                guard let task = task, task == self?.imageView.nk_task else {
+                guard let task = task, task == self?.imageView.nk_context.task else {
                     return
                 }
                 let fractionCompleted = total == 0 ? 0.0 : Float(completed) / Float(total)

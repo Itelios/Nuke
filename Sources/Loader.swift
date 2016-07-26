@@ -18,13 +18,13 @@ public protocol Loading: class {
 
 /// Performs loading of images.
 ///
-/// This class implements an image loading pipeline. First, data is loaded using
+/// `Loader` implements an image loading pipeline. First, data is loaded using
 /// an object conforming to `DataLoading` protocol. Then data is decoded using
 /// `DataDecoding` protocol. Decoded images are then processed by objects
-/// conforming to `Processing` protocol which are provided by `Request`.
+/// conforming to `Processing` protocol which are provided by the `Request`.
 ///
 /// You can initialize `Loader` with `DataCaching` object to add data caching
-/// into a pipeline. Custom data cache might be more performant than caching
+/// into the pipeline. Custom data cache might be more performant than caching
 /// provided by `URL Loading System` (if that's what is used for loading).
 public class Loader: Loading {
     public enum Error: ErrorProtocol {
@@ -61,7 +61,7 @@ public class Loader: Loading {
     /// Initializes `Loader` instance with the given data loader, decoder and
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter dataCache: `nil` by default.
-    /// - parameter queues: `Loader.Queues()` by default.
+    /// - parameter queues: `Queues()` by default.
     public init(loader: DataLoading, decoder: DataDecoding, cache: DataCaching? = nil, queues: Queues = Queues()) {
         self.loader = loader
         self.cache = cache
