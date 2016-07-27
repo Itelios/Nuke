@@ -21,7 +21,7 @@ public protocol Loading {
 /// Performs loading of images.
 ///
 /// `Loader` implements an image loading pipeline. First, data is loaded using
-/// an object conforming to `DataLoading` protocol. Then data is decoded using
+/// an object conforming to `Loading` protocol. Then data is decoded using
 /// `DataDecoding` protocol. Decoded images are then processed by objects
 /// conforming to `Processing` protocol which are provided by the `Request`.
 ///
@@ -38,7 +38,7 @@ public class Loader: Loading {
     }
     
     public let cache: DataCaching?
-    public let loader: DataLoading
+    public let loader: AnyLoader<(Data, URLResponse)>
     public let decoder: DataDecoding
     public let queues: Loader.Queues
     
@@ -66,8 +66,8 @@ public class Loader: Loading {
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter dataCache: `nil` by default.
     /// - parameter queues: `Queues()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding, cache: DataCaching? = nil, queues: Queues = Queues()) {
-        self.loader = loader
+    public init<DataLoaderType: Loading where DataLoaderType.ObjectType == (Data, URLResponse)>(loader: DataLoaderType, decoder: DataDecoding, cache: DataCaching? = nil, queues: Queues = Queues()) {
+        self.loader = AnyLoader(with: loader)
         self.cache = cache
         self.decoder = decoder
         self.queues = queues
@@ -134,8 +134,8 @@ private class Pipeline: Cancellable {
     
     func loadData() {
         subtask = ctx.queues.loading.add(Operation() { fulfill in
-            return self.ctx.loader.loadData(
-                for: self.request.urlRequest,
+            return self.ctx.loader.loadImage(
+                for: self.request,
                 progress: { completed, total in
                     self.progress?(completed: completed, total: total)
                 },
