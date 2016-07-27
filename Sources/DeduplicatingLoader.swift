@@ -85,10 +85,10 @@ public final class DeduplicatingLoader<LoaderType: Loading>: Loading {
 
 }
 
+// FIXME: we still can't have nested types inside a generic type
 final class DeduplicatorHandler<T>: Cancellable {
     let progress: LoadingProgress?
-    // Unfortunatelly, I can't use LoadingCompletion typealias here
-    // because of the segfault.
+    // FIXME: I can't use LoadingCompletion<T> here because of the segfault.
     let completion: (result: Result<T, AnyError>) -> Void
     let cancellation: (DeduplicatorHandler<T>) -> Void
 
@@ -103,8 +103,8 @@ final class DeduplicatorHandler<T>: Cancellable {
     }
 }
 
+// FIXME: we still can't have nested types inside a generic type
 final class DeduplicatorTask<T> {
     var handlers = [DeduplicatorHandler<T>]()
     var subtask: Cancellable?
 }
-
