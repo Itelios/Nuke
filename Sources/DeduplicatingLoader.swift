@@ -10,12 +10,12 @@ import Foundation
 /// before the initial load is complete, it would merge duplicate tasks. 
 /// The image would be loaded only once, yet both completion and progress
 /// handlers will get called.
-public final class DeduplicatingLoader<T>: Loading {
-    public typealias ObjectType = T
+public final class DeduplicatingLoader<LoaderType: Loading>: Loading {
+    public typealias ObjectType = LoaderType.ObjectType
 
-    private let loader: AnyLoader<T>
+    private let loader: LoaderType
     private let equator: RequestEquating
-    private var tasks = [RequestKey: DeduplicatorTask<T>]()
+    private var tasks = [RequestKey: DeduplicatorTask<ObjectType>]()
     private let queue = DispatchQueue(label: "\(domain).DeduplicatingLoader")
     
     /// Initializes the `DeduplicatingLoader` instance with the underlying
@@ -23,19 +23,19 @@ public final class DeduplicatingLoader<T>: Loading {
     /// - parameter loader: Underlying loader used for loading images.
     /// - parameter equator: Compares requests for equivalence.
     /// `RequestLoadingEquator()` be default.
-    public init<L: Loading where L.ObjectType == T>(with loader: L, equator: RequestEquating = RequestLoadingEquator()) {
-        self.loader = AnyLoader(with: loader)
+    public init(with loader: LoaderType, equator: RequestEquating = RequestLoadingEquator()) {
+        self.loader = loader
         self.equator = equator
     }
     
     /// Loads an image for the given request.
-    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<T, AnyError>) -> Void) -> Cancellable {
+    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<ObjectType, AnyError>) -> Void) -> Cancellable {
         return queue.sync {
             // Find existing or create a new task (manages multiple handlers)
             let key = RequestKey(request, equator: equator)
-            var task: DeduplicatorTask<T>! = tasks[key]
+            var task: DeduplicatorTask<ObjectType>! = tasks[key]
             if task == nil {
-                task = DeduplicatorTask<T>()
+                task = DeduplicatorTask<ObjectType>()
                 tasks[key] = task
             }
             // Create a handler for a current request
@@ -55,7 +55,7 @@ public final class DeduplicatingLoader<T>: Loading {
         }
     }
 
-    private func loadImage(for request: Request, task: DeduplicatorTask<T>, key: RequestKey) -> Cancellable {
+    private func loadImage(for request: Request, task: DeduplicatorTask<ObjectType>, key: RequestKey) -> Cancellable {
         return loader.loadImage(
             for: request,
             progress: { [weak self, weak task] completed, total in
@@ -71,7 +71,7 @@ public final class DeduplicatingLoader<T>: Loading {
             })
     }
     
-    private func remove(handler: DeduplicatorHandler<T>, from task: DeduplicatorTask<T>, key: RequestKey) {
+    private func remove(handler: DeduplicatorHandler<ObjectType>, from task: DeduplicatorTask<ObjectType>, key: RequestKey) {
         queue.sync {
             if let index = task.handlers.index(where: { $0 === handler }) {
                 task.handlers.remove(at: index)
