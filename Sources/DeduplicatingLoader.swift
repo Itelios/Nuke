@@ -28,8 +28,8 @@ public final class DeduplicatingLoader<LoaderType: Loading>: Loading {
         self.equator = equator
     }
     
-    /// Loads an image for the given request.
-    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<ObjectType, AnyError>) -> Void) -> Cancellable {
+    /// Loads an object for the given request.
+    public func loadObject(for request: Request, progress: LoadingProgress?, completion: (result: Result<ObjectType, AnyError>) -> Void) -> Cancellable {
         return queue.sync {
             // Find existing or create a new task (manages multiple handlers)
             let key = RequestKey(request, equator: equator)
@@ -49,14 +49,14 @@ public final class DeduplicatingLoader<LoaderType: Loading>: Loading {
             // Register the handler and start the request if necessary
             task.handlers.append(handler)
             if task.subtask == nil { // deferred till the end
-                task.subtask = loadImage(for: request, task: task, key: key)
+                task.subtask = loadObject(for: request, task: task, key: key)
             }
             return handler
         }
     }
 
-    private func loadImage(for request: Request, task: DeduplicatorTask<ObjectType>, key: RequestKey) -> Cancellable {
-        return loader.loadImage(
+    private func loadObject(for request: Request, task: DeduplicatorTask<ObjectType>, key: RequestKey) -> Cancellable {
+        return loader.loadObject(
             for: request,
             progress: { [weak self, weak task] completed, total in
                 _ = self?.queue.sync {

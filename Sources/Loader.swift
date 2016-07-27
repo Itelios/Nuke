@@ -11,11 +11,11 @@ public typealias LoadingCompletion<T> = (result: Result<T, AnyError>) -> Void
 public protocol Loading {
     associatedtype ObjectType
 
-    /// Loads an image for the given request.
+    /// Loads an object of `ObjectType` for the given request.
     ///
     /// The implementation is not required to call the completion handler
     /// when the load gets cancelled.
-    func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion<ObjectType>) -> Cancellable
+    func loadObject(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion<ObjectType>) -> Cancellable
 }
 
 /// Performs loading of images.
@@ -74,7 +74,7 @@ public class Loader: Loading {
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion<Image>) -> Cancellable {
+    public func loadObject(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion<Image>) -> Cancellable {
         return Pipeline(self, request, progress, completion)
     }
 }
@@ -85,11 +85,11 @@ public struct AnyLoader<T>: Loading {
 
     public init<L: Loading where L.ObjectType == T>(with loader: L) {
         _load = { request, progress, completion in
-            loader.loadImage(for: request, progress: progress, completion: completion)
+            loader.loadObject(for: request, progress: progress, completion: completion)
         }
     }
 
-    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<T, AnyError>) -> Void) -> Cancellable {
+    public func loadObject(for request: Request, progress: LoadingProgress?, completion: (result: Result<T, AnyError>) -> Void) -> Cancellable {
         return _load(request: request, progress: progress, completion: completion)
     }
 }
@@ -134,7 +134,7 @@ private class Pipeline: Cancellable {
     
     func loadData() {
         subtask = ctx.queues.loading.add(Operation() { fulfill in
-            return self.ctx.loader.loadImage(
+            return self.ctx.loader.loadObject(
                 for: self.request,
                 progress: { completed, total in
                     self.progress?(completed: completed, total: total)

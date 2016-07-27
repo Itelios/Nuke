@@ -83,7 +83,7 @@ public class Manager {
     }
 
     private func loadImage(for task: Task, ctx: Context) {
-        ctx.loadTask = loader.loadImage(
+        ctx.loadTask = loader.loadObject(
             for: ctx.request,
             progress: { completed, total in
                 DispatchQueue.main.async {

@@ -23,7 +23,7 @@ public final class DataLoader: Loading {
     }
     
     /// Creates task for the given request.
-    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<ObjectType, AnyError>) -> Void) -> Cancellable {
+    public func loadObject(for request: Request, progress: LoadingProgress?, completion: (result: Result<ObjectType, AnyError>) -> Void) -> Cancellable {
         let task = session.dataTask(with: request.urlRequest)
         sessionDelegate.register(task: task, progress: progress, completion: completion)
         task.resume()
