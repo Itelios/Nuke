@@ -9,7 +9,7 @@ import Foundation
 /// `Manager` loads images using injectable dependencies conforming to `Loading`,
 /// and `Caching` protocols.
 public class Manager {
-    public var loader: Loading
+    public var loader: AnyLoader<Image>
     public var cache: Caching?
     
     private var executingTasks = Set<Task>()
@@ -21,8 +21,8 @@ public class Manager {
     // MARK: Configuring Manager
 
     /// Initializes `Manager` instance with the given loader and cache.
-    public init(loader: Loading, cache: Caching?) {
-        self.loader = loader
+    public init<L: Loading where L.ObjectType == Image>(loader: L, cache: Caching?) {
+        self.loader = AnyLoader(with: loader)
         self.cache = cache
     }
         

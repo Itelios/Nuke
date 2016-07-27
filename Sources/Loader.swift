@@ -5,15 +5,17 @@
 import Foundation
 
 public typealias LoadingProgress = (completed: Int64, total: Int64) -> Void
-public typealias LoadingCompletion = (result: Result<Image, AnyError>) -> Void
+public typealias LoadingCompletion<T> = (result: Result<T, AnyError>) -> Void
 
 /// Performs loading of images.
-public protocol Loading: class {
+public protocol Loading {
+    associatedtype ObjectType
+
     /// Loads an image for the given request.
     ///
     /// The implementation is not required to call the completion handler
     /// when the load gets cancelled.
-    func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion) -> Cancellable
+    func loadImage(for request: Request, progress: LoadingProgress?, completion: LoadingCompletion<ObjectType>) -> Cancellable
 }
 
 /// Performs loading of images.
@@ -27,6 +29,8 @@ public protocol Loading: class {
 /// into the pipeline. Custom data cache might be more performant than caching
 /// provided by `URL Loading System` (if that's what is used for loading).
 public class Loader: Loading {
+    public typealias ObjectType = Image
+
     public enum Error: ErrorProtocol {
         case loadingFailed(AnyError)
         case decodingFailed
@@ -70,8 +74,23 @@ public class Loader: Loading {
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion) -> Cancellable {
+    public func loadImage(for request: Request, progress: LoadingProgress? = nil, completion: LoadingCompletion<Image>) -> Cancellable {
         return Pipeline(self, request, progress, completion)
+    }
+}
+
+public struct AnyLoader<T>: Loading {
+    public typealias ObjectType = T
+    private let _load: (request: Request, progress: LoadingProgress?, completion: LoadingCompletion<T>) -> Cancellable
+
+    public init<L: Loading where L.ObjectType == T>(with loader: L) {
+        _load = { request, progress, completion in
+            loader.loadImage(for: request, progress: progress, completion: completion)
+        }
+    }
+
+    public func loadImage(for request: Request, progress: LoadingProgress?, completion: (result: Result<T, AnyError>) -> Void) -> Cancellable {
+        return _load(request: request, progress: progress, completion: completion)
     }
 }
 
@@ -80,13 +99,13 @@ private class Pipeline: Cancellable {
     let ctx: Loader
     let request: Request
     let progress: LoadingProgress?
-    let completion: LoadingCompletion
+    let completion: LoadingCompletion<Image>
     var cancelled = false
     var subtask: Cancellable?
     let queue = DispatchQueue(label: "\(domain).Pipeline")
     
     /// Starts loading immediately after initialization.
-    init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion) {
+    init(_ loader: Loader, _ request: Request, _ progress: LoadingProgress?, _ completion: LoadingCompletion<Image>) {
         self.ctx = loader
         self.request = request
         self.progress = progress
